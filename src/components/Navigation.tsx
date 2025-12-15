@@ -39,9 +39,11 @@ const Navigation = () => {
                 {link.label}
               </Link>
             ))}
-            <Button className="bg-secondary hover:bg-secondary/90">
-              Участвовать
-            </Button>
+            <Link to="/register">
+              <Button className="bg-secondary hover:bg-secondary/90">
+                Участвовать
+              </Button>
+            </Link>
           </div>
 
           <button
@@ -66,9 +68,11 @@ const Navigation = () => {
                 {link.label}
               </Link>
             ))}
-            <Button className="w-full mt-4 bg-secondary hover:bg-secondary/90">
-              Участвовать
-            </Button>
+            <Link to="/register">
+              <Button className="w-full mt-4 bg-secondary hover:bg-secondary/90">
+                Участвовать
+              </Button>
+            </Link>
           </div>
         )}
       </div>
