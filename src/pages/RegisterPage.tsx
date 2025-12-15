@@ -66,22 +66,56 @@ const RegisterPage = () => {
     }
   };
 
-  const handleSubmit = () => {
-    toast({
-      title: 'Заявка отправлена! 🎉',
-      description: 'Мы проверим вашу заявку и свяжемся с вами в течение 3 дней.',
-    });
-    
-    // Сохраняем данные в localStorage для личного кабинета
-    localStorage.setItem('participantData', JSON.stringify({
-      ...formData,
-      status: 'pending',
-      submittedAt: new Date().toISOString(),
-    }));
-    
-    setTimeout(() => {
-      navigate('/profile');
-    }, 2000);
+  const handleSubmit = async () => {
+    try {
+      const response = await fetch('https://functions.poehali.dev/065d2b6a-5112-4a26-a642-211398843a75', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          birthDate: formData.birthDate,
+          city: formData.city,
+          contestId: formData.contestId,
+          category: formData.category,
+          experience: formData.experience,
+          achievements: formData.achievements,
+          additionalInfo: formData.additionalInfo,
+          filesCount: formData.files.length,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: 'Заявка отправлена! 🎉',
+          description: 'Мы проверим вашу заявку и свяжемся с вами в течение 3 дней.',
+        });
+        
+        // Сохраняем email для получения данных профиля
+        localStorage.setItem('userEmail', formData.email);
+        
+        setTimeout(() => {
+          navigate('/profile');
+        }, 2000);
+      } else {
+        toast({
+          title: 'Ошибка',
+          description: 'Не удалось отправить заявку. Попробуйте снова.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Проблема с соединением. Проверьте интернет.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleFilesChange = (files: File[]) => {

@@ -1,0 +1,39 @@
+{
+  "tests": [
+    {
+      "name": "Create new application",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "fullName": "Мария Петрова",
+        "email": "maria.petrova.test@example.com",
+        "phone": "+79991234568",
+        "birthDate": "1998-03-20",
+        "city": "Санкт-Петербург",
+        "contestId": "spring-vocal",
+        "category": "youth",
+        "experience": "advanced",
+        "achievements": "Лауреат международных конкурсов",
+        "additionalInfo": "Специализация - академический вокал",
+        "filesCount": 3
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get application by email",
+      "method": "GET",
+      "path": "/?email=maria.petrova.test@example.com",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "fullName": "string",
+        "email": "string",
+        "status": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

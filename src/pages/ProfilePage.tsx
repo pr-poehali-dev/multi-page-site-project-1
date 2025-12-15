@@ -16,13 +16,14 @@ type ParticipantData = {
   birthDate: string;
   city: string;
   contestId: string;
+  contestTitle?: string;
   category: string;
   experience: string;
   achievements: string;
   additionalInfo: string;
   status: 'pending' | 'approved' | 'rejected';
   submittedAt: string;
-  files: File[];
+  files: any[];
 };
 
 const ProfilePage = () => {
@@ -31,17 +32,45 @@ const ProfilePage = () => {
   const [data, setData] = useState<ParticipantData | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('participantData');
-    if (stored) {
-      setData(JSON.parse(stored));
-    } else {
-      toast({
-        title: 'Нет данных',
-        description: 'Сначала заполните форму регистрации',
-        variant: 'destructive',
-      });
-      navigate('/register');
-    }
+    const fetchData = async () => {
+      const email = localStorage.getItem('userEmail');
+      
+      if (!email) {
+        toast({
+          title: 'Нет данных',
+          description: 'Сначала заполните форму регистрации',
+          variant: 'destructive',
+        });
+        navigate('/register');
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `https://functions.poehali.dev/065d2b6a-5112-4a26-a642-211398843a75?email=${encodeURIComponent(email)}`
+        );
+        
+        if (response.ok) {
+          const result = await response.json();
+          setData(result);
+        } else {
+          toast({
+            title: 'Заявка не найдена',
+            description: 'Сначала заполните форму регистрации',
+            variant: 'destructive',
+          });
+          navigate('/register');
+        }
+      } catch (error) {
+        toast({
+          title: 'Ошибка загрузки',
+          description: 'Не удалось загрузить данные профиля',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    fetchData();
   }, [navigate, toast]);
 
   if (!data) return null;
@@ -171,7 +200,7 @@ const ProfilePage = () => {
                         <h4 className="text-sm font-semibold text-muted-foreground mb-2">
                           Конкурс
                         </h4>
-                        <p className="text-lg">{contestNames[data.contestId]}</p>
+                        <p className="text-lg">{data.contestTitle || contestNames[data.contestId]}</p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -233,8 +262,10 @@ const ProfilePage = () => {
                               <Icon name="File" size={24} className="text-primary" />
                             </div>
                             <div className="flex-1">
-                              <p className="font-medium">Файл {index + 1}</p>
-                              <p className="text-sm text-muted-foreground">Загружено успешно</p>
+                              <p className="font-medium">{file.name || `Файл ${index + 1}`}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {file.type || 'Загружено успешно'}
+                              </p>
                             </div>
                             <Button variant="ghost" size="icon">
                               <Icon name="Download" size={18} />
