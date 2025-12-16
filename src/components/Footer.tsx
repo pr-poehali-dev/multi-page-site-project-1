@@ -12,9 +12,7 @@ const Footer = () => {
               alt="ИНДИГО" 
               className="h-24 w-auto mb-4"
             />
-            <p className="text-sm opacity-90">
-              Творческое объединение для талантливых артистов
-            </p>
+            <p className="text-sm opacity-90">Объединяем таланты!</p>
           </div>
 
           <div>
