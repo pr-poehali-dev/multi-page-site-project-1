@@ -6,6 +6,7 @@ type FormData = {
   phone: string;
   birthDate: string;
   city: string;
+  password: string;
   contestId: string;
   category: string;
   performanceTitle: string;
@@ -91,6 +92,23 @@ const RegisterStepPersonal = ({ formData, setFormData }: RegisterStepPersonalPro
             required
           />
         </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-2">
+          Пароль для личного кабинета <span className="text-destructive">*</span>
+        </label>
+        <Input
+          type="password"
+          placeholder="Минимум 6 символов"
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          minLength={6}
+          required
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          Используйте этот пароль для входа в личный кабинет
+        </p>
       </div>
     </div>
   );

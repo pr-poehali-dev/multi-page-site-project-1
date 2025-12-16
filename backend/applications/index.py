@@ -4,6 +4,12 @@ from typing import Dict, Any
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
+import hashlib
+
+
+def hash_password(password: str) -> str:
+    '''Хеширование пароля SHA-256'''
+    return hashlib.sha256(password.encode()).hexdigest()
 
 def get_db_connection():
     '''Создает подключение к базе данных'''
@@ -46,6 +52,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             phone = body_data.get('phone')
             birth_date = body_data.get('birthDate')
             city = body_data.get('city')
+            password = body_data.get('password', '')
             contest_input = body_data.get('contestId')
             category = body_data.get('category')
             performance_title = body_data.get('performanceTitle', '')
@@ -56,22 +63,41 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             additional_info = body_data.get('additionalInfo', '')
             files_count = body_data.get('filesCount', 0)
             
+            password_hash = hash_password(password) if password else None
+            
             with conn.cursor() as cur:
                 # Проверяем/создаем участника
-                cur.execute(
-                    '''
-                    INSERT INTO participants (full_name, email, phone, birth_date, city)
-                    VALUES (%s, %s, %s, %s, %s)
-                    ON CONFLICT (email) 
-                    DO UPDATE SET 
-                        full_name = EXCLUDED.full_name,
-                        phone = EXCLUDED.phone,
-                        birth_date = EXCLUDED.birth_date,
-                        city = EXCLUDED.city
-                    RETURNING id
-                    ''',
-                    (full_name, email, phone, birth_date, city)
-                )
+                if password_hash:
+                    cur.execute(
+                        '''
+                        INSERT INTO participants (full_name, email, phone, birth_date, city, password_hash)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (email) 
+                        DO UPDATE SET 
+                            full_name = EXCLUDED.full_name,
+                            phone = EXCLUDED.phone,
+                            birth_date = EXCLUDED.birth_date,
+                            city = EXCLUDED.city,
+                            password_hash = EXCLUDED.password_hash
+                        RETURNING id
+                        ''',
+                        (full_name, email, phone, birth_date, city, password_hash)
+                    )
+                else:
+                    cur.execute(
+                        '''
+                        INSERT INTO participants (full_name, email, phone, birth_date, city)
+                        VALUES (%s, %s, %s, %s, %s)
+                        ON CONFLICT (email) 
+                        DO UPDATE SET 
+                            full_name = EXCLUDED.full_name,
+                            phone = EXCLUDED.phone,
+                            birth_date = EXCLUDED.birth_date,
+                            city = EXCLUDED.city
+                        RETURNING id
+                        ''',
+                        (full_name, email, phone, birth_date, city)
+                    )
                 participant_id = cur.fetchone()['id']
                 
                 # Получаем ID конкурса (поддержка и числового ID, и строкового ключа)

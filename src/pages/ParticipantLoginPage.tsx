@@ -13,6 +13,7 @@ const PARTICIPANT_AUTH_URL = 'https://functions.poehali.dev/52234468-777f-4edf-b
 
 const ParticipantLoginPage = () => {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -20,10 +21,10 @@ const ParticipantLoginPage = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email) {
+    if (!email || !password) {
       toast({
         title: 'Ошибка',
-        description: 'Введите email',
+        description: 'Введите email и пароль',
         variant: 'destructive'
       });
       return;
@@ -31,7 +32,13 @@ const ParticipantLoginPage = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${PARTICIPANT_AUTH_URL}?email=${encodeURIComponent(email)}`);
+      const response = await fetch(PARTICIPANT_AUTH_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -48,7 +55,7 @@ const ParticipantLoginPage = () => {
         const error = await response.json();
         toast({
           title: 'Ошибка входа',
-          description: error.error || 'Участник не найден',
+          description: error.error || 'Неверный email или пароль',
           variant: 'destructive'
         });
       }
@@ -77,7 +84,7 @@ const ParticipantLoginPage = () => {
               </div>
               <CardTitle className="text-2xl text-center">Вход для участников</CardTitle>
               <CardDescription className="text-center">
-                Введите email, который вы указали при регистрации
+                Введите email и пароль для доступа к личному кабинету
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -90,6 +97,18 @@ const ParticipantLoginPage = () => {
                     placeholder="your@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Пароль</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Ваш пароль"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
                   />
                 </div>

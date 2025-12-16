@@ -1,9 +1,13 @@
 {
   "tests": [
     {
-      "name": "Get participant applications",
-      "method": "GET",
-      "path": "/?email=test@example.com",
+      "name": "Login with email and password",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "email": "test@example.com",
+        "password": "test123"
+      },
       "expectedStatus": 200,
       "expectedBody": {
         "participant": {

@@ -19,6 +19,7 @@ type FormData = {
   phone: string;
   birthDate: string;
   city: string;
+  password: string;
   
   // Шаг 2: Конкурс
   contestId: string;
@@ -48,6 +49,7 @@ const RegisterPage = () => {
     phone: '',
     birthDate: '',
     city: '',
+    password: '',
     contestId: '',
     category: '',
     performanceTitle: '',
