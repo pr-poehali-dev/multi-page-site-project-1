@@ -13,13 +13,17 @@ import AdminAuth from '@/components/admin/AdminAuth';
 import { useAdminApplications } from '@/hooks/useAdminApplications';
 import { useAdminContests } from '@/hooks/useAdminContests';
 import { useAdminJury } from '@/hooks/useAdminJury';
+import { useAdminScoring } from '@/hooks/useAdminScoring';
+import ScoringTab from '@/components/admin/ScoringTab';
 
 const AdminPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'jury' | 'jury-accounts'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'jury' | 'jury-accounts' | 'scoring'>('applications');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [contestFilter, setContestFilter] = useState('all');
+
+  const { participants, loading: scoringLoading, selectedContest: scoringSelectedContest, handleContestChange, exportProtocol } = useAdminScoring();
 
   const { applications, loading: applicationsLoading, updateStatus } = useAdminApplications(statusFilter, contestFilter);
 
@@ -84,6 +88,7 @@ const AdminPage = () => {
 
   const loading = activeTab === 'applications' ? applicationsLoading : 
                   activeTab === 'contests' ? contestsLoading : 
+                  activeTab === 'scoring' ? scoringLoading :
                   juryLoading;
 
   return (
@@ -145,6 +150,14 @@ const AdminPage = () => {
                 <Icon name="Key" size={18} className="mr-2" />
                 Доступы жюри
               </Button>
+              <Button
+                variant={activeTab === 'scoring' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('scoring')}
+                className={activeTab === 'scoring' ? 'bg-secondary hover:bg-secondary/90' : ''}
+              >
+                <Icon name="BarChart3" size={18} className="mr-2" />
+                Протокол оценок
+              </Button>
             </div>
           </div>
 
@@ -187,6 +200,17 @@ const AdminPage = () => {
               juryMembers={juryMembers}
               loading={loading}
               onSetCredentials={handleSetJuryCredentials}
+            />
+          )}
+
+          {activeTab === 'scoring' && (
+            <ScoringTab
+              contests={contests}
+              selectedContest={scoringSelectedContest}
+              participants={participants}
+              loading={loading}
+              onContestChange={handleContestChange}
+              onExportProtocol={exportProtocol}
             />
           )}
 

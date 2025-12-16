@@ -151,21 +151,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'isBase64Encoded': False
             }
         
-        # Для всех остальных эндпоинтов требуется токен
-        token = event.get('headers', {}).get('X-Jury-Token') or event.get('headers', {}).get('x-jury-token')
-        
-        if not token:
-            return {
-                'statusCode': 401,
-                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'error': 'Требуется авторизация'}),
-                'isBase64Encoded': False
-            }
-        
-        jury_id = verify_jury_token(token, conn)
-        
         # SCORES endpoint - получение списка участников
-        if method == 'GET' and action != 'verify':
+        if method == 'GET' and action == 'scores':
+            # Проверка токена - опционально для админа
+            token = event.get('headers', {}).get('X-Jury-Token') or event.get('headers', {}).get('x-jury-token')
+            jury_id = None
+            
+            if token:
+                try:
+                    jury_id = verify_jury_token(token, conn)
+                except ValueError:
+                    pass
             contest_id = params.get('contest_id')
             
             if not contest_id:
@@ -178,27 +174,87 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             cur = conn.cursor()
             
+            # Если есть токен - это запрос жюри (свои оценки)
+            if token:
+                cur.execute(
+                    '''SELECT p.id, p.full_name, p.age, p.category, p.performance_title,
+                              ps.score, ps.comment, ps.id as score_id
+                       FROM participants p
+                       LEFT JOIN participant_scores ps ON p.id = ps.participant_id AND ps.jury_member_id = %s
+                       WHERE p.contest_id = %s AND p.status = 'approved'
+                       ORDER BY p.id''',
+                    (jury_id, contest_id)
+                )
+                
+                participants = []
+                for row in cur.fetchall():
+                    participants.append({
+                        'id': row[0],
+                        'full_name': row[1],
+                        'age': row[2],
+                        'category': row[3],
+                        'performance_title': row[4],
+                        'score': float(row[5]) if row[5] else None,
+                        'comment': row[6],
+                        'score_id': row[7]
+                    })
+                
+                cur.close()
+                
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'participants': participants}),
+                    'isBase64Encoded': False
+                }
+            
+            # Если токена нет - это запрос админа (все оценки с агрегацией)
             cur.execute(
-                '''SELECT p.id, p.full_name, p.age, p.category, p.performance_title,
-                          ps.score, ps.comment, ps.id as score_id
+                '''SELECT p.id, p.full_name, p.age, p.category
                    FROM participants p
-                   LEFT JOIN participant_scores ps ON p.id = ps.participant_id AND ps.jury_member_id = %s
                    WHERE p.contest_id = %s AND p.status = 'approved'
                    ORDER BY p.id''',
-                (jury_id, contest_id)
+                (contest_id,)
             )
             
             participants = []
             for row in cur.fetchall():
+                participant_id = row[0]
+                
+                # Получаем все оценки для этого участника
+                cur.execute(
+                    '''SELECT jm.name, ps.score, ps.comment
+                       FROM participant_scores ps
+                       JOIN jury_members jm ON ps.jury_member_id = jm.id
+                       WHERE ps.participant_id = %s
+                       ORDER BY jm.name''',
+                    (participant_id,)
+                )
+                
+                jury_scores = []
+                total_score = 0
+                count = 0
+                
+                for score_row in cur.fetchall():
+                    score_val = float(score_row[1])
+                    jury_scores.append({
+                        'jury_name': score_row[0],
+                        'score': score_val,
+                        'comment': score_row[2]
+                    })
+                    total_score += score_val
+                    count += 1
+                
+                avg_score = total_score / count if count > 0 else None
+                
                 participants.append({
-                    'id': row[0],
-                    'full_name': row[1],
+                    'id': participant_id,
+                    'name': row[1],
                     'age': row[2],
-                    'category': row[3],
-                    'performance_title': row[4],
-                    'score': float(row[5]) if row[5] else None,
-                    'comment': row[6],
-                    'score_id': row[7]
+                    'nomination': row[3],
+                    'avg_score': avg_score,
+                    'scores_count': count,
+                    'jury_scores': jury_scores
                 })
             
             cur.close()
@@ -209,6 +265,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'body': json.dumps({'participants': participants}),
                 'isBase64Encoded': False
             }
+        
+        # Для POST/PUT требуется токен
+        token = event.get('headers', {}).get('X-Jury-Token') or event.get('headers', {}).get('x-jury-token')
+        
+        if not token:
+            return {
+                'statusCode': 401,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Требуется авторизация'}),
+                'isBase64Encoded': False
+            }
+        
+        jury_id = verify_jury_token(token, conn)
         
         # SCORES endpoint - сохранение оценки
         if (method == 'POST' or method == 'PUT') and action != 'login':
