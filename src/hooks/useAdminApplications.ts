@@ -46,10 +46,14 @@ export const useAdminApplications = (statusFilter: string, contestFilter: string
       );
 
       if (response.ok) {
+        const data = await response.json();
         loadApplications();
+        return data;
       }
+      return null;
     } catch (error) {
       console.error('Ошибка обновления статуса:', error);
+      return null;
     }
   };
 

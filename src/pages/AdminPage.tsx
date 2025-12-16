@@ -15,8 +15,10 @@ import { useAdminContests } from '@/hooks/useAdminContests';
 import { useAdminJury } from '@/hooks/useAdminJury';
 import { useAdminScoring } from '@/hooks/useAdminScoring';
 import ScoringTab from '@/components/admin/ScoringTab';
+import { useToast } from '@/hooks/use-toast';
 
 const AdminPage = () => {
+  const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'jury' | 'jury-accounts' | 'scoring'>('applications');
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,6 +28,24 @@ const AdminPage = () => {
   const { participants, loading: scoringLoading, selectedContest: scoringSelectedContest, handleContestChange, exportProtocol } = useAdminScoring();
 
   const { applications, loading: applicationsLoading, updateStatus } = useAdminApplications(statusFilter, contestFilter);
+  
+  const handleUpdateStatus = async (applicationId: number, newStatus: string) => {
+    const result = await updateStatus(applicationId, newStatus);
+    if (result) {
+      if (newStatus === 'approved') {
+        toast({
+          title: 'Заявка одобрена',
+          description: result.message || 'Участник добавлен в систему оценивания',
+        });
+      } else if (newStatus === 'rejected') {
+        toast({
+          title: 'Заявка отклонена',
+          description: 'Статус заявки успешно обновлен',
+          variant: 'destructive'
+        });
+      }
+    }
+  };
 
   const {
     contests,
@@ -171,7 +191,7 @@ const AdminPage = () => {
               setStatusFilter={setStatusFilter}
               contestFilter={contestFilter}
               setContestFilter={setContestFilter}
-              updateStatus={updateStatus}
+              updateStatus={handleUpdateStatus}
             />
           )}
 

@@ -115,13 +115,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'isBase64Encoded': False
                 }
             
-            with conn.cursor() as cur:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Получаем данные заявки
                 cur.execute(
-                    "UPDATE applications SET status = %s WHERE id = %s",
-                    (new_status, app_id)
+                    '''SELECT a.*, p.full_name, p.email, p.phone, p.birth_date, p.city
+                       FROM applications a
+                       JOIN participants p ON a.participant_id = p.id
+                       WHERE a.id = %s''',
+                    (app_id,)
                 )
+                application = cur.fetchone()
                 
-                if cur.rowcount == 0:
+                if not application:
                     return {
                         'statusCode': 404,
                         'headers': {
@@ -131,6 +136,29 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         'body': json.dumps({'error': 'Заявка не найдена'}),
                         'isBase64Encoded': False
                     }
+                
+                # Обновляем статус заявки
+                cur.execute(
+                    "UPDATE applications SET status = %s WHERE id = %s",
+                    (new_status, app_id)
+                )
+                
+                # Если заявка одобрена - обновляем участника для системы оценивания
+                if new_status == 'approved':
+                    from datetime import datetime
+                    birth_date = application['birth_date']
+                    age = datetime.now().year - birth_date.year
+                    if datetime.now().month < birth_date.month or \
+                       (datetime.now().month == birth_date.month and datetime.now().day < birth_date.day):
+                        age -= 1
+                    
+                    # Обновляем участника: добавляем contest_id, age, category, status
+                    cur.execute(
+                        '''UPDATE participants 
+                           SET contest_id = %s, age = %s, category = %s, status = 'approved'
+                           WHERE id = %s''',
+                        (application['contest_id'], age, application['category'], application['participant_id'])
+                    )
             
             return {
                 'statusCode': 200,
@@ -138,7 +166,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'success': True, 'message': 'Статус обновлён'}),
+                'body': json.dumps({
+                    'success': True, 
+                    'message': 'Статус обновлён' + (' и участник добавлен в систему оценивания' if new_status == 'approved' else '')
+                }),
                 'isBase64Encoded': False
             }
         
