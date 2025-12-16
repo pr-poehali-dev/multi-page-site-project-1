@@ -44,7 +44,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             phone = body_data.get('phone')
             birth_date = body_data.get('birthDate')
             city = body_data.get('city')
-            contest_key = body_data.get('contestId')
+            contest_input = body_data.get('contestId')
             category = body_data.get('category')
             experience = body_data.get('experience', '')
             achievements = body_data.get('achievements', '')
@@ -69,13 +69,26 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 )
                 participant_id = cur.fetchone()['id']
                 
-                # Получаем ID конкурса
-                cur.execute(
-                    'SELECT id FROM contests WHERE contest_key = %s',
-                    (contest_key,)
-                )
-                contest_row = cur.fetchone()
-                if not contest_row:
+                # Получаем ID конкурса (поддержка и числового ID, и строкового ключа)
+                contest_id = None
+                
+                # Пробуем как числовой ID
+                try:
+                    contest_id = int(contest_input)
+                    cur.execute('SELECT id FROM contests WHERE id = %s', (contest_id,))
+                    if not cur.fetchone():
+                        contest_id = None
+                except (ValueError, TypeError):
+                    pass
+                
+                # Если не числовой, пробуем как ключ
+                if contest_id is None:
+                    cur.execute('SELECT id FROM contests WHERE contest_key = %s', (contest_input,))
+                    contest_row = cur.fetchone()
+                    if contest_row:
+                        contest_id = contest_row['id']
+                
+                if contest_id is None:
                     conn.rollback()
                     return {
                         'statusCode': 404,
@@ -83,8 +96,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         'body': json.dumps({'error': 'Contest not found'}),
                         'isBase64Encoded': False
                     }
-                
-                contest_id = contest_row['id']
                 
                 # Создаем заявку
                 cur.execute(
