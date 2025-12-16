@@ -49,26 +49,26 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # === GALLERY ENDPOINTS ===
         if 'gallery' in path:
             if method == 'GET':
-                params = event.get('queryStringParameters') or {}
-                contest_id = params.get('contest_id')
-                media_type = params.get('media_type')
-                featured_only = params.get('featured') == 'true'
+                query_params = event.get('queryStringParameters') or {}
+                contest_id = query_params.get('contest_id')
+                media_type = query_params.get('media_type')
+                featured_only = query_params.get('featured') == 'true'
                 
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
                     query = 'SELECT id, title, description, file_url, thumbnail_url, media_type, contest_id, display_order, is_featured, created_at FROM gallery_items WHERE 1=1'
-                    params = []
+                    sql_params = []
                     
                     if contest_id:
                         query += " AND contest_id = %s"
-                        params.append(int(contest_id))
+                        sql_params.append(int(contest_id))
                     if media_type:
                         query += " AND media_type = %s"
-                        params.append(media_type)
+                        sql_params.append(media_type)
                     if featured_only:
                         query += " AND is_featured = true"
                     
                     query += ' ORDER BY display_order ASC, created_at DESC'
-                    cur.execute(query, params)
+                    cur.execute(query, sql_params)
                     items = cur.fetchall()
                     
                     for item in items:
