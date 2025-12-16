@@ -73,7 +73,14 @@ const ContestsPage = () => {
                     >
                       {contest.status === 'active' ? 'Идёт приём заявок' : 'Скоро'}
                     </Badge>
-                    <h3 className="text-2xl font-heading font-bold mb-2">{contest.title}</h3>
+                    <div className="flex items-center gap-4 mb-4">
+                      <img 
+                        src="https://cdn.poehali.dev/files/ЛОГО.png" 
+                        alt="Логотип конкурса" 
+                        className="w-16 h-16 object-contain"
+                      />
+                      <h3 className="text-2xl font-heading font-bold">{contest.title}</h3>
+                    </div>
                     <p className="text-muted-foreground">{contest.description}</p>
                   </div>
 
