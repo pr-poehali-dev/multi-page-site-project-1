@@ -6,6 +6,8 @@ import Icon from '@/components/ui/icon';
 import ApplicationsTab from '@/components/admin/ApplicationsTab';
 import ContestsTab from '@/components/admin/ContestsTab';
 import ContestModal from '@/components/admin/ContestModal';
+import JuryTab from '@/components/admin/JuryTab';
+import JuryModal from '@/components/admin/JuryModal';
 
 interface Application {
   id: number;
@@ -24,13 +26,24 @@ interface Contest {
   status: string;
 }
 
+interface JuryMember {
+  id: number;
+  name: string;
+  role: string;
+  specialty: string;
+  bio: string;
+  image_url: string | null;
+  sort_order: number;
+}
+
 const AdminPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'applications' | 'contests'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'jury'>('applications');
   const [applications, setApplications] = useState<Application[]>([]);
   const [contests, setContests] = useState<Contest[]>([]);
+  const [juryMembers, setJuryMembers] = useState<JuryMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -44,6 +57,17 @@ const AdminPage = () => {
     start_date: '',
     end_date: '',
     status: 'upcoming'
+  });
+  const [showCreateJuryModal, setShowCreateJuryModal] = useState(false);
+  const [showEditJuryModal, setShowEditJuryModal] = useState(false);
+  const [selectedJuryMember, setSelectedJuryMember] = useState<JuryMember | null>(null);
+  const [juryFormData, setJuryFormData] = useState({
+    name: '',
+    role: '',
+    specialty: '',
+    bio: '',
+    image_url: '',
+    sort_order: 0
   });
 
   const handleLogin = (e: React.FormEvent) => {
@@ -64,8 +88,10 @@ const AdminPage = () => {
   useEffect(() => {
     if (activeTab === 'applications') {
       loadApplications();
-    } else {
+    } else if (activeTab === 'contests') {
       loadContests();
+    } else if (activeTab === 'jury') {
+      loadJuryMembers();
     }
   }, [statusFilter, contestFilter, activeTab]);
 
@@ -195,6 +221,92 @@ const AdminPage = () => {
     setShowCreateModal(true);
   };
 
+  const loadJuryMembers = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('https://functions.poehali.dev/29a5a3ab-7964-41f0-baf5-d85b81b743bc');
+      const data = await response.json();
+      setJuryMembers(data.jury_members || []);
+    } catch (error) {
+      console.error('Ошибка загрузки жюри:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateJuryMember = async () => {
+    try {
+      const response = await fetch('https://functions.poehali.dev/29a5a3ab-7964-41f0-baf5-d85b81b743bc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(juryFormData)
+      });
+      
+      if (response.ok) {
+        setShowCreateJuryModal(false);
+        setJuryFormData({ name: '', role: '', specialty: '', bio: '', image_url: '', sort_order: 0 });
+        loadJuryMembers();
+      }
+    } catch (error) {
+      console.error('Ошибка создания члена жюри:', error);
+    }
+  };
+
+  const handleEditJuryMember = async () => {
+    if (!selectedJuryMember) return;
+    
+    try {
+      const response = await fetch('https://functions.poehali.dev/29a5a3ab-7964-41f0-baf5-d85b81b743bc', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedJuryMember.id, ...juryFormData })
+      });
+      
+      if (response.ok) {
+        setShowEditJuryModal(false);
+        setSelectedJuryMember(null);
+        setJuryFormData({ name: '', role: '', specialty: '', bio: '', image_url: '', sort_order: 0 });
+        loadJuryMembers();
+      }
+    } catch (error) {
+      console.error('Ошибка обновления члена жюри:', error);
+    }
+  };
+
+  const handleDeleteJuryMember = async (memberId: number) => {
+    if (!confirm('Удалить члена жюри?')) return;
+    
+    try {
+      const response = await fetch(`https://functions.poehali.dev/29a5a3ab-7964-41f0-baf5-d85b81b743bc?id=${memberId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        loadJuryMembers();
+      }
+    } catch (error) {
+      console.error('Ошибка удаления члена жюри:', error);
+    }
+  };
+
+  const openEditJuryModal = (member: JuryMember) => {
+    setSelectedJuryMember(member);
+    setJuryFormData({
+      name: member.name,
+      role: member.role,
+      specialty: member.specialty,
+      bio: member.bio,
+      image_url: member.image_url || '',
+      sort_order: member.sort_order
+    });
+    setShowEditJuryModal(true);
+  };
+
+  const handleCreateJuryClick = () => {
+    setJuryFormData({ name: '', role: '', specialty: '', bio: '', image_url: '', sort_order: 0 });
+    setShowCreateJuryModal(true);
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen">
@@ -280,6 +392,14 @@ const AdminPage = () => {
                 <Icon name="Trophy" size={18} className="mr-2" />
                 Конкурсы
               </Button>
+              <Button
+                variant={activeTab === 'jury' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('jury')}
+                className={activeTab === 'jury' ? 'bg-secondary hover:bg-secondary/90' : ''}
+              >
+                <Icon name="Users" size={18} className="mr-2" />
+                Жюри
+              </Button>
             </div>
           </div>
 
@@ -307,6 +427,16 @@ const AdminPage = () => {
             />
           )}
 
+          {activeTab === 'jury' && (
+            <JuryTab
+              juryMembers={juryMembers}
+              loading={loading}
+              onCreateClick={handleCreateJuryClick}
+              onEditClick={openEditJuryModal}
+              onDeleteClick={handleDeleteJuryMember}
+            />
+          )}
+
           <ContestModal
             show={showCreateModal}
             mode="create"
@@ -323,6 +453,24 @@ const AdminPage = () => {
             setFormData={setFormData}
             onClose={() => setShowEditModal(false)}
             onSubmit={handleEditContest}
+          />
+
+          <JuryModal
+            show={showCreateJuryModal}
+            mode="create"
+            formData={juryFormData}
+            setFormData={setJuryFormData}
+            onClose={() => setShowCreateJuryModal(false)}
+            onSubmit={handleCreateJuryMember}
+          />
+
+          <JuryModal
+            show={showEditJuryModal}
+            mode="edit"
+            formData={juryFormData}
+            setFormData={setJuryFormData}
+            onClose={() => setShowEditJuryModal(false)}
+            onSubmit={handleEditJuryMember}
           />
         </div>
       </div>

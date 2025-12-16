@@ -1,0 +1,32 @@
+{
+  "tests": [
+    {
+      "name": "Get all jury members",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "jury_members": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create jury member",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "name": "Тестовый Участник",
+        "role": "Эксперт",
+        "specialty": "Музыка",
+        "bio": "Тестовая биография",
+        "sort_order": 10
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "id": "number",
+        "message": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
