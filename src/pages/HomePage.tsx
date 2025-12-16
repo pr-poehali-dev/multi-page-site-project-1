@@ -83,7 +83,10 @@ const HomePage = () => {
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => {
-              const linkPath = feature.title === 'Конкурсы' ? '/contests' : '#';
+              let linkPath = '#';
+              if (feature.title === 'Конкурсы') linkPath = '/contests';
+              if (feature.title === 'Концерты') linkPath = '/concerts';
+              
               const CardContent = (
                 <Card
                   key={index}
@@ -98,7 +101,7 @@ const HomePage = () => {
                 </Card>
               );
 
-              return feature.title === 'Конкурсы' ? (
+              return linkPath !== '#' ? (
                 <Link key={index} to={linkPath}>
                   {CardContent}
                 </Link>
