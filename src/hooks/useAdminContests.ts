@@ -7,6 +7,10 @@ interface Contest {
   start_date: string;
   end_date: string;
   status: string;
+  rules?: string;
+  prizes?: string;
+  categories?: string;
+  pdf_url?: string;
 }
 
 interface ContestFormData {
@@ -15,6 +19,10 @@ interface ContestFormData {
   start_date: string;
   end_date: string;
   status: string;
+  rules?: string;
+  prizes?: string;
+  categories?: string;
+  pdf_url?: string;
 }
 
 export const useAdminContests = () => {
@@ -28,7 +36,11 @@ export const useAdminContests = () => {
     description: '',
     start_date: '',
     end_date: '',
-    status: 'upcoming'
+    status: 'upcoming',
+    rules: '',
+    prizes: '',
+    categories: '',
+    pdf_url: ''
   });
 
   const loadContests = async () => {
@@ -55,7 +67,7 @@ export const useAdminContests = () => {
       
       if (response.ok) {
         setShowCreateModal(false);
-        setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming' });
+        setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming', rules: '', prizes: '', categories: '', pdf_url: '' });
         loadContests();
       }
     } catch (error) {
@@ -76,7 +88,7 @@ export const useAdminContests = () => {
       if (response.ok) {
         setShowEditModal(false);
         setSelectedContest(null);
-        setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming' });
+        setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming', rules: '', prizes: '', categories: '', pdf_url: '' });
         loadContests();
       }
     } catch (error) {
@@ -107,13 +119,17 @@ export const useAdminContests = () => {
       description: contest.description,
       start_date: contest.start_date.split('T')[0],
       end_date: contest.end_date.split('T')[0],
-      status: contest.status
+      status: contest.status,
+      rules: contest.rules || '',
+      prizes: contest.prizes || '',
+      categories: contest.categories || '',
+      pdf_url: contest.pdf_url || ''
     });
     setShowEditModal(true);
   };
 
   const handleCreateClick = () => {
-    setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming' });
+    setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming', rules: '', prizes: '', categories: '', pdf_url: '' });
     setShowCreateModal(true);
   };
 

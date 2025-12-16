@@ -1,7 +1,10 @@
+import { useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 import {
   Select,
   SelectContent,
@@ -19,10 +22,15 @@ interface ContestModalProps {
     start_date: string;
     end_date: string;
     status: string;
+    rules?: string;
+    prizes?: string;
+    categories?: string;
+    pdf_url?: string;
   };
   setFormData: (data: any) => void;
   onClose: () => void;
   onSubmit: () => void;
+  contestId?: number;
 }
 
 const ContestModal = ({
@@ -32,7 +40,74 @@ const ContestModal = ({
   setFormData,
   onClose,
   onSubmit,
+  contestId,
 }: ContestModalProps) => {
+  const { toast } = useToast();
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      toast({
+        title: 'Ошибка',
+        description: 'Можно загружать только PDF файлы',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!contestId && mode === 'edit') {
+      toast({
+        title: 'Ошибка',
+        description: 'Сначала сохраните конкурс',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setUploadingPdf(true);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64String = (event.target?.result as string).split(',')[1];
+
+        const response = await fetch('https://functions.poehali.dev/b0d40cbb-41ff-48a1-a800-101845d59a03', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file_base64: base64String,
+            file_name: file.name,
+            contest_id: contestId || 0
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.pdf_url) {
+          setFormData({ ...formData, pdf_url: data.pdf_url });
+          toast({
+            title: 'Успешно',
+            description: 'PDF загружен'
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось загрузить PDF',
+        variant: 'destructive'
+      });
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
   if (!show) return null;
 
   return (
@@ -61,13 +136,13 @@ const ContestModal = ({
 
           <div>
             <label className="text-sm font-medium mb-2 block">Описание</label>
-            <textarea
-              className="w-full min-h-[100px] px-3 py-2 border border-input rounded-md"
+            <Textarea
               value={formData.description}
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
               placeholder="Введите описание конкурса"
+              rows={3}
             />
           </div>
 
@@ -116,6 +191,82 @@ const ContestModal = ({
                 <SelectItem value="completed">Завершён</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+              <Icon name="FileText" size={16} />
+              Положение конкурса (PDF)
+            </label>
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                onChange={handlePdfUpload}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPdf || (mode === 'create')}
+                className="flex-1"
+              >
+                <Icon name="Upload" size={16} className="mr-2" />
+                {uploadingPdf ? 'Загрузка...' : formData.pdf_url ? 'Заменить PDF' : 'Загрузить PDF'}
+              </Button>
+              {formData.pdf_url && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => window.open(formData.pdf_url, '_blank')}
+                >
+                  <Icon name="ExternalLink" size={16} />
+                </Button>
+              )}
+            </div>
+            {mode === 'create' && (
+              <p className="text-xs text-muted-foreground mt-1">
+                PDF можно будет загрузить после создания конкурса
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Правила (опционально)</label>
+            <Textarea
+              value={formData.rules || ''}
+              onChange={(e) =>
+                setFormData({ ...formData, rules: e.target.value })
+              }
+              placeholder="Правила участия в конкурсе"
+              rows={3}
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Категории (опционально)</label>
+            <Textarea
+              value={formData.categories || ''}
+              onChange={(e) =>
+                setFormData({ ...formData, categories: e.target.value })
+              }
+              placeholder="Категории участия"
+              rows={3}
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Призы (опционально)</label>
+            <Textarea
+              value={formData.prizes || ''}
+              onChange={(e) =>
+                setFormData({ ...formData, prizes: e.target.value })
+              }
+              placeholder="Призовой фонд"
+              rows={3}
+            />
           </div>
         </div>
 

@@ -287,6 +287,7 @@ const AdminPage = () => {
             setFormData={setFormData}
             onClose={() => setShowEditModal(false)}
             onSubmit={handleEditContest}
+            contestId={selectedContest?.id}
           />
 
           <JuryModal

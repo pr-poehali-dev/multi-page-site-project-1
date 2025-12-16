@@ -1,0 +1,19 @@
+{
+  "tests": [
+    {
+      "name": "Upload PDF with valid data",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "file_base64": "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlL1BhZ2VzL0NvdW50IDEvS2lkc1szIDAgUl0+PgplbmRvYmoKMyAwIG9iago8PC9UeXBlL1BhZ2UvUGFyZW50IDIgMCBSPj4KZW5kb2JqCnhyZWYKMCA0CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxMCAwMDAwMCBuIAowMDAwMDAwMDUzIDAwMDAwIG4gCjAwMDAwMDAxMDIgMDAwMDAgbiAKdHJhaWxlcgo8PC9TaXplIDQvUm9vdCAxIDAgUj4+CnN0YXJ0eHJlZgoxNDkKJSVFT0YK",
+        "file_name": "test.pdf",
+        "contest_id": 1
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "pdf_url": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

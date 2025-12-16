@@ -18,6 +18,7 @@ interface Contest {
   rules?: string;
   prizes?: string;
   categories?: string;
+  pdf_url?: string;
 }
 
 const ContestDetailPage = () => {
@@ -148,14 +149,26 @@ const ContestDetailPage = () => {
                     </div>
                   )}
 
-                  <Button 
-                    size="lg"
-                    className="bg-secondary hover:bg-secondary/90"
-                    disabled={isPast || isFuture}
-                  >
-                    <Icon name="Send" size={20} className="mr-2" />
-                    {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется приём заявок' : 'Подать заявку'}
-                  </Button>
+                  <div className="flex flex-wrap gap-3">
+                    <Button 
+                      size="lg"
+                      className="bg-secondary hover:bg-secondary/90"
+                      disabled={isPast || isFuture}
+                    >
+                      <Icon name="Send" size={20} className="mr-2" />
+                      {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется приём заявок' : 'Подать заявку'}
+                    </Button>
+                    {contest.pdf_url && (
+                      <Button 
+                        size="lg"
+                        variant="outline"
+                        onClick={() => window.open(contest.pdf_url, '_blank')}
+                      >
+                        <Icon name="FileText" size={20} className="mr-2" />
+                        Скачать положение (PDF)
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

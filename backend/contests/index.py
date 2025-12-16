@@ -69,7 +69,11 @@ def get_contests(conn) -> Dict[str, Any]:
                 description,
                 start_date,
                 end_date,
-                status
+                status,
+                pdf_url,
+                rules,
+                prizes,
+                categories
             FROM contests
             WHERE status IS NOT NULL
             ORDER BY start_date
@@ -107,6 +111,10 @@ def create_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
     start_date = body.get('start_date')
     end_date = body.get('end_date')
     status = body.get('status', 'upcoming')
+    pdf_url = body.get('pdf_url')
+    rules = body.get('rules')
+    prizes = body.get('prizes')
+    categories = body.get('categories')
     
     if not title or not start_date or not end_date:
         return {
@@ -121,10 +129,10 @@ def create_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
     
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute('''
-            INSERT INTO contests (title, description, start_date, end_date, status)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO contests (title, description, start_date, end_date, status, pdf_url, rules, prizes, categories)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
-        ''', (title, description, start_date, end_date, status))
+        ''', (title, description, start_date, end_date, status, pdf_url, rules, prizes, categories))
         
         result = cur.fetchone()
         
@@ -174,6 +182,18 @@ def update_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
         if 'status' in body:
             updates.append('status = %s')
             values.append(body['status'])
+        if 'pdf_url' in body:
+            updates.append('pdf_url = %s')
+            values.append(body['pdf_url'])
+        if 'rules' in body:
+            updates.append('rules = %s')
+            values.append(body['rules'])
+        if 'prizes' in body:
+            updates.append('prizes = %s')
+            values.append(body['prizes'])
+        if 'categories' in body:
+            updates.append('categories = %s')
+            values.append(body['categories'])
         
         if not updates:
             return {
