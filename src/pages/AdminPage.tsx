@@ -234,6 +234,8 @@ const AdminPage = () => {
               onExportProtocol={exportProtocol}
             />
           )}
+          
+          {activeTab === 'scoring' && console.log('[AdminPage] Rendering ScoringTab with:', { contests: contests.length, participants: participants.length })}
 
           <ContestModal
             show={showCreateModal}
