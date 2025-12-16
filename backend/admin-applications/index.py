@@ -56,16 +56,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
                     query = 'SELECT id, title, description, file_url, thumbnail_url, media_type, contest_id, display_order, is_featured, created_at FROM gallery_items WHERE 1=1'
+                    params = []
                     
                     if contest_id:
-                        query += f" AND contest_id = {int(contest_id)}"
+                        query += " AND contest_id = %s"
+                        params.append(int(contest_id))
                     if media_type:
-                        query += f" AND media_type = '{media_type}'"
+                        query += " AND media_type = %s"
+                        params.append(media_type)
                     if featured_only:
                         query += " AND is_featured = true"
                     
                     query += ' ORDER BY display_order ASC, created_at DESC'
-                    cur.execute(query)
+                    cur.execute(query, params)
                     items = cur.fetchall()
                     
                     for item in items:
@@ -240,16 +243,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     JOIN contests c ON a.contest_id = c.id
                     WHERE 1=1
                 '''
+                query_params = []
                 
                 if contest_filter:
-                    query += f" AND a.contest_id = {int(contest_filter)}"
+                    query += " AND a.contest_id = %s"
+                    query_params.append(int(contest_filter))
                 
                 if status_filter:
-                    query += f" AND a.status = '{status_filter}'"
+                    query += " AND a.status = %s"
+                    query_params.append(status_filter)
                 
                 query += ' ORDER BY a.submitted_at DESC'
                 
-                cur.execute(query)
+                cur.execute(query, query_params)
                 applications = cur.fetchall()
                 
                 # Конвертация datetime в строки

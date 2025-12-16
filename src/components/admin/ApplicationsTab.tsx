@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
@@ -74,7 +74,7 @@ const ApplicationsTab = ({
     }
   };
 
-  const calculateAge = (birthDate: string) => {
+  const calculateAge = useCallback((birthDate: string) => {
     const today = new Date();
     const birth = new Date(birthDate);
     let age = today.getFullYear() - birth.getFullYear();
@@ -83,15 +83,17 @@ const ApplicationsTab = ({
       age--;
     }
     return age;
-  };
+  }, []);
 
-  const filteredApplications = applications.filter(
-    (app) =>
-      searchQuery === '' ||
-      app.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.id.toString().includes(searchQuery)
-  );
+  const filteredApplications = useMemo(() => {
+    return applications.filter(
+      (app) =>
+        searchQuery === '' ||
+        app.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.id.toString().includes(searchQuery)
+    );
+  }, [applications, searchQuery]);
 
   return (
     <>

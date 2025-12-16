@@ -48,7 +48,6 @@ export const useAdminContests = () => {
     try {
       const response = await fetch('https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3');
       const data = await response.json();
-      console.log('[useAdminContests] Loaded contests:', data.contests);
       setContests(data.contests || []);
     } catch (error) {
       console.error('Ошибка загрузки конкурсов:', error);

@@ -68,14 +68,10 @@ const JuryPanelPage = () => {
   };
 
   const loadContests = async () => {
-    console.log('[JuryPanel] Loading contests...');
     try {
       const response = await fetch('https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3');
-      console.log('[JuryPanel] Response status:', response.status);
       const data = await response.json();
-      console.log('[JuryPanel] Loaded contests:', data);
       setContests(data.contests || []);
-      console.log('[JuryPanel] Contests set to state:', data.contests?.length || 0);
     } catch (error) {
       console.error('Ошибка загрузки конкурсов:', error);
     } finally {

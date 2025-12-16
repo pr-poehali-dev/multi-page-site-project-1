@@ -33,7 +33,6 @@ export const useAdminScoring = () => {
       }
       
       const data = await response.json();
-      console.log('[useAdminScoring] Loaded participants:', data.participants);
       setParticipants(data.participants || []);
     } catch (error) {
       console.error('Ошибка загрузки оценок:', error);

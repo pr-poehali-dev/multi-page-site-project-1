@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -100,11 +100,9 @@ const AdminPage = () => {
   useEffect(() => {
     if (isAuthenticated) {
       if (activeTab === 'contests' || activeTab === 'scoring') {
-        console.log('[AdminPage] Loading contests for tab:', activeTab);
         loadContests();
       }
       if (activeTab === 'jury' || activeTab === 'jury-accounts') {
-        console.log('[AdminPage] Loading jury members for tab:', activeTab);
         loadJuryMembers();
       }
     }
@@ -114,11 +112,15 @@ const AdminPage = () => {
     return <AdminAuth onLogin={handleLogin} />;
   }
 
-  const loading = activeTab === 'applications' ? applicationsLoading : 
-                  activeTab === 'contests' ? contestsLoading : 
-                  activeTab === 'scoring' ? scoringLoading :
-                  activeTab === 'gallery' ? galleryLoading :
-                  juryLoading;
+  const loading = useMemo(() => {
+    switch (activeTab) {
+      case 'applications': return applicationsLoading;
+      case 'contests': return contestsLoading;
+      case 'scoring': return scoringLoading;
+      case 'gallery': return galleryLoading;
+      default: return juryLoading;
+    }
+  }, [activeTab, applicationsLoading, contestsLoading, scoringLoading, galleryLoading, juryLoading]);
 
   return (
     <div className="min-h-screen">
