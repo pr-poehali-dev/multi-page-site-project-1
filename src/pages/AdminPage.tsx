@@ -94,9 +94,10 @@ const AdminPage = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (activeTab === 'contests') {
+      if (activeTab === 'contests' || activeTab === 'scoring') {
         loadContests();
-      } else if (activeTab === 'jury' || activeTab === 'jury-accounts') {
+      }
+      if (activeTab === 'jury' || activeTab === 'jury-accounts') {
         loadJuryMembers();
       }
     }
