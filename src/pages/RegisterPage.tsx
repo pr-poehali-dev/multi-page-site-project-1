@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
@@ -37,6 +37,8 @@ const RegisterPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [contests, setContests] = useState<Array<{ id: number; title: string }>>([]);
+  const [loadingContests, setLoadingContests] = useState(true);
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     email: '',
@@ -53,6 +55,21 @@ const RegisterPage = () => {
 
   const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
+
+  useEffect(() => {
+    const loadContests = async () => {
+      try {
+        const response = await fetch('https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3');
+        const data = await response.json();
+        setContests(data.contests || []);
+      } catch (error) {
+        console.error('Ошибка загрузки конкурсов:', error);
+      } finally {
+        setLoadingContests(false);
+      }
+    };
+    loadContests();
+  }, []);
 
   const handleNext = () => {
     if (step < totalSteps) {
@@ -262,15 +279,17 @@ const RegisterPage = () => {
                   <Select
                     value={formData.contestId}
                     onValueChange={(value) => setFormData({ ...formData, contestId: value })}
+                    disabled={loadingContests}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Выберите конкурс" />
+                      <SelectValue placeholder={loadingContests ? "Загрузка..." : "Выберите конкурс"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="winter-piano">Зимний конкурс пианистов 2025</SelectItem>
-                      <SelectItem value="spring-vocal">Весенний вокальный конкурс 2025</SelectItem>
-                      <SelectItem value="dance-festival">Танцевальный фестиваль 2025</SelectItem>
-                      <SelectItem value="art-competition">Конкурс изобразительного искусства</SelectItem>
+                      {contests.map((contest) => (
+                        <SelectItem key={contest.id} value={contest.id.toString()}>
+                          {contest.title}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
