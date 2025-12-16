@@ -75,7 +75,7 @@ const ContestsPage = () => {
                     </Badge>
                     <div className="flex items-center gap-4 mb-4">
                       <img 
-                        src="https://cdn.poehali.dev/files/ЛОГО.png" 
+                        src="https://cdn.poehali.dev/files/лого таланты.png" 
                         alt="Логотип конкурса" 
                         className="w-16 h-16 object-contain"
                       />
