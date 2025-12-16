@@ -30,9 +30,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     # Подключение к БД
-    dsn = os.environ.get('DATABASE_URL_RW')
+    dsn = os.environ.get('DATABASE_URL')
     if not dsn:
-        dsn = os.environ.get('DATABASE_URL')
+        return {
+            'statusCode': 500,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({'error': 'DATABASE_URL not configured'}),
+            'isBase64Encoded': False
+        }
     conn = psycopg2.connect(dsn)
     conn.autocommit = True
     
