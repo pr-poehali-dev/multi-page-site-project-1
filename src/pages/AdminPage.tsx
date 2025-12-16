@@ -25,6 +25,9 @@ interface Contest {
 }
 
 const AdminPage = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'applications' | 'contests'>('applications');
   const [applications, setApplications] = useState<Application[]>([]);
   const [contests, setContests] = useState<Contest[]>([]);
@@ -42,6 +45,16 @@ const AdminPage = () => {
     end_date: '',
     status: 'upcoming'
   });
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === 'indigo2025') {
+      setIsAuthenticated(true);
+      setError('');
+    } else {
+      setError('Неверный пароль');
+    }
+  };
 
   useEffect(() => {
     if (activeTab === 'applications') {
@@ -176,6 +189,48 @@ const AdminPage = () => {
     setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming' });
     setShowCreateModal(true);
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen">
+        <Navigation />
+        <div className="pt-32 pb-20 px-4">
+          <div className="container mx-auto max-w-md">
+            <div className="bg-card border border-border rounded-lg p-8">
+              <div className="text-center mb-6">
+                <Icon name="Shield" size={48} className="mx-auto mb-4 text-secondary" />
+                <h1 className="text-3xl font-heading font-bold mb-2">
+                  Вход в админ-панель
+                </h1>
+                <p className="text-muted-foreground">
+                  Введите пароль для доступа
+                </p>
+              </div>
+
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Пароль"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary"
+                  />
+                  {error && (
+                    <p className="text-red-500 text-sm mt-2">{error}</p>
+                  )}
+                </div>
+                <Button type="submit" className="w-full bg-secondary hover:bg-secondary/90">
+                  Войти
+                </Button>
+              </form>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
