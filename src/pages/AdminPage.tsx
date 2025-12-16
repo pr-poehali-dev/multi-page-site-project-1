@@ -16,16 +16,21 @@ import { useAdminJury } from '@/hooks/useAdminJury';
 import { useAdminScoring } from '@/hooks/useAdminScoring';
 import ScoringTab from '@/components/admin/ScoringTab';
 import { useToast } from '@/hooks/use-toast';
+import GalleryTab from '@/components/admin/GalleryTab';
+import GalleryUploadModal from '@/components/admin/GalleryUploadModal';
+import { useAdminGallery } from '@/hooks/useAdminGallery';
 
 const AdminPage = () => {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'jury' | 'jury-accounts' | 'scoring'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery'>('applications');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [contestFilter, setContestFilter] = useState('all');
 
   const { participants, loading: scoringLoading, selectedContest: scoringSelectedContest, handleContestChange, exportProtocol } = useAdminScoring();
+
+  const { items: galleryItems, loading: galleryLoading, showUploadModal, setShowUploadModal, uploadFile, deleteItem } = useAdminGallery();
 
   const { applications, loading: applicationsLoading, updateStatus } = useAdminApplications(statusFilter, contestFilter);
   
@@ -112,6 +117,7 @@ const AdminPage = () => {
   const loading = activeTab === 'applications' ? applicationsLoading : 
                   activeTab === 'contests' ? contestsLoading : 
                   activeTab === 'scoring' ? scoringLoading :
+                  activeTab === 'gallery' ? galleryLoading :
                   juryLoading;
 
   return (
@@ -181,6 +187,14 @@ const AdminPage = () => {
                 <Icon name="BarChart3" size={18} className="mr-2" />
                 Протокол оценок
               </Button>
+              <Button
+                variant={activeTab === 'gallery' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('gallery')}
+                className={activeTab === 'gallery' ? 'bg-secondary hover:bg-secondary/90' : ''}
+              >
+                <Icon name="Image" size={18} className="mr-2" />
+                Галерея
+              </Button>
             </div>
           </div>
 
@@ -235,6 +249,24 @@ const AdminPage = () => {
               onContestChange={handleContestChange}
               onExportProtocol={exportProtocol}
             />
+          )}
+
+          {activeTab === 'gallery' && (
+            <>
+              <GalleryTab
+                items={galleryItems}
+                loading={loading}
+                onUploadClick={() => setShowUploadModal(true)}
+                onEditClick={(item) => console.log('Edit:', item)}
+                onDeleteClick={deleteItem}
+              />
+              <GalleryUploadModal
+                open={showUploadModal}
+                onClose={() => setShowUploadModal(false)}
+                onSubmit={uploadFile}
+                contests={contests}
+              />
+            </>
           )}
           
           {activeTab === 'scoring' && console.log('[AdminPage] Rendering ScoringTab with:', { contests: contests.length, participants: participants.length })}

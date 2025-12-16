@@ -3,13 +3,20 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
+import base64
+import uuid
+import boto3
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
-    Получение всех заявок для админ-панели жюри
-    GET / - получить все заявки с фильтрацией
-    PUT / - обновить статус заявки
+    Админ API для заявок и галереи
+    GET /applications - получить все заявки с фильтрацией
+    PUT /applications - обновить статус заявки
+    GET /gallery - получить элементы галереи
+    POST /gallery - создать элемент галереи (загрузка файла)
+    PUT /gallery/{id} - обновить элемент галереи
+    DELETE /gallery/{id} - удалить элемент галереи
     '''
     method: str = event.get('httpMethod', 'GET')
     
@@ -19,7 +26,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Token',
                 'Access-Control-Max-Age': '86400'
             },
@@ -34,7 +41,174 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     conn = psycopg2.connect(dsn)
     conn.autocommit = True
     
+    # Определение эндпоинта
+    path = event.get('path', '')
+    path_params = event.get('pathParams') or {}
+    
     try:
+        # === GALLERY ENDPOINTS ===
+        if 'gallery' in path:
+            if method == 'GET':
+                params = event.get('queryStringParameters') or {}
+                contest_id = params.get('contest_id')
+                media_type = params.get('media_type')
+                featured_only = params.get('featured') == 'true'
+                
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    query = 'SELECT id, title, description, file_url, thumbnail_url, media_type, contest_id, display_order, is_featured, created_at FROM gallery_items WHERE 1=1'
+                    
+                    if contest_id:
+                        query += f" AND contest_id = {int(contest_id)}"
+                    if media_type:
+                        query += f" AND media_type = '{media_type}'"
+                    if featured_only:
+                        query += " AND is_featured = true"
+                    
+                    query += ' ORDER BY display_order ASC, created_at DESC'
+                    cur.execute(query)
+                    items = cur.fetchall()
+                    
+                    for item in items:
+                        if item.get('created_at'):
+                            item['created_at'] = item['created_at'].isoformat()
+                    
+                    return {
+                        'statusCode': 200,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'items': items}),
+                        'isBase64Encoded': False
+                    }
+            
+            elif method == 'POST':
+                body_data = json.loads(event.get('body', '{}'))
+                
+                title = body_data.get('title')
+                description = body_data.get('description', '')
+                media_type = body_data.get('media_type')
+                contest_id = body_data.get('contest_id')
+                display_order = body_data.get('display_order', 0)
+                is_featured = body_data.get('is_featured', False)
+                file_base64 = body_data.get('file_base64')
+                file_name = body_data.get('file_name', 'file')
+                
+                if not title or not media_type or not file_base64:
+                    return {
+                        'statusCode': 400,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'error': 'title, media_type и file_base64 обязательны'}),
+                        'isBase64Encoded': False
+                    }
+                
+                file_data = base64.b64decode(file_base64)
+                file_ext = file_name.split('.')[-1] if '.' in file_name else 'jpg'
+                unique_name = f"gallery/{uuid.uuid4()}.{file_ext}"
+                
+                s3 = boto3.client('s3',
+                    endpoint_url='https://bucket.poehali.dev',
+                    aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+                    aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']
+                )
+                
+                content_type = 'image/jpeg'
+                if file_ext in ['png']: content_type = 'image/png'
+                elif file_ext in ['gif']: content_type = 'image/gif'
+                elif file_ext in ['mp4', 'mov']: content_type = 'video/mp4'
+                elif file_ext in ['avi']: content_type = 'video/x-msvideo'
+                
+                s3.put_object(
+                    Bucket='files',
+                    Key=unique_name,
+                    Body=file_data,
+                    ContentType=content_type
+                )
+                
+                file_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{unique_name}"
+                
+                with conn.cursor() as cur:
+                    cur.execute('''
+                        INSERT INTO gallery_items 
+                        (title, description, file_url, media_type, contest_id, display_order, is_featured)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        RETURNING id
+                    ''', (title, description, file_url, media_type, contest_id, display_order, is_featured))
+                    
+                    item_id = cur.fetchone()[0]
+                
+                return {
+                    'statusCode': 201,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'id': item_id, 'file_url': file_url, 'message': 'Файл успешно загружен'}),
+                    'isBase64Encoded': False
+                }
+            
+            elif method == 'PUT':
+                item_id = path_params.get('id')
+                body_data = json.loads(event.get('body', '{}'))
+                
+                if not item_id:
+                    return {
+                        'statusCode': 400,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'error': 'ID обязателен'}),
+                        'isBase64Encoded': False
+                    }
+                
+                updates = []
+                values = []
+                
+                if 'title' in body_data:
+                    updates.append('title = %s')
+                    values.append(body_data['title'])
+                if 'description' in body_data:
+                    updates.append('description = %s')
+                    values.append(body_data['description'])
+                if 'display_order' in body_data:
+                    updates.append('display_order = %s')
+                    values.append(body_data['display_order'])
+                if 'is_featured' in body_data:
+                    updates.append('is_featured = %s')
+                    values.append(body_data['is_featured'])
+                if 'contest_id' in body_data:
+                    updates.append('contest_id = %s')
+                    values.append(body_data['contest_id'])
+                
+                if updates:
+                    updates.append('updated_at = CURRENT_TIMESTAMP')
+                    values.append(item_id)
+                    
+                    with conn.cursor() as cur:
+                        query = f"UPDATE gallery_items SET {', '.join(updates)} WHERE id = %s"
+                        cur.execute(query, values)
+                
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'message': 'Элемент обновлен'}),
+                    'isBase64Encoded': False
+                }
+            
+            elif method == 'DELETE':
+                item_id = path_params.get('id')
+                
+                if not item_id:
+                    return {
+                        'statusCode': 400,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'error': 'ID обязателен'}),
+                        'isBase64Encoded': False
+                    }
+                
+                with conn.cursor() as cur:
+                    cur.execute('UPDATE gallery_items SET updated_at = CURRENT_TIMESTAMP WHERE id = %s', (item_id,))
+                
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'message': 'Элемент удален'}),
+                    'isBase64Encoded': False
+                }
+        
+        # === APPLICATIONS ENDPOINTS ===
         if method == 'GET':
             # Получение всех заявок
             params = event.get('queryStringParameters') or {}
