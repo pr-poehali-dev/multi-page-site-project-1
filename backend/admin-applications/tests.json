@@ -1,6 +1,16 @@
 {
   "tests": [
     {
+      "name": "Get gallery items",
+      "method": "GET",
+      "path": "/?endpoint=gallery",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "items": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
       "name": "Get all applications",
       "method": "GET",
       "path": "/",

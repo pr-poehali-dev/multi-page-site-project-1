@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 interface JuryMember {
   id: number;
@@ -35,7 +35,7 @@ export const useAdminJury = () => {
     sort_order: 0
   });
 
-  const loadJuryMembers = async () => {
+  const loadJuryMembers = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch('https://functions.poehali.dev/29a5a3ab-7964-41f0-baf5-d85b81b743bc');
@@ -46,7 +46,7 @@ export const useAdminJury = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleCreateJuryMember = async () => {
     try {

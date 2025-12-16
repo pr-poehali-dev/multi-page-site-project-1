@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 interface Contest {
   id: number;
@@ -43,7 +43,7 @@ export const useAdminContests = () => {
     pdf_url: ''
   });
 
-  const loadContests = async () => {
+  const loadContests = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch('https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3');
@@ -54,7 +54,7 @@ export const useAdminContests = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleCreateContest = async () => {
     try {

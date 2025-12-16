@@ -42,12 +42,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     conn.autocommit = True
     
     # Определение эндпоинта
-    path = event.get('path', '')
+    query_string_params = event.get('queryStringParameters') or {}
+    endpoint = query_string_params.get('endpoint', '')
     path_params = event.get('pathParams') or {}
     
     try:
         # === GALLERY ENDPOINTS ===
-        if 'gallery' in path:
+        if endpoint == 'gallery':
             if method == 'GET':
                 query_params = event.get('queryStringParameters') or {}
                 contest_id = query_params.get('contest_id')
@@ -212,7 +213,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 }
         
         # === APPLICATIONS ENDPOINTS ===
-        if 'gallery' not in path and method == 'GET':
+        if endpoint != 'gallery' and method == 'GET':
             # Получение всех заявок
             params = event.get('queryStringParameters') or {}
             contest_filter = params.get('contest_id')
@@ -278,7 +279,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'isBase64Encoded': False
                 }
         
-        elif 'gallery' not in path and method == 'PUT':
+        elif endpoint != 'gallery' and method == 'PUT':
             # Обновление статуса заявки
             body = json.loads(event.get('body', '{}'))
             app_id = body.get('application_id')

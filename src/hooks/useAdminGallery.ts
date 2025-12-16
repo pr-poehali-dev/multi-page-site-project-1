@@ -14,7 +14,7 @@ interface GalleryItem {
   created_at: string;
 }
 
-const ADMIN_GALLERY_URL = 'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b/gallery';
+const ADMIN_GALLERY_URL = 'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?endpoint=gallery';
 
 export function useAdminGallery() {
   const { toast } = useToast();
