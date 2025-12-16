@@ -114,12 +114,12 @@ const HomePage = () => {
             {/* Вращающиеся фотографии вокруг логотипа */}
             <div className="relative inline-block mb-8">
               {!loading && (
-                <div className="orbit-container">
+                <div className="orbit-container animate-fade-in">
                   {photosToShow.map((item, i) => {
                     const isLeft = item.side === 'left';
-                    const startX = isLeft ? -350 : 350;
-                    const midX = isLeft ? -320 : 320;
-                    const endX = isLeft ? -380 : 380;
+                    const startX = isLeft ? -650 : 650;
+                    const midX = isLeft ? -630 : 630;
+                    const endX = isLeft ? -670 : 670;
                     const rotateStart = isLeft ? -15 : 15;
                     const rotateMid = isLeft ? -5 : 5;
                     const rotateEnd = isLeft ? -20 : 20;

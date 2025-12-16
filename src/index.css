@@ -121,15 +121,39 @@
     width: 600px;
     height: 600px;
     pointer-events: none;
+    animation: fadeIn 1s ease-in;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   .orbit-item {
     position: absolute;
     width: 240px;
     height: 240px;
-    animation: cascade var(--orbit-duration, 8s) ease-in-out infinite;
-    animation-delay: var(--orbit-delay, 0s);
+    animation:
+      cascade var(--orbit-duration, 8s) ease-in-out infinite,
+      itemFadeIn 0.6s ease-out;
+    animation-delay:
+      var(--orbit-delay, 0s), calc(var(--orbit-delay, 0s) + 0.3s);
     opacity: 0;
+  }
+
+  @keyframes itemFadeIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
   .orbit-photo {
