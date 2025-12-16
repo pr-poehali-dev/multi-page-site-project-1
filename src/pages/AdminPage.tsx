@@ -48,12 +48,17 @@ const AdminPage = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'indigo2025') {
+    if (password === 'J7G2gZCh') {
       setIsAuthenticated(true);
       setError('');
     } else {
       setError('Неверный пароль');
     }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setPassword('');
   };
 
   useEffect(() => {
@@ -239,12 +244,24 @@ const AdminPage = () => {
       <div className="pt-32 pb-20 px-4">
         <div className="container mx-auto">
           <div className="mb-8">
-            <h1 className="text-4xl font-heading font-bold mb-2">
-              Админ-панель жюри
-            </h1>
-            <p className="text-muted-foreground">
-              Управление заявками и конкурсами
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl font-heading font-bold mb-2">
+                  Админ-панель жюри
+                </h1>
+                <p className="text-muted-foreground">
+                  Управление заявками и конкурсами
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={handleLogout}
+                className="gap-2"
+              >
+                <Icon name="LogOut" size={18} />
+                Выйти
+              </Button>
+            </div>
             
             <div className="flex gap-4 mt-6">
               <Button
