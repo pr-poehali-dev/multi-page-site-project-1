@@ -117,9 +117,9 @@ const HomePage = () => {
                 <div className="orbit-container animate-fade-in">
                   {photosToShow.map((item, i) => {
                     const isLeft = item.side === 'left';
-                    const startX = isLeft ? -650 : 650;
-                    const midX = isLeft ? -630 : 630;
-                    const endX = isLeft ? -670 : 670;
+                    const startX = isLeft ? -550 : 550;
+                    const midX = isLeft ? -530 : 530;
+                    const endX = isLeft ? -570 : 570;
                     const rotateStart = isLeft ? -15 : 15;
                     const rotateMid = isLeft ? -5 : 5;
                     const rotateEnd = isLeft ? -20 : 20;
