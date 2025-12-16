@@ -64,7 +64,7 @@ const HomePage = () => {
               alt="ИНДИГО" 
               className="h-48 md:h-64 w-auto mx-auto mb-8"
             />
-            <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto">Здесь рождаются звезды!</p>
+            <p className="md:text-2xl text-muted-foreground max-w-2xl mx-auto text-4xl my-[15px]">Здесь рождаются звезды!</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-lg px-8 animate-scale-in">
                 <Icon name="Sparkles" size={20} className="mr-2" />
