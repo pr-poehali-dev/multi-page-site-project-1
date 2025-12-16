@@ -24,6 +24,7 @@ const ConcertsPage = () => {
       city: 'Липецк',
       price: '0+',
       image: 'https://cdn.poehali.dev/files/250 Липецк.png',
+      ticketUrl: 'https://iframeab-pre11992.intickets.ru/seance/68895349/',
     },
     {
       title: 'Симфонический оркестр',
