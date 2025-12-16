@@ -89,7 +89,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         'isBase64Encoded': False
                     }
                 
-                if not participant['password_hash'] or participant['password_hash'] != password_hash:
+                if not participant['password_hash']:
+                    return {
+                        'statusCode': 403,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({
+                            'error': 'Пароль не установлен',
+                            'message': 'Для входа в личный кабинет необходимо подать новую заявку с установкой пароля'
+                        }),
+                        'isBase64Encoded': False
+                    }
+                
+                if participant['password_hash'] != password_hash:
                     return {
                         'statusCode': 401,
                         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},

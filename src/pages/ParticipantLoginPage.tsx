@@ -51,6 +51,14 @@ const ParticipantLoginPage = () => {
         });
         
         navigate('/participant-cabinet');
+      } else if (response.status === 403) {
+        const error = await response.json();
+        toast({
+          title: 'Пароль не установлен',
+          description: error.message || 'Для входа необходимо подать новую заявку с установкой пароля',
+          variant: 'destructive',
+          duration: 7000
+        });
       } else {
         const error = await response.json();
         toast({
