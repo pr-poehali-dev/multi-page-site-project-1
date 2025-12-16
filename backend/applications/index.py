@@ -16,6 +16,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     Методы: POST - создание заявки, GET - получение заявки по email
     '''
     method: str = event.get('httpMethod', 'GET')
+    print(f'[DEBUG] Method: {method}')
+    print(f'[DEBUG] Event: {json.dumps(event, default=str)}')
     
     # CORS preflight
     if method == 'OPTIONS':
