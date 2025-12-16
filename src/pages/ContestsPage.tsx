@@ -107,9 +107,6 @@ const ContestsPage = () => {
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <h3 className="text-2xl font-heading font-bold mb-2">{contest.title}</h3>
-                            <p className="text-muted-foreground text-sm leading-relaxed">
-                              {contest.description}
-                            </p>
                           </div>
                         </div>
 
