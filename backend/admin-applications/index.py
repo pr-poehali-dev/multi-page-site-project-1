@@ -152,12 +152,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                        (datetime.now().month == birth_date.month and datetime.now().day < birth_date.day):
                         age -= 1
                     
-                    # Обновляем участника: добавляем contest_id, age, category, status
+                    # Обновляем участника: добавляем contest_id, age, category, performance_title, status
                     cur.execute(
                         '''UPDATE participants 
-                           SET contest_id = %s, age = %s, category = %s, status = 'approved'
+                           SET contest_id = %s, age = %s, category = %s, performance_title = %s, status = 'approved'
                            WHERE id = %s''',
-                        (application['contest_id'], age, application['category'], application['participant_id'])
+                        (application['contest_id'], age, application['category'], application.get('performance_title', 'Не указано'), application['participant_id'])
                     )
             
             return {

@@ -18,6 +18,7 @@ type ParticipantData = {
   contestId: string;
   contestTitle?: string;
   category: string;
+  performanceTitle?: string;
   experience: string;
   achievements: string;
   additionalInfo: string;
@@ -209,6 +210,13 @@ const ProfilePage = () => {
                             Категория
                           </h4>
                           <p>{categoryNames[data.category]}</p>
+                        </div>
+
+                        <div>
+                          <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+                            Название номера
+                          </h4>
+                          <p>{data.performanceTitle || 'Не указано'}</p>
                         </div>
 
                         <div>

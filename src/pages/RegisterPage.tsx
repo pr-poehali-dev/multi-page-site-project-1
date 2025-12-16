@@ -23,6 +23,7 @@ type FormData = {
   // Шаг 2: Конкурс
   contestId: string;
   category: string;
+  performanceTitle: string;
   experience: string;
   
   // Шаг 3: Файлы
@@ -47,6 +48,7 @@ const RegisterPage = () => {
     city: '',
     contestId: '',
     category: '',
+    performanceTitle: '',
     experience: '',
     files: [],
     achievements: '',
@@ -101,6 +103,7 @@ const RegisterPage = () => {
           city: formData.city,
           contestId: formData.contestId,
           category: formData.category,
+          performanceTitle: formData.performanceTitle,
           experience: formData.experience,
           achievements: formData.achievements,
           additionalInfo: formData.additionalInfo,
@@ -315,6 +318,18 @@ const RegisterPage = () => {
                       <SelectItem value="professional">Профессионалы (25+ лет)</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Название номера <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    placeholder="Например: 'Танец с огнём', 'Соло на скрипке'"
+                    value={formData.performanceTitle}
+                    onChange={(e) => setFormData({ ...formData, performanceTitle: e.target.value })}
+                    required
+                  />
                 </div>
 
                 <div>

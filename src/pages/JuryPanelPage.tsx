@@ -83,7 +83,7 @@ const JuryPanelPage = () => {
 
     try {
       const response = await fetch(
-        `https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d?contest_id=${contestId}`,
+        `https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d?action=scores&contest_id=${contestId}`,
         { headers: { 'X-Jury-Token': token || '' } }
       );
       const data = await response.json();
