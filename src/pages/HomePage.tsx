@@ -64,31 +64,46 @@ const HomePage = () => {
             <div className="relative inline-block mb-8">
               <div className="orbit-container">
                 {[
-                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_performing_ballet.jpg',
-                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/young_musicians_orchestra.jpg',
-                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/theater_kids_stage.jpg',
-                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_singing_choir.jpg',
-                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/dance_group_performance.jpg',
-                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/piano_student_concert.jpg',
-                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/art_class_children.jpg',
-                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_drama_performance.jpg',
-                ].map((img, i) => (
-                  <div
-                    key={i}
-                    className="orbit-item"
-                    style={{
-                      '--orbit-delay': `${i * 0.5}s`,
-                      '--orbit-duration': '20s',
-                      '--orbit-angle': `${(360 / 8) * i}deg`,
-                    } as React.CSSProperties}
-                  >
-                    <img
-                      src={img}
-                      alt={`Фото ${i + 1}`}
-                      className="orbit-photo"
-                    />
-                  </div>
-                ))}
+                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_performing_ballet.jpg', side: 'left' },
+                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/young_musicians_orchestra.jpg', side: 'right' },
+                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/theater_kids_stage.jpg', side: 'left' },
+                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_singing_choir.jpg', side: 'right' },
+                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/dance_group_performance.jpg', side: 'left' },
+                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/piano_student_concert.jpg', side: 'right' },
+                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/art_class_children.jpg', side: 'left' },
+                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_drama_performance.jpg', side: 'right' },
+                ].map((item, i) => {
+                  const isLeft = item.side === 'left';
+                  const startX = isLeft ? -200 : 200;
+                  const midX = isLeft ? -180 : 180;
+                  const endX = isLeft ? -220 : 220;
+                  const rotateStart = isLeft ? -15 : 15;
+                  const rotateMid = isLeft ? -5 : 5;
+                  const rotateEnd = isLeft ? -20 : 20;
+                  
+                  return (
+                    <div
+                      key={i}
+                      className="orbit-item"
+                      style={{
+                        '--orbit-delay': `${i * 1.2}s`,
+                        '--orbit-duration': '8s',
+                        '--start-x': `${startX}px`,
+                        '--mid-x': `${midX}px`,
+                        '--end-x': `${endX}px`,
+                        '--rotate-start': `${rotateStart}deg`,
+                        '--rotate-mid': `${rotateMid}deg`,
+                        '--rotate-end': `${rotateEnd}deg`,
+                      } as React.CSSProperties}
+                    >
+                      <img
+                        src={item.img}
+                        alt={`Фото ${i + 1}`}
+                        className="orbit-photo"
+                      />
+                    </div>
+                  );
+                })}
               </div>
               
               <img 
