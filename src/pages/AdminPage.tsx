@@ -95,13 +95,15 @@ const AdminPage = () => {
   useEffect(() => {
     if (isAuthenticated) {
       if (activeTab === 'contests' || activeTab === 'scoring') {
+        console.log('[AdminPage] Loading contests for tab:', activeTab);
         loadContests();
       }
       if (activeTab === 'jury' || activeTab === 'jury-accounts') {
+        console.log('[AdminPage] Loading jury members for tab:', activeTab);
         loadJuryMembers();
       }
     }
-  }, [activeTab, isAuthenticated]);
+  }, [activeTab, isAuthenticated, loadContests, loadJuryMembers]);
 
   if (!isAuthenticated) {
     return <AdminAuth onLogin={handleLogin} />;

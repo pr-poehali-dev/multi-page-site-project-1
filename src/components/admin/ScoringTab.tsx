@@ -32,6 +32,14 @@ const ScoringTab = ({
   onContestChange,
   onExportProtocol
 }: ScoringTabProps) => {
+  console.log('[ScoringTab] Rendered with:', { 
+    contestsCount: contests.length, 
+    contests, 
+    participantsCount: participants.length,
+    selectedContest,
+    loading
+  });
+  
   const sortedParticipants = [...participants].sort((a, b) => {
     const scoreA = a.avg_score ?? 0;
     const scoreB = b.avg_score ?? 0;
