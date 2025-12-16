@@ -22,6 +22,7 @@ interface Application {
 }
 
 const AdminPage = () => {
+  const [activeTab, setActiveTab] = useState<'applications' | 'contests'>('applications');
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -108,10 +109,31 @@ const AdminPage = () => {
               Админ-панель жюри
             </h1>
             <p className="text-muted-foreground">
-              Управление заявками участников конкурсов
+              Управление заявками и конкурсами
             </p>
+            
+            <div className="flex gap-4 mt-6">
+              <Button
+                variant={activeTab === 'applications' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('applications')}
+                className={activeTab === 'applications' ? 'bg-secondary hover:bg-secondary/90' : ''}
+              >
+                <Icon name="FileText" size={18} className="mr-2" />
+                Заявки
+              </Button>
+              <Button
+                variant={activeTab === 'contests' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('contests')}
+                className={activeTab === 'contests' ? 'bg-secondary hover:bg-secondary/90' : ''}
+              >
+                <Icon name="Trophy" size={18} className="mr-2" />
+                Конкурсы
+              </Button>
+            </div>
           </div>
 
+          {activeTab === 'applications' && (
+            <>
           <Card className="p-6 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -261,6 +283,22 @@ const AdminPage = () => {
           <div className="mt-6 text-center text-sm text-muted-foreground">
             Всего заявок: {applications.length}
           </div>
+            </>
+          )}
+
+          {activeTab === 'contests' && (
+            <div className="text-center py-12">
+              <Icon name="Trophy" size={48} className="mx-auto mb-4 text-primary" />
+              <p className="text-xl font-semibold mb-2">Управление конкурсами</p>
+              <p className="text-muted-foreground mb-6">
+                Здесь будет интерфейс для создания и редактирования конкурсов
+              </p>
+              <Button className="bg-secondary hover:bg-secondary/90">
+                <Icon name="Plus" size={18} className="mr-2" />
+                Создать конкурс
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
