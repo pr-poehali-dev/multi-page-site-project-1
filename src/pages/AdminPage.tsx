@@ -109,7 +109,7 @@ const AdminPage = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (activeTab === 'contests' || activeTab === 'scoring') {
+      if (activeTab === 'contests' || activeTab === 'scoring' || activeTab === 'gallery') {
         loadContests();
       }
       if (activeTab === 'jury' || activeTab === 'jury-accounts') {
