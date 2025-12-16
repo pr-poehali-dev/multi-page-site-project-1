@@ -97,6 +97,16 @@ const AdminPage = () => {
     setIsAuthenticated(false);
   };
 
+  const loading = useMemo(() => {
+    switch (activeTab) {
+      case 'applications': return applicationsLoading;
+      case 'contests': return contestsLoading;
+      case 'scoring': return scoringLoading;
+      case 'gallery': return galleryLoading;
+      default: return juryLoading;
+    }
+  }, [activeTab, applicationsLoading, contestsLoading, scoringLoading, galleryLoading, juryLoading]);
+
   useEffect(() => {
     if (isAuthenticated) {
       if (activeTab === 'contests' || activeTab === 'scoring') {
@@ -111,16 +121,6 @@ const AdminPage = () => {
   if (!isAuthenticated) {
     return <AdminAuth onLogin={handleLogin} />;
   }
-
-  const loading = useMemo(() => {
-    switch (activeTab) {
-      case 'applications': return applicationsLoading;
-      case 'contests': return contestsLoading;
-      case 'scoring': return scoringLoading;
-      case 'gallery': return galleryLoading;
-      default: return juryLoading;
-    }
-  }, [activeTab, applicationsLoading, contestsLoading, scoringLoading, galleryLoading, juryLoading]);
 
   return (
     <div className="min-h-screen">
