@@ -8,6 +8,7 @@ import ContestsTab from '@/components/admin/ContestsTab';
 import ContestModal from '@/components/admin/ContestModal';
 import JuryTab from '@/components/admin/JuryTab';
 import JuryModal from '@/components/admin/JuryModal';
+import JuryAccountsTab from '@/components/admin/JuryAccountsTab';
 
 interface Application {
   id: number;
@@ -34,13 +35,14 @@ interface JuryMember {
   bio: string;
   image_url: string | null;
   sort_order: number;
+  login?: string | null;
 }
 
 const AdminPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'jury'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'jury' | 'jury-accounts'>('applications');
   const [applications, setApplications] = useState<Application[]>([]);
   const [contests, setContests] = useState<Contest[]>([]);
   const [juryMembers, setJuryMembers] = useState<JuryMember[]>([]);
@@ -68,6 +70,12 @@ const AdminPage = () => {
     bio: '',
     image_url: '',
     sort_order: 0
+  });
+  
+  const [juryAccountFormData, setJuryAccountFormData] = useState({
+    jury_member_id: 0,
+    login: '',
+    password: ''
   });
 
   const handleLogin = (e: React.FormEvent) => {
@@ -307,6 +315,29 @@ const AdminPage = () => {
     setShowCreateJuryModal(true);
   };
 
+  const handleSetJuryCredentials = async (juryId: number, login: string, password: string) => {
+    try {
+      const response = await fetch('https://functions.poehali.dev/29a5a3ab-7964-41f0-baf5-d85b81b743bc', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: juryId,
+          login,
+          password
+        })
+      });
+
+      if (response.ok) {
+        alert('Доступ для члена жюри успешно настроен!');
+        loadJuryMembers();
+      } else {
+        alert('Ошибка при настройке доступа');
+      }
+    } catch (error) {
+      console.error('Ошибка настройки доступа жюри:', error);
+      alert('Ошибка при настройке доступа');
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen">
@@ -400,6 +431,14 @@ const AdminPage = () => {
                 <Icon name="Users" size={18} className="mr-2" />
                 Жюри
               </Button>
+              <Button
+                variant={activeTab === 'jury-accounts' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('jury-accounts')}
+                className={activeTab === 'jury-accounts' ? 'bg-secondary hover:bg-secondary/90' : ''}
+              >
+                <Icon name="Key" size={18} className="mr-2" />
+                Доступы жюри
+              </Button>
             </div>
           </div>
 
@@ -434,6 +473,14 @@ const AdminPage = () => {
               onCreateClick={handleCreateJuryClick}
               onEditClick={openEditJuryModal}
               onDeleteClick={handleDeleteJuryMember}
+            />
+          )}
+
+          {activeTab === 'jury-accounts' && (
+            <JuryAccountsTab
+              juryMembers={juryMembers}
+              loading={loading}
+              onSetCredentials={handleSetJuryCredentials}
             />
           )}
 

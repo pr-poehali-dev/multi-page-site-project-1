@@ -1,11 +1,12 @@
 import json
 import os
 import psycopg2
+import hashlib
 from typing import Dict, Any
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
-    Управление составом жюри: получение, создание, обновление и удаление
+    Управление составом жюри: получение, создание, обновление, удаление и установка логина/пароля
     GET - получить всех членов жюри
     POST - создать нового члена жюри
     PUT - обновить данные члена жюри
@@ -32,7 +33,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         if method == 'GET':
             cur.execute('''
-                SELECT id, name, role, specialty, bio, image_url, sort_order
+                SELECT id, name, role, specialty, bio, image_url, sort_order, login
                 FROM jury_members
                 ORDER BY sort_order ASC, id ASC
             ''')
@@ -46,7 +47,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'specialty': row[3],
                     'bio': row[4],
                     'image_url': row[5],
-                    'sort_order': row[6]
+                    'sort_order': row[6],
+                    'login': row[7]
                 })
             
             return {
@@ -82,6 +84,25 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         elif method == 'PUT':
             body = json.loads(event.get('body', '{}'))
+            
+            # Если переданы login и password, обновляем доступы
+            if 'login' in body and 'password' in body:
+                password_hash = hashlib.sha256(body['password'].encode()).hexdigest()
+                cur.execute('''
+                    UPDATE jury_members
+                    SET login = %s, password_hash = %s, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                ''', (body['login'], password_hash, body['id']))
+                conn.commit()
+                
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'message': 'Доступ обновлен'}),
+                    'isBase64Encoded': False
+                }
+            
+            # Иначе обновляем данные профиля
             cur.execute('''
                 UPDATE jury_members
                 SET name = %s, role = %s, specialty = %s, bio = %s, 
