@@ -4,8 +4,59 @@ import Icon from '@/components/ui/icon';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+
+const GALLERY_URL = 'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?endpoint=gallery';
+
+interface GalleryItem {
+  id: number;
+  title: string;
+  file_url: string;
+  media_type: 'photo' | 'video';
+  is_featured: boolean;
+}
 
 const HomePage = () => {
+  const [featuredPhotos, setFeaturedPhotos] = useState<GalleryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadFeaturedPhotos = async () => {
+      try {
+        const response = await fetch(GALLERY_URL);
+        const data = await response.json();
+        const featured = (data.items || [])
+          .filter((item: GalleryItem) => item.is_featured && item.media_type === 'photo')
+          .slice(0, 8);
+        setFeaturedPhotos(featured);
+      } catch (error) {
+        console.error('Error loading featured photos:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadFeaturedPhotos();
+  }, []);
+
+  const defaultPhotos = [
+    { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_performing_ballet.jpg', side: 'left' },
+    { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/young_musicians_orchestra.jpg', side: 'right' },
+    { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/theater_kids_stage.jpg', side: 'left' },
+    { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_singing_choir.jpg', side: 'right' },
+    { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/dance_group_performance.jpg', side: 'left' },
+    { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/piano_student_concert.jpg', side: 'right' },
+    { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/art_class_children.jpg', side: 'left' },
+    { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_drama_performance.jpg', side: 'right' },
+  ];
+
+  const photosToShow = featuredPhotos.length > 0
+    ? featuredPhotos.map((photo, i) => ({
+        img: photo.file_url,
+        side: i % 2 === 0 ? 'left' : 'right',
+        title: photo.title
+      }))
+    : defaultPhotos;
+
   const features = [
     {
       icon: 'Trophy',
@@ -62,49 +113,42 @@ const HomePage = () => {
           <div className="max-w-4xl mx-auto text-center animate-fade-in relative">
             {/* Вращающиеся фотографии вокруг логотипа */}
             <div className="relative inline-block mb-8">
-              <div className="orbit-container">
-                {[
-                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_performing_ballet.jpg', side: 'left' },
-                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/young_musicians_orchestra.jpg', side: 'right' },
-                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/theater_kids_stage.jpg', side: 'left' },
-                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_singing_choir.jpg', side: 'right' },
-                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/dance_group_performance.jpg', side: 'left' },
-                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/piano_student_concert.jpg', side: 'right' },
-                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/art_class_children.jpg', side: 'left' },
-                  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_drama_performance.jpg', side: 'right' },
-                ].map((item, i) => {
-                  const isLeft = item.side === 'left';
-                  const startX = isLeft ? -200 : 200;
-                  const midX = isLeft ? -180 : 180;
-                  const endX = isLeft ? -220 : 220;
-                  const rotateStart = isLeft ? -15 : 15;
-                  const rotateMid = isLeft ? -5 : 5;
-                  const rotateEnd = isLeft ? -20 : 20;
-                  
-                  return (
-                    <div
-                      key={i}
-                      className="orbit-item"
-                      style={{
-                        '--orbit-delay': `${i * 1.2}s`,
-                        '--orbit-duration': '8s',
-                        '--start-x': `${startX}px`,
-                        '--mid-x': `${midX}px`,
-                        '--end-x': `${endX}px`,
-                        '--rotate-start': `${rotateStart}deg`,
-                        '--rotate-mid': `${rotateMid}deg`,
-                        '--rotate-end': `${rotateEnd}deg`,
-                      } as React.CSSProperties}
-                    >
-                      <img
-                        src={item.img}
-                        alt={`Фото ${i + 1}`}
-                        className="orbit-photo"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
+              {!loading && (
+                <div className="orbit-container">
+                  {photosToShow.map((item, i) => {
+                    const isLeft = item.side === 'left';
+                    const startX = isLeft ? -350 : 350;
+                    const midX = isLeft ? -320 : 320;
+                    const endX = isLeft ? -380 : 380;
+                    const rotateStart = isLeft ? -15 : 15;
+                    const rotateMid = isLeft ? -5 : 5;
+                    const rotateEnd = isLeft ? -20 : 20;
+                    
+                    return (
+                      <div
+                        key={i}
+                        className="orbit-item"
+                        style={{
+                          '--orbit-delay': `${i * 1.2}s`,
+                          '--orbit-duration': '8s',
+                          '--start-x': `${startX}px`,
+                          '--mid-x': `${midX}px`,
+                          '--end-x': `${endX}px`,
+                          '--rotate-start': `${rotateStart}deg`,
+                          '--rotate-mid': `${rotateMid}deg`,
+                          '--rotate-end': `${rotateEnd}deg`,
+                        } as React.CSSProperties}
+                      >
+                        <img
+                          src={item.img}
+                          alt={item.title || `Фото ${i + 1}`}
+                          className="orbit-photo"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               
               <img 
                 src="https://cdn.poehali.dev/files/лого 2.png" 
