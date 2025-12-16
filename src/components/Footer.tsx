@@ -51,9 +51,7 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-white/10 text-center text-sm opacity-75">
-          © 2024 Art Seasons. Все права защищены
-        </div>
+        <div className="mt-12 pt-8 border-t border-white/10 text-center text-sm opacity-75">© 2025 "ИНДИГО". Все права защищены</div>
       </div>
     </footer>
   );

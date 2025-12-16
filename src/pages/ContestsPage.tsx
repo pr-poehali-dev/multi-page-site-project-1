@@ -80,7 +80,7 @@ const ContestsPage = () => {
                           : 'https://cdn.poehali.dev/files/лого таланты.png'
                         }
                         alt="Логотип конкурса" 
-                        className="w-16 h-16 object-contain"
+                        className="w-16 h-16 object-contain px-0 py-0 mx-0 rounded-0 my-0"
                       />
                       <h3 className="text-2xl font-heading font-bold">{contest.title}</h3>
                     </div>
