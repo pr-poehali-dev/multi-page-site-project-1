@@ -15,6 +15,7 @@ const ConcertsPage = () => {
       price: '0+',
       image: 'https://cdn.poehali.dev/files/260 Воронеж.png',
       ticketUrl: 'https://iframeab-pre11992.intickets.ru/seance/68895381/',
+      detailsUrl: 'https://iframeab-pre11992.intickets.ru/event/68893364/',
     },
     {
       title: 'Людмила Николаева - Жить не пережить',
