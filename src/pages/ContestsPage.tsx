@@ -75,7 +75,10 @@ const ContestsPage = () => {
                     </Badge>
                     <div className="flex items-center gap-4 mb-4">
                       <img 
-                        src="https://cdn.poehali.dev/files/лого таланты.png" 
+                        src={contest.title.toLowerCase().includes('зимняя') 
+                          ? 'https://cdn.poehali.dev/files/3D_логотип_фестиваля__Зимняя_мелодия__с_зимними_мо-no-bg-preview (carve.photos).png'
+                          : 'https://cdn.poehali.dev/files/лого таланты.png'
+                        }
                         alt="Логотип конкурса" 
                         className="w-16 h-16 object-contain"
                       />
