@@ -7,12 +7,13 @@ import Icon from '@/components/ui/icon';
 const ConcertsPage = () => {
   const concerts = [
     {
-      title: 'Гала-концерт победителей',
-      date: '25 марта 2025',
+      title: 'Людмила Николаева - Жить не пережить',
+      date: '1 мая 2025',
       time: '19:00',
-      venue: 'Концертный зал Зарядье',
-      city: 'Москва',
-      price: 'Вход свободный',
+      venue: 'ГДК',
+      city: 'Воронеж',
+      price: '0+',
+      image: 'https://cdn.poehali.dev/files/250 Воронеж.png',
     },
     {
       title: 'Вечер фортепианной музыки',
@@ -61,17 +62,27 @@ const ConcertsPage = () => {
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div className="md:flex">
-                  <div className="md:w-1/3 bg-gradient-to-br from-primary to-secondary p-12 flex flex-col justify-center items-center text-white">
-                    <div className="text-6xl mb-4">🎵</div>
-                    <div className="text-center">
-                      <div className="text-3xl font-heading font-bold mb-2">
-                        {concert.date.split(' ')[0]}
-                      </div>
-                      <div className="text-lg opacity-90">
-                        {concert.date.split(' ').slice(1).join(' ')}
+                  {concert.image ? (
+                    <div className="md:w-1/3">
+                      <img 
+                        src={concert.image} 
+                        alt={concert.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="md:w-1/3 bg-gradient-to-br from-primary to-secondary p-12 flex flex-col justify-center items-center text-white">
+                      <div className="text-6xl mb-4">🎵</div>
+                      <div className="text-center">
+                        <div className="text-3xl font-heading font-bold mb-2">
+                          {concert.date.split(' ')[0]}
+                        </div>
+                        <div className="text-lg opacity-90">
+                          {concert.date.split(' ').slice(1).join(' ')}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="md:w-2/3 p-8">
                     <h3 className="text-2xl font-heading font-bold mb-4">{concert.title}</h3>
