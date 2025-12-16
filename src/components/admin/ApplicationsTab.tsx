@@ -23,6 +23,8 @@ interface Application {
   city: string;
   category: string;
   performance_title?: string;
+  participation_format?: string;
+  nomination?: string;
   experience: string;
   achievements: string;
   additional_info: string;
@@ -245,11 +247,19 @@ const ApplicationsTab = ({
                     <p className="text-sm font-medium">{app.performance_title || '—'}</p>
                   </div>
                   <div>
+                    <p className="text-xs text-muted-foreground mb-1">Номинация</p>
+                    <p className="text-sm font-medium">{app.nomination || '—'}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Формат</p>
+                    <p className="text-sm font-medium">{app.participation_format === 'offline' ? 'Очное' : app.participation_format === 'online' ? 'Заочное' : '—'}</p>
+                  </div>
+                  <div>
                     <p className="text-xs text-muted-foreground mb-1">Опыт</p>
                     <p className="text-sm font-medium">{app.experience || '—'}</p>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-2 gap-4 pt-2">
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Дата подачи</p>
                     <p className="text-sm font-medium">

@@ -19,6 +19,8 @@ type ParticipantData = {
   contestTitle?: string;
   category: string;
   performanceTitle?: string;
+  participationFormat?: string;
+  nomination?: string;
   experience: string;
   achievements: string;
   additionalInfo: string;
@@ -217,6 +219,20 @@ const ProfilePage = () => {
                             Название номера
                           </h4>
                           <p>{data.performanceTitle || 'Не указано'}</p>
+                        </div>
+
+                        <div>
+                          <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+                            Номинация
+                          </h4>
+                          <p>{data.nomination || 'Не указана'}</p>
+                        </div>
+
+                        <div>
+                          <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+                            Формат участия
+                          </h4>
+                          <p>{data.participationFormat === 'offline' ? 'Очное' : data.participationFormat === 'online' ? 'Заочное' : 'Не указан'}</p>
                         </div>
 
                         <div>

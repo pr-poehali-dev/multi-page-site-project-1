@@ -178,6 +178,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             if token:
                 cur.execute(
                     '''SELECT p.id, p.full_name, p.age, p.category, p.performance_title,
+                              p.participation_format, p.nomination,
                               ps.score, ps.comment, ps.id as score_id
                        FROM participants p
                        LEFT JOIN participant_scores ps ON p.id = ps.participant_id AND ps.jury_member_id = %s
@@ -194,9 +195,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         'age': row[2],
                         'category': row[3],
                         'performance_title': row[4],
-                        'score': float(row[5]) if row[5] else None,
-                        'comment': row[6],
-                        'score_id': row[7]
+                        'participation_format': row[5],
+                        'nomination': row[6],
+                        'score': float(row[7]) if row[7] else None,
+                        'comment': row[8],
+                        'score_id': row[9]
                     })
                 
                 cur.close()

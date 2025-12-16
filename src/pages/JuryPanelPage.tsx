@@ -20,6 +20,8 @@ interface Participant {
   age: number;
   category: string;
   performance_title: string;
+  participation_format?: string;
+  nomination?: string;
   score: number | null;
   comment: string | null;
 }
@@ -235,9 +237,15 @@ const ParticipantCard = ({ participant, onSubmit, saving }: ParticipantCardProps
       <div className="flex flex-col md:flex-row gap-6">
         <div className="flex-grow">
           <h3 className="text-xl font-heading font-bold mb-2">{participant.full_name}</h3>
-          <div className="flex gap-4 text-sm text-muted-foreground mb-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-muted-foreground mb-3">
             <span>Возраст: {participant.age}</span>
             <span>Категория: {participant.category}</span>
+            {participant.participation_format && (
+              <span>Формат: {participant.participation_format === 'offline' ? 'Очное' : 'Заочное'}</span>
+            )}
+            {participant.nomination && (
+              <span>Номинация: {participant.nomination}</span>
+            )}
           </div>
           <p className="text-muted-foreground mb-4">
             <span className="font-medium">Номер:</span> {participant.performance_title}

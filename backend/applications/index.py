@@ -47,6 +47,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             contest_input = body_data.get('contestId')
             category = body_data.get('category')
             performance_title = body_data.get('performanceTitle', '')
+            participation_format = body_data.get('participationFormat', '')
+            nomination = body_data.get('nomination', '')
             experience = body_data.get('experience', '')
             achievements = body_data.get('achievements', '')
             additional_info = body_data.get('additionalInfo', '')
@@ -102,19 +104,21 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 cur.execute(
                     '''
                     INSERT INTO applications 
-                    (participant_id, contest_id, category, performance_title, experience, achievements, additional_info, status)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending')
+                    (participant_id, contest_id, category, performance_title, participation_format, nomination, experience, achievements, additional_info, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending')
                     ON CONFLICT (participant_id, contest_id)
                     DO UPDATE SET
                         category = EXCLUDED.category,
                         performance_title = EXCLUDED.performance_title,
+                        participation_format = EXCLUDED.participation_format,
+                        nomination = EXCLUDED.nomination,
                         experience = EXCLUDED.experience,
                         achievements = EXCLUDED.achievements,
                         additional_info = EXCLUDED.additional_info,
                         submitted_at = CURRENT_TIMESTAMP
                     RETURNING id, submitted_at, status
                     ''',
-                    (participant_id, contest_id, category, performance_title, experience, achievements, additional_info)
+                    (participant_id, contest_id, category, performance_title, participation_format, nomination, experience, achievements, additional_info)
                 )
                 application = cur.fetchone()
                 
@@ -151,8 +155,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     '''
                     SELECT 
                         p.full_name, p.email, p.phone, p.birth_date, p.city,
-                        a.id as application_id, a.category, a.performance_title, a.experience, 
-                        a.achievements, a.additional_info, a.status, a.submitted_at,
+                        a.id as application_id, a.category, a.performance_title, a.participation_format, 
+                        a.nomination, a.experience, a.achievements, a.additional_info, a.status, a.submitted_at,
                         c.contest_key, c.title as contest_title
                     FROM participants p
                     JOIN applications a ON p.id = a.participant_id
@@ -190,6 +194,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'contestTitle': result['contest_title'],
                     'category': result['category'],
                     'performanceTitle': result['performance_title'] or '',
+                    'participationFormat': result['participation_format'] or '',
+                    'nomination': result['nomination'] or '',
                     'experience': result['experience'] or '',
                     'achievements': result['achievements'] or '',
                     'additionalInfo': result['additional_info'] or '',

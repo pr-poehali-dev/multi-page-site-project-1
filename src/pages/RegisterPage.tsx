@@ -24,6 +24,8 @@ type FormData = {
   contestId: string;
   category: string;
   performanceTitle: string;
+  participationFormat: string;
+  nomination: string;
   experience: string;
   
   // Шаг 3: Файлы
@@ -49,6 +51,8 @@ const RegisterPage = () => {
     contestId: '',
     category: '',
     performanceTitle: '',
+    participationFormat: '',
+    nomination: '',
     experience: '',
     files: [],
     achievements: '',
@@ -104,6 +108,8 @@ const RegisterPage = () => {
           contestId: formData.contestId,
           category: formData.category,
           performanceTitle: formData.performanceTitle,
+          participationFormat: formData.participationFormat,
+          nomination: formData.nomination,
           experience: formData.experience,
           achievements: formData.achievements,
           additionalInfo: formData.additionalInfo,
@@ -330,6 +336,38 @@ const RegisterPage = () => {
                     onChange={(e) => setFormData({ ...formData, performanceTitle: e.target.value })}
                     required
                   />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Формат участия <span className="text-destructive">*</span>
+                    </label>
+                    <Select
+                      value={formData.participationFormat}
+                      onValueChange={(value) => setFormData({ ...formData, participationFormat: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите формат" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="offline">Очное</SelectItem>
+                        <SelectItem value="online">Заочное</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Номинация <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      placeholder="Например: 'Вокал', 'Хореография'"
+                      value={formData.nomination}
+                      onChange={(e) => setFormData({ ...formData, nomination: e.target.value })}
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div>
