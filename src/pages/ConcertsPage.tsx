@@ -9,11 +9,11 @@ const ConcertsPage = () => {
     {
       title: 'Людмила Николаева - Жить не пережить',
       date: '1 мая 2025',
-      time: '19:00',
+      time: '18:00',
       venue: 'ГДК',
       city: 'Воронеж',
       price: '0+',
-      image: 'https://cdn.poehali.dev/files/250 Воронеж.png',
+      image: 'https://cdn.poehali.dev/files/260 Воронеж.png',
     },
     {
       title: 'Вечер фортепианной музыки',
