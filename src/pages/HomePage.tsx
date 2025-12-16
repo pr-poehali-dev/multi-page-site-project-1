@@ -59,12 +59,45 @@ const HomePage = () => {
         <div className="absolute bottom-10 left-10 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
         
         <div className="container mx-auto relative z-10">
-          <div className="max-w-4xl mx-auto text-center animate-fade-in">
-            <img 
-              src="https://cdn.poehali.dev/files/лого 2.png" 
-              alt="ИНДИГО" 
-              className="h-48 md:h-64 w-auto mx-auto mb-8"
-            />
+          <div className="max-w-4xl mx-auto text-center animate-fade-in relative">
+            {/* Вращающиеся фотографии вокруг логотипа */}
+            <div className="relative inline-block mb-8">
+              <div className="orbit-container">
+                {[
+                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_performing_ballet.jpg',
+                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/young_musicians_orchestra.jpg',
+                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/theater_kids_stage.jpg',
+                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_singing_choir.jpg',
+                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/dance_group_performance.jpg',
+                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/piano_student_concert.jpg',
+                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/art_class_children.jpg',
+                  'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_drama_performance.jpg',
+                ].map((img, i) => (
+                  <div
+                    key={i}
+                    className="orbit-item"
+                    style={{
+                      '--orbit-delay': `${i * 0.5}s`,
+                      '--orbit-duration': '20s',
+                      '--orbit-angle': `${(360 / 8) * i}deg`,
+                    } as React.CSSProperties}
+                  >
+                    <img
+                      src={img}
+                      alt={`Фото ${i + 1}`}
+                      className="orbit-photo"
+                    />
+                  </div>
+                ))}
+              </div>
+              
+              <img 
+                src="https://cdn.poehali.dev/files/лого 2.png" 
+                alt="ИНДИГО" 
+                className="h-48 md:h-64 w-auto mx-auto relative z-20"
+              />
+            </div>
+            
             <p className="md:text-2xl text-muted-foreground max-w-2xl text-4xl mx-[111px] my-[17px]">Здесь рождаются звезды!</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/register">
