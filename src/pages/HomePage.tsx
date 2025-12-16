@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
+import { Link } from 'react-router-dom';
 
 const HomePage = () => {
   const features = [
@@ -81,19 +82,30 @@ const HomePage = () => {
       <section className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <Card
-                key={index}
-                className="p-8 text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-2 animate-fade-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center mx-auto mb-4 rotate-6 hover:rotate-12 transition-transform">
-                  <Icon name={feature.icon as any} size={32} className="text-white" />
-                </div>
-                <h3 className="text-xl font-heading font-semibold mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
-              </Card>
-            ))}
+            {features.map((feature, index) => {
+              const linkPath = feature.title === 'Конкурсы' ? '/contests' : '#';
+              const CardContent = (
+                <Card
+                  key={index}
+                  className="p-8 text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-2 animate-fade-in cursor-pointer"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center mx-auto mb-4 rotate-6 hover:rotate-12 transition-transform">
+                    <Icon name={feature.icon as any} size={32} className="text-white" />
+                  </div>
+                  <h3 className="text-xl font-heading font-semibold mb-2">{feature.title}</h3>
+                  <p className="text-sm text-muted-foreground">{feature.description}</p>
+                </Card>
+              );
+
+              return feature.title === 'Конкурсы' ? (
+                <Link key={index} to={linkPath}>
+                  {CardContent}
+                </Link>
+              ) : (
+                CardContent
+              );
+            })}
           </div>
         </div>
       </section>
