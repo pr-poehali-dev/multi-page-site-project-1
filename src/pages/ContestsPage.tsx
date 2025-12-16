@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
@@ -6,59 +6,36 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 
+interface Contest {
+  id: number;
+  title: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+}
+
 const ContestsPage = () => {
-  const [filter, setFilter] = useState('all');
+  const [contests, setContests] = useState<Contest[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const contests = [
-    {
-      title: 'Весенний конкурс пианистов',
-      date: '15-20 марта 2025',
-      category: 'piano',
-      categoryLabel: 'Фортепиано',
-      status: 'open',
-      prize: '500 000 ₽',
-      participants: 45,
-    },
-    {
-      title: 'Летний вокальный марафон',
-      date: '1-7 июня 2025',
-      category: 'vocal',
-      categoryLabel: 'Вокал',
-      status: 'soon',
-      prize: '300 000 ₽',
-      participants: 0,
-    },
-    {
-      title: 'Осенний танцевальный фестиваль',
-      date: '10-15 сентября 2025',
-      category: 'dance',
-      categoryLabel: 'Хореография',
-      status: 'soon',
-      prize: '400 000 ₽',
-      participants: 0,
-    },
-    {
-      title: 'Зимний оркестровый конкурс',
-      date: '5-10 декабря 2025',
-      category: 'orchestra',
-      categoryLabel: 'Оркестр',
-      status: 'soon',
-      prize: '600 000 ₽',
-      participants: 0,
-    },
-  ];
+  useEffect(() => {
+    loadContests();
+  }, []);
 
-  const categories = [
-    { id: 'all', label: 'Все', icon: 'LayoutGrid' },
-    { id: 'piano', label: 'Фортепиано', icon: 'Music' },
-    { id: 'vocal', label: 'Вокал', icon: 'Mic' },
-    { id: 'dance', label: 'Хореография', icon: 'Footprints' },
-    { id: 'orchestra', label: 'Оркестр', icon: 'Music2' },
-  ];
+  const loadContests = async () => {
+    try {
+      const response = await fetch('https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3');
+      const data = await response.json();
+      setContests(data.contests || []);
+    } catch (error) {
+      console.error('Ошибка загрузки конкурсов:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredContests = filter === 'all' 
-    ? contests 
-    : contests.filter(c => c.category === filter);
+
 
   return (
     <div className="min-h-screen">
@@ -73,69 +50,51 @@ const ContestsPage = () => {
             Выберите направление и начните свой путь к победе
           </p>
 
-          <div className="flex flex-wrap justify-center gap-3 mb-12 animate-fade-in">
-            {categories.map((cat) => (
-              <Button
-                key={cat.id}
-                variant={filter === cat.id ? 'default' : 'outline'}
-                onClick={() => setFilter(cat.id)}
-                className={filter === cat.id ? 'bg-secondary hover:bg-secondary/90' : ''}
-              >
-                <Icon name={cat.icon as any} size={18} className="mr-2" />
-                {cat.label}
-              </Button>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            {filteredContests.map((contest, index) => (
-              <Card
-                key={index}
-                className="overflow-hidden hover:shadow-2xl transition-all duration-300 animate-scale-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="bg-gradient-to-br from-primary/20 to-secondary/20 p-8 relative">
-                  <Badge 
-                    className={`absolute top-4 right-4 ${
-                      contest.status === 'open' 
-                        ? 'bg-green-500' 
-                        : 'bg-orange-500'
-                    }`}
-                  >
-                    {contest.status === 'open' ? 'Идёт приём заявок' : 'Скоро'}
-                  </Badge>
-                  <h3 className="text-2xl font-heading font-bold mb-2">{contest.title}</h3>
-                  <p className="text-muted-foreground">{contest.categoryLabel}</p>
-                </div>
-
-                <div className="p-6 space-y-4">
-                  <div className="flex items-center gap-3 text-sm">
-                    <Icon name="Calendar" size={18} className="text-secondary" />
-                    <span>{contest.date}</span>
+          {loading ? (
+            <div className="text-center py-12">
+              <Icon name="Loader" size={48} className="mx-auto mb-4 animate-spin text-primary" />
+              <p className="text-muted-foreground">Загрузка конкурсов...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+              {contests.map((contest, index) => (
+                <Card
+                  key={contest.id}
+                  className="overflow-hidden hover:shadow-2xl transition-all duration-300 animate-scale-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="bg-gradient-to-br from-primary/20 to-secondary/20 p-8 relative">
+                    <Badge 
+                      className={`absolute top-4 right-4 ${
+                        contest.status === 'active' 
+                          ? 'bg-green-500' 
+                          : 'bg-orange-500'
+                      }`}
+                    >
+                      {contest.status === 'active' ? 'Идёт приём заявок' : 'Скоро'}
+                    </Badge>
+                    <h3 className="text-2xl font-heading font-bold mb-2">{contest.title}</h3>
+                    <p className="text-muted-foreground">{contest.description}</p>
                   </div>
 
-                  <div className="flex items-center gap-3 text-sm">
-                    <Icon name="Trophy" size={18} className="text-secondary" />
-                    <span>Призовой фонд: {contest.prize}</span>
-                  </div>
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-center gap-3 text-sm">
+                      <Icon name="Calendar" size={18} className="text-secondary" />
+                      <span>
+                        {new Date(contest.start_date).toLocaleDateString('ru-RU')} - {new Date(contest.end_date).toLocaleDateString('ru-RU')}
+                      </span>
+                    </div>
 
-                  <div className="flex items-center gap-3 text-sm">
-                    <Icon name="Users" size={18} className="text-secondary" />
-                    <span>{contest.participants} участников</span>
+                    <div className="flex gap-3 pt-4">
+                      <Button className="flex-1 bg-secondary hover:bg-secondary/90">
+                        Подать заявку
+                      </Button>
+                    </div>
                   </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <Button className="flex-1 bg-secondary hover:bg-secondary/90">
-                      Подать заявку
-                    </Button>
-                    <Button variant="outline" className="flex-1">
-                      Подробнее
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
