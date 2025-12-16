@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
 const GALLERY_URL = 'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?endpoint=gallery';
+const CONTESTS_URL = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
 
 interface GalleryItem {
   id: number;
@@ -16,26 +17,49 @@ interface GalleryItem {
   is_featured: boolean;
 }
 
+interface Contest {
+  id: number;
+  title: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+}
+
 const HomePage = () => {
   const [featuredPhotos, setFeaturedPhotos] = useState<GalleryItem[]>([]);
+  const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [contestsLoading, setContestsLoading] = useState(true);
 
   useEffect(() => {
-    const loadFeaturedPhotos = async () => {
+    const loadData = async () => {
       try {
-        const response = await fetch(GALLERY_URL);
-        const data = await response.json();
-        const featured = (data.items || [])
+        const [galleryResponse, contestsResponse] = await Promise.all([
+          fetch(GALLERY_URL),
+          fetch(CONTESTS_URL)
+        ]);
+        
+        const galleryData = await galleryResponse.json();
+        const featured = (galleryData.items || [])
           .filter((item: GalleryItem) => item.is_featured && item.media_type === 'photo')
           .slice(0, 8);
         setFeaturedPhotos(featured);
+        
+        const contestsData = await contestsResponse.json();
+        const upcomingContests = (contestsData.contests || [])
+          .filter((c: Contest) => c.status === 'active' || c.status === 'upcoming')
+          .sort((a: Contest, b: Contest) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
+          .slice(0, 3);
+        setContests(upcomingContests);
       } catch (error) {
-        console.error('Error loading featured photos:', error);
+        console.error('Error loading data:', error);
       } finally {
         setLoading(false);
+        setContestsLoading(false);
       }
     };
-    loadFeaturedPhotos();
+    loadData();
   }, []);
 
   const defaultPhotos = [
@@ -80,26 +104,21 @@ const HomePage = () => {
     },
   ];
 
-  const upcomingContests = [
-    {
-      title: 'Весенний конкурс пианистов',
-      date: '15-20 марта 2025',
-      category: 'Фортепиано',
-      color: 'bg-secondary/10',
-    },
-    {
-      title: 'Летний вокальный марафон',
-      date: '1-7 июня 2025',
-      category: 'Вокал',
-      color: 'bg-primary/10',
-    },
-    {
-      title: 'Осенний танцевальный фестиваль',
-      date: '10-15 сентября 2025',
-      category: 'Хореография',
-      color: 'bg-muted',
-    },
-  ];
+  const getContestColor = (index: number) => {
+    const colors = ['bg-secondary/10', 'bg-primary/10', 'bg-muted'];
+    return colors[index % colors.length];
+  };
+
+  const formatDateRange = (startDate: string, endDate: string) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
+    
+    if (start.getMonth() === end.getMonth()) {
+      return `${start.getDate()}-${end.toLocaleDateString('ru-RU', options)} ${start.getFullYear()}`;
+    }
+    return `${start.toLocaleDateString('ru-RU', options)} — ${end.toLocaleDateString('ru-RU', options)} ${start.getFullYear()}`;
+  };
 
   return (
     <div className="min-h-screen">
@@ -222,32 +241,51 @@ const HomePage = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {upcomingContests.map((contest, index) => (
-              <Card
-                key={index}
-                className="overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-105 animate-fade-in"
-                style={{ animationDelay: `${index * 0.15}s` }}
-              >
-                <div className={`h-40 ${contest.color} flex items-center justify-center`}>
-                  <div className="text-6xl opacity-20">🎭</div>
-                </div>
-                <div className="p-6">
-                  <div className="inline-block px-3 py-1 bg-secondary/10 text-secondary text-xs font-semibold rounded-full mb-3">
-                    {contest.category}
-                  </div>
-                  <h3 className="text-xl font-heading font-semibold mb-2">{contest.title}</h3>
-                  <p className="text-sm text-muted-foreground mb-4 flex items-center gap-2">
-                    <Icon name="Calendar" size={16} />
-                    {contest.date}
-                  </p>
-                  <Button variant="outline" className="w-full">
-                    Подробнее
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
+          {contestsLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <Icon name="Loader2" size={48} className="animate-spin text-secondary" />
+            </div>
+          ) : contests.length === 0 ? (
+            <div className="text-center py-20">
+              <Icon name="Calendar" size={64} className="mx-auto mb-4 text-muted-foreground" />
+              <p className="text-xl text-muted-foreground">
+                Скоро здесь появятся новые конкурсы
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {contests.map((contest, index) => (
+                <Link key={contest.id} to={`/contests`}>
+                  <Card
+                    className="overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-105 animate-fade-in cursor-pointer"
+                    style={{ animationDelay: `${index * 0.15}s` }}
+                  >
+                    <div className={`h-40 ${getContestColor(index)} flex items-center justify-center`}>
+                      <div className="text-6xl opacity-20">🎭</div>
+                    </div>
+                    <div className="p-6">
+                      <div className="inline-block px-3 py-1 bg-secondary/10 text-secondary text-xs font-semibold rounded-full mb-3">
+                        {contest.status === 'active' ? 'Идет сейчас' : 'Скоро'}
+                      </div>
+                      <h3 className="text-xl font-heading font-semibold mb-2">{contest.title}</h3>
+                      {contest.description && (
+                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                          {contest.description}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground mb-4 flex items-center gap-2">
+                        <Icon name="Calendar" size={16} />
+                        {formatDateRange(contest.start_date, contest.end_date)}
+                      </p>
+                      <Button variant="outline" className="w-full">
+                        Подробнее
+                      </Button>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
