@@ -26,7 +26,7 @@ export default function GalleryUploadModal({ open, onClose, onSubmit, contests }
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [mediaType, setMediaType] = useState<'photo' | 'video'>('photo');
-  const [contestId, setContestId] = useState<string>('');
+  const [contestId, setContestId] = useState<string>('none');
   const [isFeatured, setIsFeatured] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -59,7 +59,7 @@ export default function GalleryUploadModal({ open, onClose, onSubmit, contests }
           title,
           description,
           media_type: mediaType,
-          contest_id: contestId ? parseInt(contestId) : undefined,
+          contest_id: contestId !== 'none' ? parseInt(contestId) : undefined,
           is_featured: isFeatured,
           file_base64: base64String,
           file_name: file.name
@@ -68,7 +68,7 @@ export default function GalleryUploadModal({ open, onClose, onSubmit, contests }
         setTitle('');
         setDescription('');
         setMediaType('photo');
-        setContestId('');
+        setContestId('none');
         setIsFeatured(false);
         setFile(null);
         setPreview(null);
@@ -164,7 +164,7 @@ export default function GalleryUploadModal({ open, onClose, onSubmit, contests }
                 <SelectValue placeholder="Выберите конкурс (опционально)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Без привязки</SelectItem>
+                <SelectItem value="none">Без привязки</SelectItem>
                 {contests.map((contest) => (
                   <SelectItem key={contest.id} value={contest.id.toString()}>
                     {contest.title}

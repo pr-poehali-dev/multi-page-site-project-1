@@ -212,7 +212,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 }
         
         # === APPLICATIONS ENDPOINTS ===
-        if method == 'GET':
+        if 'gallery' not in path and method == 'GET':
             # Получение всех заявок
             params = event.get('queryStringParameters') or {}
             contest_filter = params.get('contest_id')
@@ -278,7 +278,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'isBase64Encoded': False
                 }
         
-        elif method == 'PUT':
+        elif 'gallery' not in path and method == 'PUT':
             # Обновление статуса заявки
             body = json.loads(event.get('body', '{}'))
             app_id = body.get('application_id')
