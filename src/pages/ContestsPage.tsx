@@ -158,7 +158,7 @@ const ContestsPage = () => {
                             <Icon name="Send" size={18} className="mr-2" />
                             {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется' : 'Подать заявку'}
                           </Button>
-                          <Button variant="outline">
+                          <Button variant="outline" onClick={() => window.location.href = `/contests/${contest.id}`}>
                             <Icon name="Info" size={18} className="mr-2" />
                             Подробнее
                           </Button>
