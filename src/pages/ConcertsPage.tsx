@@ -14,6 +14,7 @@ const ConcertsPage = () => {
       city: 'Воронеж',
       price: '0+',
       image: 'https://cdn.poehali.dev/files/260 Воронеж.png',
+      ticketUrl: 'https://iframeab-pre11992.intickets.ru/seance/68895381/',
     },
     {
       title: 'Людмила Николаева - Жить не пережить',
@@ -106,9 +107,17 @@ const ConcertsPage = () => {
                     </div>
 
                     <div className="flex gap-3">
-                      <Button className="bg-secondary hover:bg-secondary/90">
-                        Купить билет
-                      </Button>
+                      {concert.ticketUrl ? (
+                        <a href={concert.ticketUrl} target="_blank" rel="noopener noreferrer">
+                          <Button className="bg-secondary hover:bg-secondary/90">
+                            Купить билет
+                          </Button>
+                        </a>
+                      ) : (
+                        <Button className="bg-secondary hover:bg-secondary/90">
+                          Купить билет
+                        </Button>
+                      )}
                       <Button variant="outline">
                         Подробнее
                       </Button>
