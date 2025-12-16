@@ -48,6 +48,12 @@ const Navigation = () => {
                 Участвовать
               </Button>
             </Link>
+            <Link to="/jury-login">
+              <Button variant="outline" size="sm" className="gap-2">
+                <Icon name="UserCircle" size={16} />
+                Вход для жюри
+              </Button>
+            </Link>
             <Link to="/admin">
               <Button variant="outline" size="sm" className="gap-2">
                 <Icon name="Shield" size={16} />
@@ -81,6 +87,12 @@ const Navigation = () => {
             <Link to="/register">
               <Button className="w-full mt-4 bg-secondary hover:bg-secondary/90">
                 Участвовать
+              </Button>
+            </Link>
+            <Link to="/jury-login">
+              <Button variant="outline" className="w-full mt-2 gap-2">
+                <Icon name="UserCircle" size={16} />
+                Вход для жюри
               </Button>
             </Link>
             <Link to="/admin">
