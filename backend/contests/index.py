@@ -136,11 +136,16 @@ def create_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
         }
     
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        # Генерируем contest_key из title (транслитерация + timestamp для уникальности)
+        import hashlib
+        import time
+        contest_key = hashlib.md5(f"{title}{time.time()}".encode()).hexdigest()[:16]
+        
         cur.execute('''
-            INSERT INTO contests (title, description, start_date, end_date, status, pdf_url, rules, prizes, categories)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO contests (contest_key, title, description, start_date, end_date, status, pdf_url, rules, prizes, categories)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
-        ''', (title, description, start_date, end_date, status, pdf_url, rules, prizes, categories))
+        ''', (contest_key, title, description, start_date, end_date, status, pdf_url, rules, prizes, categories))
         
         result = cur.fetchone()
         
