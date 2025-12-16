@@ -43,16 +43,37 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             search_query = params.get('search', '').lower()
             
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Простой запрос без JOIN для тестирования
-                query = 'SELECT id, participant_id, contest_id, status, submitted_at FROM applications WHERE 1=1'
+                # Полный запрос с JOIN для получения всех данных
+                query = '''
+                    SELECT 
+                        a.id, 
+                        a.participant_id,
+                        a.contest_id,
+                        a.category,
+                        a.experience,
+                        a.achievements,
+                        a.additional_info,
+                        a.status,
+                        a.submitted_at,
+                        p.full_name,
+                        p.email,
+                        p.phone,
+                        p.birth_date,
+                        p.city,
+                        c.title as contest_title
+                    FROM applications a
+                    JOIN participants p ON a.participant_id = p.id
+                    JOIN contests c ON a.contest_id = c.id
+                    WHERE 1=1
+                '''
                 
                 if contest_filter:
-                    query += f" AND contest_id = {int(contest_filter)}"
+                    query += f" AND a.contest_id = {int(contest_filter)}"
                 
                 if status_filter:
-                    query += f" AND status = '{status_filter}'"
+                    query += f" AND a.status = '{status_filter}'"
                 
-                query += ' ORDER BY submitted_at DESC'
+                query += ' ORDER BY a.submitted_at DESC'
                 
                 cur.execute(query)
                 applications = cur.fetchall()
@@ -61,6 +82,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 for app in applications:
                     if app.get('submitted_at'):
                         app['submitted_at'] = app['submitted_at'].isoformat()
+                    if app.get('birth_date'):
+                        app['birth_date'] = app['birth_date'].isoformat()
                 
                 return {
                     'statusCode': 200,

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
@@ -14,6 +15,16 @@ interface Application {
   id: number;
   participant_id: number;
   contest_id: number;
+  contest_title: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  birth_date: string;
+  city: string;
+  category: string;
+  experience: string;
+  achievements: string;
+  additional_info: string;
   status: string;
   submitted_at: string;
 }
@@ -41,17 +52,12 @@ const ApplicationsTab = ({
   setContestFilter,
   updateStatus,
 }: ApplicationsTabProps) => {
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
   const statuses: Record<string, string> = {
     pending: 'На рассмотрении',
     approved: 'Одобрена',
     rejected: 'Отклонена',
-  };
-
-  const contestsMap: Record<number, string> = {
-    1: 'Весенний Бриз',
-    2: 'Летние Звёзды',
-    3: 'Осенняя Мелодия',
-    4: 'Зимняя Сказка',
   };
 
   const getStatusBadgeClass = (status: string) => {
@@ -65,6 +71,25 @@ const ApplicationsTab = ({
     }
   };
 
+  const calculateAge = (birthDate: string) => {
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const filteredApplications = applications.filter(
+    (app) =>
+      searchQuery === '' ||
+      app.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.id.toString().includes(searchQuery)
+  );
+
   return (
     <>
       <Card className="p-6 mb-6">
@@ -72,7 +97,7 @@ const ApplicationsTab = ({
           <div>
             <label className="text-sm font-medium mb-2 block">Поиск</label>
             <Input
-              placeholder="Поиск по ID или участнику..."
+              placeholder="Имя, email или ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -101,11 +126,14 @@ const ApplicationsTab = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Все конкурсы</SelectItem>
-                {Object.entries(contestsMap).map(([id, title]) => (
-                  <SelectItem key={id} value={id}>
-                    {title}
-                  </SelectItem>
-                ))}
+                {Array.from(new Set(applications.map(app => app.contest_id))).map((contestId) => {
+                  const app = applications.find(a => a.contest_id === contestId);
+                  return (
+                    <SelectItem key={contestId} value={contestId.toString()}>
+                      {app?.contest_title || `Конкурс #${contestId}`}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -121,100 +149,136 @@ const ApplicationsTab = ({
           />
           <p className="text-muted-foreground">Загрузка заявок...</p>
         </Card>
-      ) : (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">ID</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">
-                    Участник
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">
-                    Конкурс
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Дата</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Статус</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">
-                    Действия
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {applications
-                  .filter(
-                    (app) =>
-                      searchQuery === '' ||
-                      app.id.toString().includes(searchQuery) ||
-                      app.participant_id.toString().includes(searchQuery)
-                  )
-                  .map((app) => (
-                    <tr key={app.id} className="border-t hover:bg-muted/30">
-                      <td className="px-6 py-4 text-sm font-medium">#{app.id}</td>
-                      <td className="px-6 py-4 text-sm">
-                        Участник #{app.participant_id}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        {contestsMap[app.contest_id] || `Конкурс #${app.contest_id}`}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        {new Date(app.submitted_at).toLocaleDateString('ru-RU')}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadgeClass(
-                            app.status
-                          )}`}
-                        >
-                          {statuses[app.status]}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          {app.status !== 'approved' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-green-600 hover:bg-green-50"
-                              onClick={() => updateStatus(app.id, 'approved')}
-                            >
-                              <Icon name="Check" size={16} />
-                            </Button>
-                          )}
-                          {app.status !== 'rejected' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-red-600 hover:bg-red-50"
-                              onClick={() => updateStatus(app.id, 'rejected')}
-                            >
-                              <Icon name="X" size={16} />
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-
-            {applications.length === 0 && (
-              <div className="text-center py-12">
-                <Icon
-                  name="Inbox"
-                  size={48}
-                  className="mx-auto mb-4 text-muted-foreground"
-                />
-                <p className="text-muted-foreground">Заявок не найдено</p>
-              </div>
-            )}
-          </div>
+      ) : filteredApplications.length === 0 ? (
+        <Card className="p-12 text-center">
+          <Icon
+            name="Inbox"
+            size={48}
+            className="mx-auto mb-4 text-muted-foreground"
+          />
+          <p className="text-muted-foreground">Заявок не найдено</p>
         </Card>
+      ) : (
+        <div className="space-y-4">
+          {filteredApplications.map((app) => (
+            <Card key={app.id} className="overflow-hidden">
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-lg font-semibold">{app.full_name}</h3>
+                      <span
+                        className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeClass(
+                          app.status
+                        )}`}
+                      >
+                        {statuses[app.status]}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Icon name="Mail" size={16} />
+                        <span>{app.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Icon name="Phone" size={16} />
+                        <span>{app.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Icon name="MapPin" size={16} />
+                        <span>{app.city}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Icon name="Calendar" size={16} />
+                        <span>{calculateAge(app.birth_date)} лет</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    {app.status !== 'approved' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-green-600 hover:bg-green-50"
+                        onClick={() => updateStatus(app.id, 'approved')}
+                      >
+                        <Icon name="Check" size={16} className="mr-1" />
+                        Одобрить
+                      </Button>
+                    )}
+                    {app.status !== 'rejected' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 hover:bg-red-50"
+                        onClick={() => updateStatus(app.id, 'rejected')}
+                      >
+                        <Icon name="X" size={16} className="mr-1" />
+                        Отклонить
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setExpandedId(expandedId === app.id ? null : app.id)}
+                    >
+                      <Icon 
+                        name={expandedId === app.id ? "ChevronUp" : "ChevronDown"} 
+                        size={16} 
+                      />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Конкурс</p>
+                    <p className="text-sm font-medium">{app.contest_title}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Категория</p>
+                    <p className="text-sm font-medium">{app.category}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Опыт</p>
+                    <p className="text-sm font-medium">{app.experience || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Дата подачи</p>
+                    <p className="text-sm font-medium">
+                      {new Date(app.submitted_at).toLocaleDateString('ru-RU')}
+                    </p>
+                  </div>
+                </div>
+
+                {expandedId === app.id && (
+                  <div className="mt-4 pt-4 border-t border-border space-y-3 animate-fade-in">
+                    {app.achievements && (
+                      <div>
+                        <p className="text-sm font-medium mb-1">Достижения:</p>
+                        <p className="text-sm text-muted-foreground">{app.achievements}</p>
+                      </div>
+                    )}
+                    {app.additional_info && (
+                      <div>
+                        <p className="text-sm font-medium mb-1">Дополнительная информация:</p>
+                        <p className="text-sm text-muted-foreground">{app.additional_info}</p>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Icon name="Hash" size={14} />
+                      <span>ID заявки: {app.id}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
 
       <div className="mt-6 text-center text-sm text-muted-foreground">
-        Всего заявок: {applications.length}
+        Показано заявок: {filteredApplications.length} из {applications.length}
       </div>
     </>
   );
