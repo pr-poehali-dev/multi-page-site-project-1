@@ -86,6 +86,8 @@ const HomePage = () => {
               let linkPath = '#';
               if (feature.title === 'Конкурсы') linkPath = '/contests';
               if (feature.title === 'Концерты') linkPath = '/concerts';
+              if (feature.title === 'Жюри') linkPath = '/jury';
+              if (feature.title === 'Награды') linkPath = '/results';
               
               const CardContent = (
                 <Card
