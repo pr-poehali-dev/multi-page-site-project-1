@@ -38,9 +38,7 @@ const AboutPage = () => {
           <h1 className="text-5xl md:text-6xl font-heading font-bold mb-6 text-center animate-fade-in">
             О платформе
           </h1>
-          <p className="text-xl text-muted-foreground text-center mb-12 animate-fade-in">
-            Art Seasons — это современная конкурсная платформа для артистов всех направлений
-          </p>
+          <p className="text-xl text-muted-foreground text-center mb-12 animate-fade-in">ИНДИГО — это современная конкурсная платформа для артистов всех направлений</p>
 
           <div className="prose prose-lg max-w-none mb-16 animate-fade-in">
             <p className="text-lg leading-relaxed">
