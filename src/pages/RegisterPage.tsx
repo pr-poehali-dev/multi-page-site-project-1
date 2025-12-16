@@ -3,14 +3,14 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
-import FileUpload from '@/components/FileUpload';
 import { useNavigate } from 'react-router-dom';
+import RegisterStepPersonal from '@/components/register/RegisterStepPersonal';
+import RegisterStepContest from '@/components/register/RegisterStepContest';
+import RegisterStepFiles from '@/components/register/RegisterStepFiles';
+import RegisterStepFinish from '@/components/register/RegisterStepFinish';
 
 type FormData = {
   // Шаг 1: Личные данные
@@ -208,303 +208,66 @@ const RegisterPage = () => {
 
             {/* Step 1: Личные данные */}
             {step === 1 && (
-              <div className="space-y-6 animate-fade-in">
-                <h2 className="text-2xl font-heading font-bold mb-6">Личные данные</h2>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    ФИО <span className="text-destructive">*</span>
-                  </label>
-                  <Input
-                    placeholder="Иванов Иван Иванович"
-                    value={formData.fullName}
-                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Email <span className="text-destructive">*</span>
-                    </label>
-                    <Input
-                      type="email"
-                      placeholder="example@mail.com"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Телефон <span className="text-destructive">*</span>
-                    </label>
-                    <Input
-                      type="tel"
-                      placeholder="+7 (999) 999-99-99"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Дата рождения <span className="text-destructive">*</span>
-                    </label>
-                    <Input
-                      type="date"
-                      value={formData.birthDate}
-                      onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Город <span className="text-destructive">*</span>
-                    </label>
-                    <Input
-                      placeholder="Москва"
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
+              <RegisterStepPersonal 
+                formData={formData}
+                setFormData={setFormData}
+              />
             )}
 
             {/* Step 2: Выбор конкурса */}
             {step === 2 && (
-              <div className="space-y-6 animate-fade-in">
-                <h2 className="text-2xl font-heading font-bold mb-6">Выбор конкурса</h2>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Конкурс <span className="text-destructive">*</span>
-                  </label>
-                  <Select
-                    value={formData.contestId}
-                    onValueChange={(value) => setFormData({ ...formData, contestId: value })}
-                    disabled={loadingContests}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={loadingContests ? "Загрузка..." : "Выберите конкурс"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {contests.map((contest) => (
-                        <SelectItem key={contest.id} value={contest.id.toString()}>
-                          {contest.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Категория <span className="text-destructive">*</span>
-                  </label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(value) => setFormData({ ...formData, category: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Выберите категорию" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="junior">Юниоры (до 14 лет)</SelectItem>
-                      <SelectItem value="youth">Молодёжь (15-18 лет)</SelectItem>
-                      <SelectItem value="adult">Взрослые (19-25 лет)</SelectItem>
-                      <SelectItem value="professional">Профессионалы (25+ лет)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Название номера <span className="text-destructive">*</span>
-                  </label>
-                  <Input
-                    placeholder="Например: 'Танец с огнём', 'Соло на скрипке'"
-                    value={formData.performanceTitle}
-                    onChange={(e) => setFormData({ ...formData, performanceTitle: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Формат участия <span className="text-destructive">*</span>
-                    </label>
-                    <Select
-                      value={formData.participationFormat}
-                      onValueChange={(value) => setFormData({ ...formData, participationFormat: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Выберите формат" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="offline">Очное</SelectItem>
-                        <SelectItem value="online">Заочное</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Номинация <span className="text-destructive">*</span>
-                    </label>
-                    <Input
-                      placeholder="Например: 'Вокал', 'Хореография'"
-                      value={formData.nomination}
-                      onChange={(e) => setFormData({ ...formData, nomination: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Опыт выступлений
-                  </label>
-                  <Select
-                    value={formData.experience}
-                    onValueChange={(value) => setFormData({ ...formData, experience: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Выберите уровень опыта" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="beginner">Начинающий (менее 1 года)</SelectItem>
-                      <SelectItem value="intermediate">Средний (1-3 года)</SelectItem>
-                      <SelectItem value="advanced">Продвинутый (3-5 лет)</SelectItem>
-                      <SelectItem value="expert">Эксперт (более 5 лет)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              <RegisterStepContest
+                formData={formData}
+                setFormData={setFormData}
+                contests={contests}
+                loadingContests={loadingContests}
+              />
             )}
 
             {/* Step 3: Загрузка файлов */}
             {step === 3 && (
-              <div className="space-y-6 animate-fade-in">
-                <h2 className="text-2xl font-heading font-bold mb-6">Загрузка работ</h2>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Портфолио / Видео выступлений <span className="text-destructive">*</span>
-                  </label>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Загрузите фото, видео или документы (макс. 50 МБ каждый)
-                  </p>
-                  <FileUpload
-                    files={formData.files}
-                    onChange={handleFilesChange}
-                    accept="image/*,video/*,.pdf,.doc,.docx"
-                    maxSize={50}
-                  />
-                </div>
-
-                <div className="bg-muted/50 rounded-lg p-4">
-                  <div className="flex gap-3">
-                    <Icon name="Info" size={20} className="text-primary flex-shrink-0 mt-0.5" />
-                    <div className="text-sm">
-                      <p className="font-semibold mb-1">Рекомендации по загрузке:</p>
-                      <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                        <li>Видео: формат MP4, длительность до 10 минут</li>
-                        <li>Фото: высокое разрешение, формат JPG или PNG</li>
-                        <li>Документы: резюме, дипломы, сертификаты в PDF</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <RegisterStepFiles
+                formData={formData}
+                handleFilesChange={handleFilesChange}
+              />
             )}
 
             {/* Step 4: Дополнительная информация */}
             {step === 4 && (
-              <div className="space-y-6 animate-fade-in">
-                <h2 className="text-2xl font-heading font-bold mb-6">Завершение регистрации</h2>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Достижения и награды
-                  </label>
-                  <Textarea
-                    placeholder="Расскажите о своих достижениях, наградах, участии в других конкурсах..."
-                    rows={5}
-                    value={formData.achievements}
-                    onChange={(e) => setFormData({ ...formData, achievements: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Дополнительная информация
-                  </label>
-                  <Textarea
-                    placeholder="Любая дополнительная информация, которую вы хотите сообщить..."
-                    rows={5}
-                    value={formData.additionalInfo}
-                    onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
-                  />
-                </div>
-
-                <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-6">
-                  <h3 className="font-heading font-bold mb-2 flex items-center gap-2">
-                    <Icon name="CheckCircle" size={20} className="text-primary" />
-                    Проверьте ваши данные
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <p><strong>ФИО:</strong> {formData.fullName}</p>
-                    <p><strong>Email:</strong> {formData.email}</p>
-                    <p><strong>Телефон:</strong> {formData.phone}</p>
-                    <p><strong>Город:</strong> {formData.city}</p>
-                    <p><strong>Файлов загружено:</strong> {formData.files.length}</p>
-                  </div>
-                </div>
-              </div>
+              <RegisterStepFinish
+                formData={formData}
+                setFormData={setFormData}
+              />
             )}
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between mt-8 pt-6 border-t">
-              <Button
-                variant="outline"
-                onClick={handlePrev}
-                disabled={step === 1}
-                className="gap-2"
-              >
-                <Icon name="ChevronLeft" size={20} />
-                Назад
-              </Button>
-
+            <div className="flex gap-4 mt-8">
+              {step > 1 && (
+                <Button
+                  variant="outline"
+                  onClick={handlePrev}
+                  className="flex-1"
+                >
+                  <Icon name="ChevronLeft" size={20} className="mr-2" />
+                  Назад
+                </Button>
+              )}
+              
               {step < totalSteps ? (
                 <Button
                   onClick={handleNext}
-                  className="bg-secondary hover:bg-secondary/90 gap-2"
-                  disabled={
-                    (step === 1 && (!formData.fullName || !formData.email || !formData.phone)) ||
-                    (step === 2 && (!formData.contestId || !formData.category)) ||
-                    (step === 3 && formData.files.length === 0)
-                  }
+                  className="flex-1 bg-primary hover:bg-primary/90"
                 >
                   Далее
-                  <Icon name="ChevronRight" size={20} />
+                  <Icon name="ChevronRight" size={20} className="ml-2" />
                 </Button>
               ) : (
                 <Button
                   onClick={handleSubmit}
-                  className="bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 gap-2"
+                  className="flex-1 bg-secondary hover:bg-secondary/90"
                 >
-                  <Icon name="Send" size={20} />
                   Отправить заявку
+                  <Icon name="Send" size={20} className="ml-2" />
                 </Button>
               )}
             </div>
