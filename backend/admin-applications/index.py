@@ -154,7 +154,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 }
             
             elif method == 'PUT':
-                item_id = path_params.get('id')
+                # Получаем ID из query параметров
+                item_id = query_string_params.get('id')
                 body_data = json.loads(event.get('body', '{}'))
                 
                 if not item_id:
@@ -200,7 +201,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 }
             
             elif method == 'DELETE':
-                item_id = path_params.get('id')
+                # Получаем ID из query параметров
+                item_id = query_string_params.get('id')
                 
                 if not item_id:
                     return {
@@ -211,7 +213,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     }
                 
                 with conn.cursor() as cur:
-                    cur.execute('UPDATE gallery_items SET updated_at = CURRENT_TIMESTAMP WHERE id = %s', (item_id,))
+                    cur.execute('DELETE FROM gallery_items WHERE id = %s', (item_id,))
                 
                 return {
                     'statusCode': 200,

@@ -78,7 +78,7 @@ export function useAdminGallery() {
 
   const updateItem = async (id: number, updates: Partial<GalleryItem>) => {
     try {
-      const response = await fetch(`${ADMIN_GALLERY_URL}/${id}`, {
+      const response = await fetch(`${ADMIN_GALLERY_URL}&id=${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
@@ -106,7 +106,7 @@ export function useAdminGallery() {
 
   const deleteItem = async (id: number) => {
     try {
-      const response = await fetch(`${ADMIN_GALLERY_URL}/${id}`, {
+      const response = await fetch(`${ADMIN_GALLERY_URL}&id=${id}`, {
         method: 'DELETE'
       });
 
