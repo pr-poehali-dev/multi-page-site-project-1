@@ -164,6 +164,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     pass
             contest_id = params.get('contest_id')
             
+            print(f'[DEBUG] contest_id: {contest_id}, token present: {bool(token)}')
+            
             if not contest_id:
                 return {
                     'statusCode': 400,
@@ -213,16 +215,20 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             # Если токена нет - это запрос админа (все оценки с агрегацией)
             cur.execute(
-                '''SELECT p.id, p.full_name, p.age, p.category
+                '''SELECT p.id, p.full_name, p.age, p.category, p.nomination
                    FROM participants p
                    WHERE p.contest_id = %s AND p.status = 'approved'
                    ORDER BY p.id''',
                 (contest_id,)
             )
             
+            rows = cur.fetchall()
+            print(f'[DEBUG] Found {len(rows)} approved participants for contest {contest_id}')
+            
             participants = []
-            for row in cur.fetchall():
+            for row in rows:
                 participant_id = row[0]
+                print(f'[DEBUG] Processing participant: {row[1]}, id={participant_id}')
                 
                 # Получаем все оценки для этого участника
                 cur.execute(
@@ -254,7 +260,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'id': participant_id,
                     'name': row[1],
                     'age': row[2],
-                    'nomination': row[3],
+                    'nomination': row[4] or row[3],
                     'avg_score': avg_score,
                     'scores_count': count,
                     'jury_scores': jury_scores
