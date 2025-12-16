@@ -1,0 +1,29 @@
+{
+  "tests": [
+    {
+      "name": "Get all applications",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "applications": "array",
+        "total": "number"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Update application status",
+      "method": "PUT",
+      "path": "/",
+      "body": {
+        "application_id": 1,
+        "status": "approved"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
