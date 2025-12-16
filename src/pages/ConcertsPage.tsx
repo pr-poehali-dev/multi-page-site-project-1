@@ -25,6 +25,7 @@ const ConcertsPage = () => {
       price: '0+',
       image: 'https://cdn.poehali.dev/files/250 Липецк.png',
       ticketUrl: 'https://iframeab-pre11992.intickets.ru/seance/68895349/',
+      detailsUrl: 'https://iframeab-pre11992.intickets.ru/event/68895347/',
     },
     {
       title: 'Симфонический оркестр',
@@ -119,9 +120,17 @@ const ConcertsPage = () => {
                           Купить билет
                         </Button>
                       )}
-                      <Button variant="outline">
-                        Подробнее
-                      </Button>
+                      {concert.detailsUrl ? (
+                        <a href={concert.detailsUrl} target="_blank" rel="noopener noreferrer">
+                          <Button variant="outline">
+                            Подробнее
+                          </Button>
+                        </a>
+                      ) : (
+                        <Button variant="outline">
+                          Подробнее
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
