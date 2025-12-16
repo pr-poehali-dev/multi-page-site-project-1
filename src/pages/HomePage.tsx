@@ -71,9 +71,11 @@ const HomePage = () => {
                 <Icon name="Sparkles" size={20} className="mr-2" />
                 Подать заявку
               </Button>
-              <Button size="lg" variant="outline" className="text-lg px-8 animate-scale-in" style={{ animationDelay: '0.1s' }}>
-                Смотреть конкурсы
-              </Button>
+              <Link to="/contests">
+                <Button size="lg" variant="outline" className="text-lg px-8 animate-scale-in" style={{ animationDelay: '0.1s' }}>
+                  Смотреть конкурсы
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
