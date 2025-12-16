@@ -33,16 +33,71 @@ export default function GalleryUploadModal({ open, onClose, onSubmit, contests }
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Ограничиваем максимальный размер 1920px
+          const maxSize = 1920;
+          if (width > maxSize || height > maxSize) {
+            if (width > height) {
+              height = (height / width) * maxSize;
+              width = maxSize;
+            } else {
+              width = (width / height) * maxSize;
+              height = maxSize;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Сжимаем до 80% качества
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
       
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setPreview(event.target?.result as string);
-      };
-      reader.readAsDataURL(selectedFile);
+      // Для изображений - сжимаем
+      if (selectedFile.type.startsWith('image/')) {
+        try {
+          const compressed = await compressImage(selectedFile);
+          setPreview(compressed);
+        } catch (error) {
+          console.error('Compression error:', error);
+          // Fallback на оригинал
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            setPreview(event.target?.result as string);
+          };
+          reader.readAsDataURL(selectedFile);
+        }
+      } else {
+        // Для видео - показываем как есть
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setPreview(event.target?.result as string);
+        };
+        reader.readAsDataURL(selectedFile);
+      }
     }
   };
 
@@ -51,30 +106,43 @@ export default function GalleryUploadModal({ open, onClose, onSubmit, contests }
 
     setLoading(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64String = (event.target?.result as string).split(',')[1];
-        
-        await onSubmit({
-          title,
-          description,
-          media_type: mediaType,
-          contest_id: contestId !== 'none' ? parseInt(contestId) : undefined,
-          is_featured: isFeatured,
-          file_base64: base64String,
-          file_name: file.name
+      let base64String: string;
+      
+      // Для изображений используем сжатый preview
+      if (file.type.startsWith('image/') && preview) {
+        base64String = preview.split(',')[1];
+      } else {
+        // Для видео читаем напрямую
+        const reader = new FileReader();
+        const fileData = await new Promise<string>((resolve, reject) => {
+          reader.onload = (event) => {
+            const result = (event.target?.result as string).split(',')[1];
+            resolve(result);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
         });
+        base64String = fileData;
+      }
+      
+      await onSubmit({
+        title,
+        description,
+        media_type: mediaType,
+        contest_id: contestId !== 'none' ? parseInt(contestId) : undefined,
+        is_featured: isFeatured,
+        file_base64: base64String,
+        file_name: file.name
+      });
 
-        setTitle('');
-        setDescription('');
-        setMediaType('photo');
-        setContestId('none');
-        setIsFeatured(false);
-        setFile(null);
-        setPreview(null);
-        onClose();
-      };
-      reader.readAsDataURL(file);
+      setTitle('');
+      setDescription('');
+      setMediaType('photo');
+      setContestId('none');
+      setIsFeatured(false);
+      setFile(null);
+      setPreview(null);
+      onClose();
     } catch (error) {
       console.error('Upload error:', error);
     } finally {
