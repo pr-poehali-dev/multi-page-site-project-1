@@ -19,6 +19,8 @@ import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
 import JuryLoginPage from "./pages/JuryLoginPage";
 import JuryPanelPage from "./pages/JuryPanelPage";
+import ParticipantLoginPage from "./pages/ParticipantLoginPage";
+import ParticipantCabinetPage from "./pages/ParticipantCabinetPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +47,8 @@ const App = () => (
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/jury-login" element={<JuryLoginPage />} />
           <Route path="/jury-panel" element={<JuryPanelPage />} />
+          <Route path="/participant-login" element={<ParticipantLoginPage />} />
+          <Route path="/participant-cabinet" element={<ParticipantCabinetPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

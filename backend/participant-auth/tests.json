@@ -1,0 +1,17 @@
+{
+  "tests": [
+    {
+      "name": "Get participant applications",
+      "method": "GET",
+      "path": "/?email=test@example.com",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "participant": {
+          "email": "string"
+        },
+        "applications": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 {
+  "participant-auth": "https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904",
   "contest-pdf-upload": "https://functions.poehali.dev/b0d40cbb-41ff-48a1-a800-101845d59a03",
   "jury-scoring": "https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d",
   "jury": "https://functions.poehali.dev/29a5a3ab-7964-41f0-baf5-d85b81b743bc",
