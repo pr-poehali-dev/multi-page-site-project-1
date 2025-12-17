@@ -83,7 +83,7 @@ const ConcertModal = ({
           const data = await response.json();
 
           if (data.files && data.files.length > 0) {
-            setFormData({ ...formData, poster_url: data.files[0].url });
+            setFormData({ ...formData, poster_url: data.files[0].fileUrl });
             toast({
               title: 'Успешно',
               description: 'Афиша загружена'
