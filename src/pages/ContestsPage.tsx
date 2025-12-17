@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
@@ -17,6 +18,7 @@ interface Contest {
 }
 
 const ContestsPage = () => {
+  const navigate = useNavigate();
   const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -157,7 +159,7 @@ const ContestsPage = () => {
                             <Icon name="Send" size={18} className="mr-2" />
                             {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется' : 'Подать заявку'}
                           </Button>
-                          <Button variant="outline" onClick={() => window.location.href = `/contests/${contest.id}`}>
+                          <Button variant="outline" onClick={() => navigate(`/contests/${contest.id}`)}>
                             <Icon name="Info" size={18} className="mr-2" />
                             Подробнее
                           </Button>
