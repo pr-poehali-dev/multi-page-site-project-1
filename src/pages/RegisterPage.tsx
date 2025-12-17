@@ -107,6 +107,7 @@ const RegisterPage = () => {
           phone: formData.phone,
           birthDate: formData.birthDate,
           city: formData.city,
+          password: formData.password,
           contestId: formData.contestId,
           category: formData.category,
           performanceTitle: formData.performanceTitle,
