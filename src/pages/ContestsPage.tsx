@@ -13,6 +13,7 @@ interface Contest {
   start_date: string;
   end_date: string;
   status: string;
+  poster_url?: string;
 }
 
 const ContestsPage = () => {
@@ -84,14 +85,15 @@ const ContestsPage = () => {
                   >
                     <div className="flex flex-col md:flex-row">
                       <div className="md:w-48 bg-gradient-to-br from-primary/10 to-secondary/10 p-6 flex flex-col items-center justify-center border-r">
-                        <img 
-                          src={contest.title.toLowerCase().includes('зимняя') 
-                            ? 'https://cdn.poehali.dev/files/3D_логотип_фестиваля__Зимняя_мелодия__с_зимними_мо-no-bg-preview (carve.photos).png'
-                            : 'https://cdn.poehali.dev/files/лого таланты.png'
-                          }
-                          alt="Логотип" 
-                          className="w-24 h-24 object-contain mb-3"
-                        />
+                        {contest.poster_url ? (
+                          <img 
+                            src={contest.poster_url}
+                            alt={contest.title} 
+                            className="w-24 h-24 object-contain mb-3"
+                          />
+                        ) : (
+                          <div className="w-24 h-24 flex items-center justify-center text-4xl mb-3">🎭</div>
+                        )}
                         <Badge 
                           className={`${
                             isPast ? 'bg-gray-500' :
