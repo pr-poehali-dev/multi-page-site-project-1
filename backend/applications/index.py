@@ -207,7 +207,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 
                 # Получаем файлы
                 cur.execute(
-                    'SELECT file_name, file_type, file_size FROM application_files WHERE application_id = %s',
+                    'SELECT file_name, file_type, file_size, file_url FROM application_files WHERE application_id = %s',
                     (result['application_id'],)
                 )
                 files = cur.fetchall()
@@ -229,7 +229,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'additionalInfo': result['additional_info'] or '',
                     'status': result['status'],
                     'submittedAt': result['submitted_at'].isoformat(),
-                    'files': [{'name': f['file_name'], 'type': f['file_type'], 'size': f['file_size']} for f in files]
+                    'files': [{'name': f['file_name'], 'type': f['file_type'], 'size': f['file_size'], 'url': f['file_url']} for f in files]
                 }
                 
                 return {

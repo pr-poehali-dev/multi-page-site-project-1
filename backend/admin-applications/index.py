@@ -269,12 +269,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 cur.execute(query, query_params)
                 applications = cur.fetchall()
                 
-                # Конвертация datetime в строки
+                # Конвертация datetime в строки и добавление файлов
                 for app in applications:
                     if app.get('submitted_at'):
                         app['submitted_at'] = app['submitted_at'].isoformat()
                     if app.get('birth_date'):
                         app['birth_date'] = app['birth_date'].isoformat()
+                    
+                    # Получаем файлы для каждой заявки
+                    cur.execute(
+                        'SELECT file_name, file_type, file_size, file_url FROM application_files WHERE application_id = %s',
+                        (app['id'],)
+                    )
+                    app['files'] = cur.fetchall()
                 
                 return {
                     'statusCode': 200,

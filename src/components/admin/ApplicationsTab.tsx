@@ -30,6 +30,12 @@ interface Application {
   additional_info: string;
   status: string;
   submitted_at: string;
+  files?: Array<{
+    file_name: string;
+    file_type: string;
+    file_size: number;
+    file_url: string;
+  }>;
 }
 
 interface ApplicationsTabProps {
@@ -282,6 +288,29 @@ const ApplicationsTab = ({
                       <div>
                         <p className="text-sm font-medium mb-1">Дополнительная информация:</p>
                         <p className="text-sm text-muted-foreground">{app.additional_info}</p>
+                      </div>
+                    )}
+                    {app.files && app.files.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium mb-2">Прикреплённые файлы ({app.files.length}):</p>
+                        <div className="space-y-2">
+                          {app.files.map((file, idx) => (
+                            <div key={idx} className="flex items-center gap-2 p-2 bg-muted/30 rounded">
+                              <Icon name="File" size={16} className="text-primary" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm truncate">{file.file_name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {file.file_type} • {(file.file_size / 1024).toFixed(1)} KB
+                                </p>
+                              </div>
+                              <Button size="sm" variant="ghost" asChild>
+                                <a href={file.file_url} target="_blank" rel="noopener noreferrer" download>
+                                  <Icon name="Download" size={14} />
+                                </a>
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">

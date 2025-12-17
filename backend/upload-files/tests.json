@@ -1,0 +1,25 @@
+{
+  "tests": [
+    {
+      "name": "Upload single file",
+      "method": "POST",
+      "body": {
+        "applicationId": 1,
+        "files": [
+          {
+            "fileName": "test.txt",
+            "fileType": "text/plain",
+            "fileSize": 100,
+            "fileData": "VGVzdCBmaWxlIGNvbnRlbnQ="
+          }
+        ]
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "files": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

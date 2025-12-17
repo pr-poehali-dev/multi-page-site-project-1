@@ -288,12 +288,20 @@ const ProfilePage = () => {
                             <div className="flex-1">
                               <p className="font-medium">{file.name || `Файл ${index + 1}`}</p>
                               <p className="text-sm text-muted-foreground">
-                                {file.type || 'Загружено успешно'}
+                                {file.type || 'Загружено успешно'} • {file.size ? `${(file.size / 1024).toFixed(1)} KB` : ''}
                               </p>
                             </div>
-                            <Button variant="ghost" size="icon">
-                              <Icon name="Download" size={18} />
-                            </Button>
+                            {file.url && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                asChild
+                              >
+                                <a href={file.url} target="_blank" rel="noopener noreferrer" download>
+                                  <Icon name="Download" size={18} />
+                                </a>
+                              </Button>
+                            )}
                           </div>
                         ))}
                       </div>

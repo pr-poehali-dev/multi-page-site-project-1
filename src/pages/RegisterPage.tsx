@@ -123,6 +123,39 @@ const RegisterPage = () => {
       const result = await response.json();
 
       if (result.success) {
+        // Upload files if any
+        if (formData.files.length > 0) {
+          const filePromises = formData.files.map(file => 
+            new Promise<{fileName: string, fileType: string, fileSize: number, fileData: string}>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                const base64 = (reader.result as string).split(',')[1];
+                resolve({
+                  fileName: file.name,
+                  fileType: file.type,
+                  fileSize: file.size,
+                  fileData: base64
+                });
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            })
+          );
+
+          const filesData = await Promise.all(filePromises);
+
+          await fetch('https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              applicationId: result.applicationId,
+              files: filesData
+            }),
+          });
+        }
+
         toast({
           title: 'Заявка отправлена! 🎉',
           description: 'Мы проверим вашу заявку и свяжемся с вами в течение 3 дней.',
