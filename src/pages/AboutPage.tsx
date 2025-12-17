@@ -2,8 +2,43 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
+import { useState, useEffect } from 'react';
+
+const GALLERY_URL = 'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?endpoint=gallery';
+
+interface GalleryItem {
+  id: number;
+  title: string;
+  file_url: string;
+  media_type: 'photo' | 'video';
+}
 
 const AboutPage = () => {
+  const [galleryPhotos, setGalleryPhotos] = useState<GalleryItem[]>([]);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+
+  useEffect(() => {
+    const loadGallery = async () => {
+      try {
+        const response = await fetch(GALLERY_URL);
+        const data = await response.json();
+        const photos = (data.items || []).filter((item: GalleryItem) => item.media_type === 'photo');
+        setGalleryPhotos(photos);
+      } catch (error) {
+        console.error('Error loading gallery:', error);
+      }
+    };
+    loadGallery();
+  }, []);
+
+  useEffect(() => {
+    if (galleryPhotos.length === 0) return;
+    const interval = setInterval(() => {
+      setCurrentPhotoIndex((prev) => (prev + 1) % galleryPhotos.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [galleryPhotos]);
+
   const stats = [
     { number: '500+', label: 'Участников' },
     { number: '50+', label: 'Конкурсов' },
@@ -29,24 +64,80 @@ const AboutPage = () => {
     },
   ];
 
+  const getFanPhotos = (side: 'left' | 'right') => {
+    if (galleryPhotos.length === 0) return [];
+    const startIndex = side === 'left' ? currentPhotoIndex : currentPhotoIndex + 4;
+    return Array.from({ length: 5 }, (_, i) => {
+      const index = (startIndex + i) % galleryPhotos.length;
+      return galleryPhotos[index];
+    });
+  };
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-hidden">
       <Navigation />
 
-      <section className="pt-32 pb-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <h1 className="text-5xl md:text-6xl font-heading font-bold mb-6 text-center animate-fade-in">
-            О платформе
-          </h1>
-          <p className="text-xl text-muted-foreground text-center mb-12 animate-fade-in">ИНДИГО — это современная конкурсная платформа для артистов всех направлений</p>
+      <section className="pt-32 pb-20 px-4 relative">
+        {galleryPhotos.length > 0 && (
+          <>
+            <div className="fan-container fan-left">
+              {getFanPhotos('left').map((photo, i) => (
+                <div
+                  key={`left-${photo?.id || i}`}
+                  className="fan-photo"
+                  style={{
+                    '--fan-index': i,
+                    '--fan-rotation': `${-40 + i * 20}deg`,
+                  } as React.CSSProperties}
+                >
+                  <img src={photo?.file_url} alt={photo?.title} />
+                </div>
+              ))}
+            </div>
 
-          <div className="prose prose-lg max-w-none mb-16 animate-fade-in">
-            <p className="text-lg leading-relaxed">Мы создали творческое объединение "ИНДИГО" с одной целью — дать возможность талантливым артистам показать свое мастерство и получить признание на международном уровне. Наша платформа объединяет музыкантов, вокалистов, танцоров и других творческих личностей.</p>
-            <p className="text-lg leading-relaxed">
-              С момента основания мы провели более 50 конкурсов, в которых приняли участие 
-              артисты из 12 стран мира. Каждый конкурс оценивается профессиональным жюри, 
-              состоящим из известных деятелей искусства.
-            </p>
+            <div className="fan-container fan-right">
+              {getFanPhotos('right').map((photo, i) => (
+                <div
+                  key={`right-${photo?.id || i}`}
+                  className="fan-photo"
+                  style={{
+                    '--fan-index': i,
+                    '--fan-rotation': `${40 - i * 20}deg`,
+                  } as React.CSSProperties}
+                >
+                  <img src={photo?.file_url} alt={photo?.title} />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <div className="container mx-auto max-w-5xl relative z-10">
+          <h1 className="text-5xl md:text-7xl font-heading font-bold mb-8 text-center animate-fade-in bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            О платформе ИНДИГО
+          </h1>
+          <p className="text-2xl md:text-3xl text-center mb-16 animate-fade-in font-medium leading-relaxed">
+            Современная конкурсная платформа для артистов всех направлений
+          </p>
+
+          <div className="max-w-3xl mx-auto mb-20 space-y-8 animate-fade-in">
+            <Card className="p-8 md:p-12 bg-gradient-to-br from-white to-muted/30 shadow-xl">
+              <p className="text-xl md:text-2xl leading-relaxed text-center font-light">
+                Мы создали творческое объединение <span className="font-bold text-secondary">"ИНДИГО"</span> с одной целью — дать возможность талантливым артистам показать свое мастерство и получить признание на международном уровне.
+              </p>
+            </Card>
+            
+            <Card className="p-8 md:p-12 bg-gradient-to-br from-primary/5 to-secondary/5 shadow-xl">
+              <p className="text-lg md:text-xl leading-relaxed text-center">
+                Наша платформа объединяет музыкантов, вокалистов, танцоров и других творческих личностей. С момента основания мы провели более <span className="font-bold text-primary">50 конкурсов</span>, в которых приняли участие артисты из <span className="font-bold text-secondary">12 стран мира</span>.
+              </p>
+            </Card>
+
+            <Card className="p-8 md:p-12 bg-gradient-to-br from-secondary/5 to-primary/5 shadow-xl">
+              <p className="text-lg md:text-xl leading-relaxed text-center">
+                Каждый конкурс оценивается профессиональным жюри, состоящим из известных деятелей искусства. Мы создаем возможности для роста и развития талантов на мировой сцене.
+              </p>
+            </Card>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
