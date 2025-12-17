@@ -69,7 +69,7 @@ const ContactsPage = () => {
     {
       icon: 'MapPin',
       title: 'Адрес',
-      value: 'Москва, ул. Тверская, 10',
+      value: 'Воронеж, ул. Лизюкова, д.75 оф.10',
       link: null,
     },
   ];
