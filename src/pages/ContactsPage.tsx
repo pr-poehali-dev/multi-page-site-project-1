@@ -188,7 +188,9 @@ const ContactsPage = () => {
                 </h3>
                 <div className="flex gap-4">
                   <a
-                    href="#"
+                    href="https://vk.com/indigo_rf?from=groups"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="w-12 h-12 bg-white rounded-xl flex items-center justify-center hover:shadow-lg transition-shadow"
                   >
                     <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-primary">
@@ -197,7 +199,9 @@ const ContactsPage = () => {
                     </svg>
                   </a>
                   <a
-                    href="#"
+                    href="https://t.me/indigo_fest"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="w-12 h-12 bg-white rounded-xl flex items-center justify-center hover:shadow-lg transition-shadow"
                   >
                     <Icon name="Send" size={24} className="text-primary" />
