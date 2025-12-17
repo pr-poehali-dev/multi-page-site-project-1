@@ -11,6 +11,7 @@ interface Contest {
   prizes?: string;
   categories?: string;
   pdf_url?: string;
+  poster_url?: string;
 }
 
 interface ContestFormData {
@@ -23,6 +24,7 @@ interface ContestFormData {
   prizes?: string;
   categories?: string;
   pdf_url?: string;
+  poster_url?: string;
 }
 
 export const useAdminContests = () => {
@@ -40,7 +42,8 @@ export const useAdminContests = () => {
     rules: '',
     prizes: '',
     categories: '',
-    pdf_url: ''
+    pdf_url: '',
+    poster_url: ''
   });
 
   const loadContests = useCallback(async () => {
@@ -66,7 +69,7 @@ export const useAdminContests = () => {
       
       if (response.ok) {
         setShowCreateModal(false);
-        setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming', rules: '', prizes: '', categories: '', pdf_url: '' });
+        setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming', rules: '', prizes: '', categories: '', pdf_url: '', poster_url: '' });
         loadContests();
       }
     } catch (error) {
@@ -87,7 +90,7 @@ export const useAdminContests = () => {
       if (response.ok) {
         setShowEditModal(false);
         setSelectedContest(null);
-        setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming', rules: '', prizes: '', categories: '', pdf_url: '' });
+        setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming', rules: '', prizes: '', categories: '', pdf_url: '', poster_url: '' });
         loadContests();
       }
     } catch (error) {
@@ -122,7 +125,8 @@ export const useAdminContests = () => {
       rules: contest.rules || '',
       prizes: contest.prizes || '',
       categories: contest.categories || '',
-      pdf_url: contest.pdf_url || ''
+      pdf_url: contest.pdf_url || '',
+      poster_url: contest.poster_url || ''
     });
     setShowEditModal(true);
   };

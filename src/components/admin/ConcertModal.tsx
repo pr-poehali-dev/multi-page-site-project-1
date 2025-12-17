@@ -63,41 +63,57 @@ const ConcertModal = ({
     try {
       const reader = new FileReader();
       reader.onload = async (event) => {
-        const base64String = (event.target?.result as string).split(',')[1];
+        try {
+          const base64String = (event.target?.result as string).split(',')[1];
 
-        const response = await fetch('https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            applicationId: concertId || 0,
-            files: [{
-              fileName: `poster_${file.name}`,
-              fileType: file.type,
-              fileSize: file.size,
-              fileData: base64String
-            }]
-          })
-        });
-
-        const data = await response.json();
-
-        if (data.files && data.files.length > 0) {
-          setFormData({ ...formData, poster_url: data.files[0].url });
-          toast({
-            title: 'Успешно',
-            description: 'Афиша загружена'
+          const response = await fetch('https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              applicationId: concertId || 0,
+              files: [{
+                fileName: `concert_poster_${file.name}`,
+                fileType: file.type,
+                fileSize: file.size,
+                fileData: base64String
+              }]
+            })
           });
+
+          const data = await response.json();
+
+          if (data.files && data.files.length > 0) {
+            setFormData({ ...formData, poster_url: data.files[0].url });
+            toast({
+              title: 'Успешно',
+              description: 'Афиша загружена'
+            });
+          } else {
+            toast({
+              title: 'Ошибка',
+              description: 'Не удалось получить URL файла',
+              variant: 'destructive'
+            });
+          }
+        } catch (error) {
+          console.error('Upload error:', error);
+          toast({
+            title: 'Ошибка',
+            description: 'Не удалось загрузить афишу',
+            variant: 'destructive'
+          });
+        } finally {
+          setUploadingPoster(false);
         }
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('FileReader error:', error);
       toast({
         title: 'Ошибка',
-        description: 'Не удалось загрузить афишу',
+        description: 'Не удалось прочитать файл',
         variant: 'destructive'
       });
-    } finally {
       setUploadingPoster(false);
     }
   };
