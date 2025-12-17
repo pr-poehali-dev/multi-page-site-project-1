@@ -19,7 +19,7 @@ interface Contest {
 }
 
 interface ResultModalProps {
-  show: boolean;
+  isOpen: boolean;
   mode: 'create' | 'edit';
   formData: {
     contest_id: number;
@@ -35,7 +35,7 @@ interface ResultModalProps {
 }
 
 const ResultModal = ({
-  show,
+  isOpen,
   mode,
   formData,
   setFormData,
@@ -136,7 +136,7 @@ const ResultModal = ({
     }
   };
 
-  if (!show) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

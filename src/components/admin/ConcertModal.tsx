@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 
 interface ConcertModalProps {
-  show: boolean;
+  isOpen: boolean;
   mode: 'create' | 'edit';
   formData: {
     title: string;
@@ -33,7 +33,7 @@ interface ConcertModalProps {
 }
 
 const ConcertModal = ({
-  show,
+  isOpen,
   mode,
   formData,
   setFormData,
@@ -124,7 +124,7 @@ const ConcertModal = ({
     }
   };
 
-  if (!show) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">

@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 
 interface ContestModalProps {
-  show: boolean;
+  isOpen: boolean;
   mode: 'create' | 'edit';
   formData: {
     title: string;
@@ -39,7 +39,7 @@ interface ContestModalProps {
 }
 
 const ContestModal = ({
-  show,
+  isOpen,
   mode,
   formData,
   setFormData,
@@ -188,7 +188,7 @@ const ContestModal = ({
     }
   };
 
-  if (!show) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

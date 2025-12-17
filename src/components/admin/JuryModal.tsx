@@ -11,7 +11,7 @@ interface JuryFormData {
 }
 
 interface JuryModalProps {
-  show: boolean;
+  isOpen: boolean;
   mode: 'create' | 'edit';
   formData: JuryFormData;
   setFormData: (data: JuryFormData) => void;
@@ -19,8 +19,8 @@ interface JuryModalProps {
   onSubmit: () => void;
 }
 
-const JuryModal = ({ show, mode, formData, setFormData, onClose, onSubmit }: JuryModalProps) => {
-  if (!show) return null;
+const JuryModal = ({ isOpen, mode, formData, setFormData, onClose, onSubmit }: JuryModalProps) => {
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
