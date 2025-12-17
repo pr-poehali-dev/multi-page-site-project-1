@@ -61,7 +61,7 @@ interface AdminModalsContainerProps {
   setShowEditPartnerModal: (show: boolean) => void;
 }
 
-export const AdminModalsContainer = ({
+const AdminModalsContainer = ({
   showCreateModal,
   showEditModal,
   selectedContest,
@@ -221,3 +221,5 @@ export const AdminModalsContainer = ({
     </>
   );
 };
+
+export default AdminModalsContainer;

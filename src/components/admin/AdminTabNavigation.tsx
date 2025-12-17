@@ -9,7 +9,7 @@ interface AdminTabNavigationProps {
   onLogout: () => void;
 }
 
-export const AdminTabNavigation = ({ activeTab, onTabChange, onLogout }: AdminTabNavigationProps) => {
+const AdminTabNavigation = ({ activeTab, onTabChange, onLogout }: AdminTabNavigationProps) => {
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between">
@@ -98,3 +98,5 @@ export const AdminTabNavigation = ({ activeTab, onTabChange, onLogout }: AdminTa
     </div>
   );
 };
+
+export default AdminTabNavigation;

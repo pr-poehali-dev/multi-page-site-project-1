@@ -11,9 +11,9 @@ import { useAdminGallery } from '@/hooks/useAdminGallery';
 import { useAdminConcerts } from '@/hooks/useAdminConcerts';
 import { useAdminResults } from '@/hooks/useAdminResults';
 import { useAdminPartners } from '@/hooks/useAdminPartners';
-import { AdminTabNavigation } from '@/components/admin/AdminTabNavigation';
-import { AdminTabContent } from '@/components/admin/AdminTabContent';
-import { AdminModalsContainer } from '@/components/admin/AdminModalsContainer';
+import AdminTabNavigation from '@/components/admin/AdminTabNavigation';
+import AdminTabContent from '@/components/admin/AdminTabContent';
+import AdminModalsContainer from '@/components/admin/AdminModalsContainer';
 
 const AdminPage = () => {
   const { toast } = useToast();

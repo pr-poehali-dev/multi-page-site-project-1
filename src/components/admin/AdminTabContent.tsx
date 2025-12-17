@@ -60,7 +60,7 @@ interface AdminTabContentProps {
   handleDeletePartner: (id: number) => Promise<void>;
 }
 
-export const AdminTabContent = ({
+const AdminTabContent = ({
   activeTab,
   loading,
   applications,
@@ -209,3 +209,5 @@ export const AdminTabContent = ({
       return null;
   }
 };
+
+export default AdminTabContent;
