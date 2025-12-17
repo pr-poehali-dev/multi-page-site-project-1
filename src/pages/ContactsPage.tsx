@@ -63,8 +63,8 @@ const ContactsPage = () => {
     {
       icon: 'Phone',
       title: 'Телефон',
-      value: '+7 (495) 123-45-67',
-      link: 'tel:+74951234567',
+      value: '+7-922-415-4463',
+      link: 'tel:+79224154463',
     },
     {
       icon: 'MapPin',
