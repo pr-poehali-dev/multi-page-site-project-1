@@ -40,28 +40,30 @@ interface Application {
 
 interface ApplicationsTabProps {
   applications: Application[];
-  loading: boolean;
+  loading?: boolean;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   statusFilter: string;
   setStatusFilter: (filter: string) => void;
   contestFilter: string;
   setContestFilter: (filter: string) => void;
-  updateStatus: (applicationId: number, newStatus: string) => void;
-  deleteApplication: (applicationId: number) => void;
+  contests: any[];
+  onUpdateStatus: (applicationId: number, newStatus: string) => void;
+  onDeleteApplication: (applicationId: number) => void;
 }
 
 const ApplicationsTab = ({
   applications,
-  loading,
+  loading = false,
   searchQuery,
   setSearchQuery,
   statusFilter,
   setStatusFilter,
   contestFilter,
   setContestFilter,
-  updateStatus,
-  deleteApplication,
+  contests,
+  onUpdateStatus,
+  onDeleteApplication,
 }: ApplicationsTabProps) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
@@ -213,7 +215,7 @@ const ApplicationsTab = ({
                         size="sm"
                         variant="outline"
                         className="text-green-600 hover:bg-green-50"
-                        onClick={() => updateStatus(app.id, 'approved')}
+                        onClick={() => onUpdateStatus(app.id, 'approved')}
                       >
                         <Icon name="Check" size={16} className="mr-1" />
                         Одобрить
@@ -224,7 +226,7 @@ const ApplicationsTab = ({
                         size="sm"
                         variant="outline"
                         className="text-red-600 hover:bg-red-50"
-                        onClick={() => updateStatus(app.id, 'rejected')}
+                        onClick={() => onUpdateStatus(app.id, 'rejected')}
                       >
                         <Icon name="X" size={16} className="mr-1" />
                         Отклонить
@@ -236,7 +238,7 @@ const ApplicationsTab = ({
                       className="text-gray-600 hover:bg-red-50 hover:text-red-600"
                       onClick={() => {
                         if (confirm('Удалить заявку? Это действие нельзя отменить.')) {
-                          deleteApplication(app.id);
+                          onDeleteApplication(app.id);
                         }
                       }}
                     >
