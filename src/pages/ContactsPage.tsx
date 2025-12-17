@@ -30,8 +30,8 @@ const ContactsPage = () => {
     {
       icon: 'Mail',
       title: 'Email',
-      value: 'info@art-seasons.ru',
-      link: 'mailto:info@art-seasons.ru',
+      value: 'info@индиго-арт.рф',
+      link: 'mailto:info@индиго-арт.рф',
     },
     {
       icon: 'Phone',
