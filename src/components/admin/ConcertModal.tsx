@@ -58,15 +58,6 @@ const ConcertModal = ({
       return;
     }
 
-    if (!concertId && mode === 'edit') {
-      toast({
-        title: 'Ошибка',
-        description: 'Сначала сохраните концерт',
-        variant: 'destructive'
-      });
-      return;
-    }
-
     setUploadingPoster(true);
 
     try {
@@ -207,7 +198,7 @@ const ConcertModal = ({
                 type="button"
                 variant="outline"
                 onClick={() => posterInputRef.current?.click()}
-                disabled={uploadingPoster || (mode === 'create')}
+                disabled={uploadingPoster}
                 className="flex-1"
               >
                 <Icon name="Upload" size={16} className="mr-2" />
@@ -223,11 +214,7 @@ const ConcertModal = ({
                 </Button>
               )}
             </div>
-            {mode === 'create' && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Афишу можно будет загрузить после создания концерта
-              </p>
-            )}
+
           </div>
 
           <div>
