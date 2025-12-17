@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import ApplicationsTab from '@/components/admin/ApplicationsTab';
 import ContestsTab from '@/components/admin/ContestsTab';
+import ConcertsManagementTab from '@/components/admin/ConcertsManagementTab';
 import ContestModal from '@/components/admin/ContestModal';
 import JuryTab from '@/components/admin/JuryTab';
 import JuryModal from '@/components/admin/JuryModal';
@@ -23,7 +24,7 @@ import { useAdminGallery } from '@/hooks/useAdminGallery';
 const AdminPage = () => {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery'>('applications');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [contestFilter, setContestFilter] = useState('all');
@@ -135,7 +136,7 @@ const AdminPage = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (activeTab === 'contests' || activeTab === 'scoring' || activeTab === 'gallery') {
+      if (activeTab === 'contests' || activeTab === 'concerts' || activeTab === 'scoring' || activeTab === 'gallery') {
         loadContests();
       }
       if (activeTab === 'jury' || activeTab === 'jury-accounts') {
@@ -216,6 +217,14 @@ const AdminPage = () => {
                 Протокол оценок
               </Button>
               <Button
+                variant={activeTab === 'concerts' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('concerts')}
+                className={activeTab === 'concerts' ? 'bg-secondary hover:bg-secondary/90' : ''}
+              >
+                <Icon name="Music" size={18} className="mr-2" />
+                Концерты
+              </Button>
+              <Button
                 variant={activeTab === 'gallery' ? 'default' : 'outline'}
                 onClick={() => setActiveTab('gallery')}
                 className={activeTab === 'gallery' ? 'bg-secondary hover:bg-secondary/90' : ''}
@@ -244,6 +253,16 @@ const AdminPage = () => {
           {activeTab === 'contests' && (
             <ContestsTab
               contests={contests}
+              loading={loading}
+              onCreateClick={handleCreateClick}
+              onEditClick={openEditModal}
+              onDeleteClick={handleDeleteContest}
+            />
+          )}
+
+          {activeTab === 'concerts' && (
+            <ConcertsManagementTab
+              concerts={contests}
               loading={loading}
               onCreateClick={handleCreateClick}
               onEditClick={openEditModal}
