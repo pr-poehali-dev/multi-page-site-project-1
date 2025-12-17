@@ -1,48 +1,75 @@
+import { useEffect, useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+
+type ContestResult = {
+  id: number;
+  contest_id: number;
+  title: string;
+  description: string;
+  pdf_url: string;
+  published_date: string;
+  contest_title: string;
+  start_date: string;
+  end_date: string;
+};
 
 const ResultsPage = () => {
-  const pastContests = [
-    {
-      title: 'Зимний конкурс пианистов 2024',
-      date: 'Декабрь 2024',
-      winners: [
-        { place: 1, name: 'Анна Белова', city: 'Москва', prize: '500 000 ₽' },
-        { place: 2, name: 'Михаил Орлов', city: 'Санкт-Петербург', prize: '300 000 ₽' },
-        { place: 3, name: 'Елена Краснова', city: 'Казань', prize: '200 000 ₽' },
-      ],
-    },
-    {
-      title: 'Осенний вокальный конкурс 2024',
-      date: 'Октябрь 2024',
-      winners: [
-        { place: 1, name: 'Ольга Соколова', city: 'Екатеринбург', prize: '400 000 ₽' },
-        { place: 2, name: 'Дмитрий Васильев', city: 'Новосибирск', prize: '250 000 ₽' },
-        { place: 3, name: 'Мария Федорова', city: 'Ростов-на-Дону', prize: '150 000 ₽' },
-      ],
-    },
-  ];
+  const [results, setResults] = useState<ContestResult[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedContest, setSelectedContest] = useState<number | null>(null);
 
-  const getMedalColor = (place: number) => {
-    switch (place) {
-      case 1: return 'bg-yellow-400';
-      case 2: return 'bg-gray-400';
-      case 3: return 'bg-orange-400';
-      default: return 'bg-muted';
-    }
+  useEffect(() => {
+    const loadResults = async () => {
+      try {
+        const response = await fetch('https://functions.poehali.dev/7ff9bf2f-1648-49f2-9137-02fe1da936eb');
+        const data = await response.json();
+        setResults(data.results || []);
+      } catch (error) {
+        console.error('Ошибка загрузки итогов:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadResults();
+  }, []);
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
   };
 
-  const getMedalEmoji = (place: number) => {
-    switch (place) {
-      case 1: return '🥇';
-      case 2: return '🥈';
-      case 3: return '🥉';
-      default: return '🏆';
-    }
-  };
+  const uniqueContests = Array.from(
+    new Map(results.map(r => [r.contest_id, { id: r.contest_id, title: r.contest_title }])).values()
+  );
+
+  const filteredResults = selectedContest
+    ? results.filter(r => r.contest_id === selectedContest)
+    : results;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen">
+        <Navigation />
+        <section className="pt-32 pb-20 px-4">
+          <div className="container mx-auto">
+            <div className="flex items-center justify-center py-20">
+              <Icon name="Loader2" size={48} className="animate-spin text-secondary" />
+            </div>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -54,60 +81,87 @@ const ResultsPage = () => {
             Итоги конкурсов
           </h1>
           <p className="text-xl text-muted-foreground text-center mb-12 animate-fade-in">
-            Поздравляем победителей прошедших конкурсов
+            Результаты прошедших конкурсов и награждения
           </p>
 
-          <div className="max-w-5xl mx-auto space-y-12">
-            {pastContests.map((contest, contestIndex) => (
-              <div
-                key={contestIndex}
-                className="animate-fade-in"
-                style={{ animationDelay: `${contestIndex * 0.2}s` }}
+          {uniqueContests.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-3 mb-12">
+              <Button
+                variant={selectedContest === null ? 'default' : 'outline'}
+                onClick={() => setSelectedContest(null)}
+                className={selectedContest === null ? 'bg-secondary hover:bg-secondary/90' : ''}
               >
-                <Card className="overflow-hidden">
-                  <div className="bg-gradient-to-r from-primary to-secondary text-white p-8">
-                    <h2 className="text-3xl font-heading font-bold mb-2">{contest.title}</h2>
-                    <div className="flex items-center gap-2 text-white/90">
-                      <Icon name="Calendar" size={18} />
-                      <span>{contest.date}</span>
-                    </div>
-                  </div>
+                Все конкурсы
+              </Button>
+              {uniqueContests.map((contest) => (
+                <Button
+                  key={contest.id}
+                  variant={selectedContest === contest.id ? 'default' : 'outline'}
+                  onClick={() => setSelectedContest(contest.id)}
+                  className={selectedContest === contest.id ? 'bg-secondary hover:bg-secondary/90' : ''}
+                >
+                  {contest.title}
+                </Button>
+              ))}
+            </div>
+          )}
 
-                  <div className="p-8 space-y-4">
-                    {contest.winners.map((winner, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-6 p-6 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
-                      >
-                        <div className={`w-16 h-16 ${getMedalColor(winner.place)} rounded-full flex items-center justify-center text-3xl flex-shrink-0`}>
-                          {getMedalEmoji(winner.place)}
+          {filteredResults.length === 0 ? (
+            <Card className="p-12 text-center max-w-2xl mx-auto">
+              <Icon name="Trophy" size={64} className="mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-2xl font-semibold mb-2">Пока нет опубликованных итогов</h3>
+              <p className="text-muted-foreground">
+                Результаты конкурсов появятся здесь после их завершения
+              </p>
+            </Card>
+          ) : (
+            <div className="max-w-5xl mx-auto space-y-8">
+              {filteredResults.map((result, index) => (
+                <div
+                  key={result.id}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <Card className="overflow-hidden hover:shadow-xl transition-all duration-300">
+                    <div className="bg-gradient-to-r from-primary to-secondary text-white p-8">
+                      <h2 className="text-3xl font-heading font-bold mb-2">{result.title}</h2>
+                      <div className="flex items-center gap-4 text-white/90">
+                        <div className="flex items-center gap-2">
+                          <Icon name="Trophy" size={18} />
+                          <span>{result.contest_title}</span>
                         </div>
-
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-1">
-                            <h3 className="text-xl font-heading font-semibold">{winner.name}</h3>
-                            <Badge variant="outline" className="text-xs">
-                              {winner.place} место
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2">
-                              <Icon name="MapPin" size={14} />
-                              <span>{winner.city}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Icon name="Award" size={14} />
-                              <span className="font-semibold text-secondary">{winner.prize}</span>
-                            </div>
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <Icon name="Calendar" size={18} />
+                          <span>Опубликовано: {formatDate(result.published_date)}</span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </Card>
-              </div>
-            ))}
-          </div>
+                    </div>
+
+                    <div className="p-8">
+                      {result.description && (
+                        <p className="text-lg text-muted-foreground mb-6 whitespace-pre-wrap">
+                          {result.description}
+                        </p>
+                      )}
+
+                      {result.pdf_url && (
+                        <div className="flex justify-center">
+                          <Button
+                            size="lg"
+                            className="bg-secondary hover:bg-secondary/90"
+                            onClick={() => window.open(result.pdf_url, '_blank')}
+                          >
+                            <Icon name="Download" size={20} className="mr-2" />
+                            Скачать протокол (PDF)
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="mt-16 text-center bg-muted/30 rounded-3xl p-12 max-w-3xl mx-auto">
             <div className="text-6xl mb-4">🎉</div>

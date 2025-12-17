@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {
+      "name": "Get all contest results",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "results": []
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

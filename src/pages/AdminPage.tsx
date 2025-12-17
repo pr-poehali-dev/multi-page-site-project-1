@@ -22,11 +22,14 @@ import GalleryUploadModal from '@/components/admin/GalleryUploadModal';
 import { useAdminGallery } from '@/hooks/useAdminGallery';
 import { useAdminConcerts } from '@/hooks/useAdminConcerts';
 import ConcertModal from '@/components/admin/ConcertModal';
+import { useAdminResults } from '@/hooks/useAdminResults';
+import ResultsManagementTab from '@/components/admin/ResultsManagementTab';
+import ResultModal from '@/components/admin/ResultModal';
 
 const AdminPage = () => {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results'>('applications');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [contestFilter, setContestFilter] = useState('all');
@@ -136,6 +139,24 @@ const AdminPage = () => {
     setShowEditJuryModal
   } = useAdminJury();
 
+  const {
+    results,
+    loading: resultsLoading,
+    showCreateModal: showCreateResultModal,
+    showEditModal: showEditResultModal,
+    selectedResult,
+    formData: resultFormData,
+    setFormData: setResultFormData,
+    loadResults,
+    handleCreateResult,
+    handleEditResult,
+    handleDeleteResult,
+    openEditModal: openEditResultModal,
+    handleCreateClick: handleCreateResultClick,
+    setShowCreateModal: setShowCreateResultModal,
+    setShowEditModal: setShowEditResultModal,
+  } = useAdminResults();
+
   const handleLogin = () => {
     setIsAuthenticated(true);
   };
@@ -151,9 +172,10 @@ const AdminPage = () => {
       case 'concerts': return concertsLoading;
       case 'scoring': return scoringLoading;
       case 'gallery': return galleryLoading;
+      case 'results': return resultsLoading;
       default: return juryLoading;
     }
-  }, [activeTab, applicationsLoading, contestsLoading, concertsLoading, scoringLoading, galleryLoading, juryLoading]);
+  }, [activeTab, applicationsLoading, contestsLoading, concertsLoading, scoringLoading, galleryLoading, resultsLoading, juryLoading]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -166,8 +188,11 @@ const AdminPage = () => {
       if (activeTab === 'jury' || activeTab === 'jury-accounts') {
         loadJuryMembers();
       }
+      if (activeTab === 'results') {
+        loadResults();
+      }
     }
-  }, [activeTab, isAuthenticated, loadContests, loadConcerts, loadJuryMembers]);
+  }, [activeTab, isAuthenticated, loadContests, loadConcerts, loadJuryMembers, loadResults]);
 
   if (!isAuthenticated) {
     return <AdminAuth onLogin={handleLogin} />;
@@ -256,6 +281,14 @@ const AdminPage = () => {
                 <Icon name="Image" size={18} className="mr-2" />
                 Галерея
               </Button>
+              <Button
+                variant={activeTab === 'results' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('results')}
+                className={activeTab === 'results' ? 'bg-secondary hover:bg-secondary/90' : ''}
+              >
+                <Icon name="Award" size={18} className="mr-2" />
+                Итоги
+              </Button>
             </div>
           </div>
 
@@ -340,6 +373,16 @@ const AdminPage = () => {
               />
             </>
           )}
+
+          {activeTab === 'results' && (
+            <ResultsManagementTab
+              results={results}
+              loading={loading}
+              onCreateClick={handleCreateResultClick}
+              onEditClick={openEditResultModal}
+              onDeleteClick={handleDeleteResult}
+            />
+          )}
           
           {activeTab === 'scoring' && console.log('[AdminPage] Rendering ScoringTab with:', { contests: contests.length, participants: participants.length })}
 
@@ -397,6 +440,25 @@ const AdminPage = () => {
             onClose={() => setShowEditConcertModal(false)}
             onSubmit={handleEditConcert}
             concertId={selectedConcert?.id}
+          />
+
+          <ResultModal
+            show={showCreateResultModal}
+            mode="create"
+            formData={resultFormData}
+            setFormData={setResultFormData}
+            onClose={() => setShowCreateResultModal(false)}
+            onSubmit={handleCreateResult}
+          />
+
+          <ResultModal
+            show={showEditResultModal}
+            mode="edit"
+            formData={resultFormData}
+            setFormData={setResultFormData}
+            onClose={() => setShowEditResultModal(false)}
+            onSubmit={handleEditResult}
+            resultId={selectedResult?.id}
           />
         </div>
       </div>
