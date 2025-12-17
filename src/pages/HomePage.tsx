@@ -24,6 +24,7 @@ interface Contest {
   start_date: string;
   end_date: string;
   status: string;
+  poster_url?: string;
 }
 
 const HomePage = () => {
@@ -260,8 +261,16 @@ const HomePage = () => {
                     className="overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-105 animate-fade-in cursor-pointer"
                     style={{ animationDelay: `${index * 0.15}s` }}
                   >
-                    <div className={`h-40 ${getContestColor(index)} flex items-center justify-center`}>
-                      <div className="text-6xl opacity-20">🎭</div>
+                    <div className={`h-40 ${getContestColor(index)} flex items-center justify-center overflow-hidden`}>
+                      {contest.poster_url ? (
+                        <img 
+                          src={contest.poster_url} 
+                          alt={contest.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-6xl opacity-20">🎭</div>
+                      )}
                     </div>
                     <div className="p-6">
                       <div className="inline-block px-3 py-1 bg-secondary/10 text-secondary text-xs font-semibold rounded-full mb-3">
