@@ -128,15 +128,6 @@ const ContestModal = ({
       return;
     }
 
-    if (!contestId && mode === 'edit') {
-      toast({
-        title: 'Ошибка',
-        description: 'Сначала сохраните конкурс',
-        variant: 'destructive'
-      });
-      return;
-    }
-
     setUploadingPoster(true);
 
     try {
@@ -148,7 +139,7 @@ const ContestModal = ({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            applicationId: contestId,
+            applicationId: contestId || 0,
             files: [{
               fileName: `poster_${file.name}`,
               fileType: file.type,
@@ -164,7 +155,7 @@ const ContestModal = ({
           setFormData({ ...formData, poster_url: data.files[0].url });
           toast({
             title: 'Успешно',
-            description: 'Афиша загружена'
+            description: 'Логотип загружен'
           });
         }
       };
@@ -173,7 +164,7 @@ const ContestModal = ({
       console.error('Upload error:', error);
       toast({
         title: 'Ошибка',
-        description: 'Не удалось загрузить афишу',
+        description: 'Не удалось загрузить логотип',
         variant: 'destructive'
       });
     } finally {
@@ -342,53 +333,57 @@ const ContestModal = ({
             />
           </div>
 
+          <div>
+            <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+              <Icon name="Image" size={16} />
+              Логотип конкурса
+            </label>
+            <div className="flex gap-2">
+              <input
+                ref={posterInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePosterUpload}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => posterInputRef.current?.click()}
+                disabled={uploadingPoster}
+                className="flex-1"
+              >
+                <Icon name="Upload" size={16} className="mr-2" />
+                {uploadingPoster ? 'Загрузка...' : formData.poster_url ? 'Заменить логотип' : 'Загрузить логотип'}
+              </Button>
+              {formData.poster_url && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => window.open(formData.poster_url, '_blank')}
+                >
+                  <Icon name="ExternalLink" size={16} />
+                </Button>
+              )}
+            </div>
+            {formData.poster_url && (
+              <div className="mt-2">
+                <img 
+                  src={formData.poster_url} 
+                  alt="Логотип" 
+                  className="w-24 h-24 object-contain border rounded p-2"
+                />
+              </div>
+            )}
+          </div>
+
           <div className="border-t pt-4 mt-4">
             <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Icon name="CalendarDays" size={18} />
-              Информация о концерте/мероприятии
+              Информация о концерте/мероприятии (опционально)
             </h4>
 
             <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block flex items-center gap-2">
-                  <Icon name="Image" size={16} />
-                  Афиша концерта (изображение)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    ref={posterInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePosterUpload}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => posterInputRef.current?.click()}
-                    disabled={uploadingPoster || (mode === 'create')}
-                    className="flex-1"
-                  >
-                    <Icon name="Upload" size={16} className="mr-2" />
-                    {uploadingPoster ? 'Загрузка...' : formData.poster_url ? 'Заменить афишу' : 'Загрузить афишу'}
-                  </Button>
-                  {formData.poster_url && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => window.open(formData.poster_url, '_blank')}
-                    >
-                      <Icon name="ExternalLink" size={16} />
-                    </Button>
-                  )}
-                </div>
-                {mode === 'create' && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Афишу можно будет загрузить после создания конкурса
-                  </p>
-                )}
-              </div>
-
               <div>
                 <label className="text-sm font-medium mb-2 block">Дата и время мероприятия</label>
                 <Input
