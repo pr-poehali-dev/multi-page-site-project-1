@@ -52,6 +52,32 @@ const AdminPage = () => {
     }
   };
 
+  const handleDeleteApplication = async (applicationId: number) => {
+    try {
+      const response = await fetch(`https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?id=${applicationId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete application');
+      }
+
+      toast({
+        title: 'Заявка удалена',
+        description: 'Заявка и все связанные файлы успешно удалены',
+      });
+
+      // Обновляем список заявок
+      window.location.reload();
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось удалить заявку',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const {
     contests,
     loading: contestsLoading,
@@ -211,6 +237,7 @@ const AdminPage = () => {
               contestFilter={contestFilter}
               setContestFilter={setContestFilter}
               updateStatus={handleUpdateStatus}
+              deleteApplication={handleDeleteApplication}
             />
           )}
 

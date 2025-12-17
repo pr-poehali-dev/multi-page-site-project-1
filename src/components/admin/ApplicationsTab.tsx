@@ -48,6 +48,7 @@ interface ApplicationsTabProps {
   contestFilter: string;
   setContestFilter: (filter: string) => void;
   updateStatus: (applicationId: number, newStatus: string) => void;
+  deleteApplication: (applicationId: number) => void;
 }
 
 const ApplicationsTab = ({
@@ -60,6 +61,7 @@ const ApplicationsTab = ({
   contestFilter,
   setContestFilter,
   updateStatus,
+  deleteApplication,
 }: ApplicationsTabProps) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
@@ -228,6 +230,18 @@ const ApplicationsTab = ({
                         Отклонить
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-gray-600 hover:bg-red-50 hover:text-red-600"
+                      onClick={() => {
+                        if (confirm('Удалить заявку? Это действие нельзя отменить.')) {
+                          deleteApplication(app.id);
+                        }
+                      }}
+                    >
+                      <Icon name="Trash2" size={16} />
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"

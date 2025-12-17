@@ -376,6 +376,38 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'isBase64Encoded': False
             }
         
+        elif endpoint != 'gallery' and method == 'DELETE':
+            # Удаление заявки
+            query_params = event.get('queryStringParameters') or {}
+            app_id = query_params.get('id')
+            
+            if not app_id:
+                return {
+                    'statusCode': 400,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    'body': json.dumps({'error': 'ID заявки обязателен'}),
+                    'isBase64Encoded': False
+                }
+            
+            with conn.cursor() as cur:
+                # Сначала удаляем связанные файлы
+                cur.execute('DELETE FROM application_files WHERE application_id = %s', (app_id,))
+                # Затем удаляем саму заявку
+                cur.execute('DELETE FROM applications WHERE id = %s', (app_id,))
+            
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'success': True, 'message': 'Заявка удалена'}),
+                'isBase64Encoded': False
+            }
+        
         else:
             return {
                 'statusCode': 405,
