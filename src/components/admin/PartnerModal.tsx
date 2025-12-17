@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
 interface PartnerModalProps {
-  show: boolean;
+  isOpen: boolean;
   mode: 'create' | 'edit';
   formData: {
     name: string;
@@ -20,10 +20,11 @@ interface PartnerModalProps {
   setFormData: (data: any) => void;
   onClose: () => void;
   onSubmit: () => void;
+  partnerId?: number;
 }
 
 const PartnerModal = ({
-  show,
+  isOpen,
   mode,
   formData,
   setFormData,
@@ -107,7 +108,7 @@ const PartnerModal = ({
     }
   };
 
-  if (!show) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
