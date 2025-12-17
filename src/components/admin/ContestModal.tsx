@@ -140,7 +140,7 @@ const ContestModal = ({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              applicationId: contestId || 0,
+              applicationId: 0,
               files: [{
                 fileName: `logo_${file.name}`,
                 fileType: file.type,

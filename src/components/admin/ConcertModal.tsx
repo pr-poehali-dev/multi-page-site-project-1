@@ -70,7 +70,7 @@ const ConcertModal = ({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              applicationId: concertId || 0,
+              applicationId: 0,
               files: [{
                 fileName: `concert_poster_${file.name}`,
                 fileType: file.type,
