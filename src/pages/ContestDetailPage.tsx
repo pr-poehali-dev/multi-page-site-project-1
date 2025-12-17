@@ -130,7 +130,7 @@ const ContestDetailPage = () => {
                       {isPast ? 'Завершён' : isActive ? 'Активен' : 'Скоро'}
                     </Badge>
                   </div>
-                  <p className="text-xl text-muted-foreground mb-6">
+                  <p className="text-xl text-muted-foreground mb-6 whitespace-pre-wrap">
                     {contest.description}
                   </p>
 
@@ -264,7 +264,7 @@ const ContestDetailPage = () => {
                     <h3 className="text-xl font-semibold mb-4">Общие правила</h3>
                     {contest.rules ? (
                       <div className="prose prose-slate max-w-none">
-                        <p className="whitespace-pre-line">{contest.rules}</p>
+                        <p className="whitespace-pre-wrap">{contest.rules}</p>
                       </div>
                     ) : (
                       <ul className="space-y-2 text-muted-foreground">
@@ -298,7 +298,7 @@ const ContestDetailPage = () => {
                     <h3 className="text-xl font-semibold mb-4">Категории участия</h3>
                     {contest.categories ? (
                       <div className="prose prose-slate max-w-none">
-                        <p className="whitespace-pre-line">{contest.categories}</p>
+                        <p className="whitespace-pre-wrap">{contest.categories}</p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -328,7 +328,7 @@ const ContestDetailPage = () => {
                     <h3 className="text-xl font-semibold mb-4">Призовой фонд</h3>
                     {contest.prizes ? (
                       <div className="prose prose-slate max-w-none">
-                        <p className="whitespace-pre-line">{contest.prizes}</p>
+                        <p className="whitespace-pre-wrap">{contest.prizes}</p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
