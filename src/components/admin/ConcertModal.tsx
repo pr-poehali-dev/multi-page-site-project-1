@@ -81,17 +81,23 @@ const ConcertModal = ({
           });
 
           const data = await response.json();
+          console.log('Upload response:', data);
+          console.log('Response status:', response.status);
+          console.log('Files array:', data.files);
 
           if (data.files && data.files.length > 0) {
-            setFormData({ ...formData, poster_url: data.files[0].fileUrl });
+            const fileUrl = data.files[0].fileUrl;
+            console.log('File URL extracted:', fileUrl);
+            setFormData({ ...formData, poster_url: fileUrl });
             toast({
               title: 'Успешно',
               description: 'Афиша загружена'
             });
           } else {
+            console.error('No files in response or empty array');
             toast({
               title: 'Ошибка',
-              description: 'Не удалось получить URL файла',
+              description: `Не удалось получить URL файла. Ответ: ${JSON.stringify(data)}`,
               variant: 'destructive'
             });
           }
