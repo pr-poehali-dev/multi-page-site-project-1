@@ -58,10 +58,10 @@ const ResultModal = ({
         console.error('Ошибка загрузки конкурсов:', error);
       }
     };
-    if (show) {
+    if (isOpen) {
       loadContests();
     }
-  }, [show]);
+  }, [isOpen]);
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
