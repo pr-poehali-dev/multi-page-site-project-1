@@ -261,12 +261,12 @@ const HomePage = () => {
                     className="overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-105 animate-fade-in cursor-pointer"
                     style={{ animationDelay: `${index * 0.15}s` }}
                   >
-                    <div className={`h-40 ${getContestColor(index)} flex items-center justify-center overflow-hidden`}>
+                    <div className={`h-40 ${getContestColor(index)} flex items-center justify-center overflow-hidden p-4`}>
                       {contest.poster_url ? (
                         <img 
                           src={contest.poster_url} 
                           alt={contest.title}
-                          className="w-full h-full object-cover"
+                          className="max-w-full max-h-full object-contain"
                         />
                       ) : (
                         <div className="text-6xl opacity-20">🎭</div>
