@@ -8,21 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import Icon from '@/components/ui/icon';
 
 interface GalleryUploadModalProps {
-  open: boolean;
+  isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: {
-    title: string;
-    description: string;
-    media_type: 'photo' | 'video';
-    contest_id?: number;
-    is_featured: boolean;
-    file_base64: string;
-    file_name: string;
-  }) => Promise<void>;
-  contests: Array<{ id: number; title: string }>;
+  onUpload: (file: File, title: string, description: string) => Promise<void>;
 }
 
-export default function GalleryUploadModal({ open, onClose, onSubmit, contests }: GalleryUploadModalProps) {
+export default function GalleryUploadModal({ isOpen, onClose, onUpload }: GalleryUploadModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [mediaType, setMediaType] = useState<'photo' | 'video'>('photo');
@@ -106,34 +97,7 @@ export default function GalleryUploadModal({ open, onClose, onSubmit, contests }
 
     setLoading(true);
     try {
-      let base64String: string;
-      
-      // Для изображений используем сжатый preview
-      if (file.type.startsWith('image/') && preview) {
-        base64String = preview.split(',')[1];
-      } else {
-        // Для видео читаем напрямую
-        const reader = new FileReader();
-        const fileData = await new Promise<string>((resolve, reject) => {
-          reader.onload = (event) => {
-            const result = (event.target?.result as string).split(',')[1];
-            resolve(result);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-        base64String = fileData;
-      }
-      
-      await onSubmit({
-        title,
-        description,
-        media_type: mediaType,
-        contest_id: contestId !== 'none' ? parseInt(contestId) : undefined,
-        is_featured: isFeatured,
-        file_base64: base64String,
-        file_name: file.name
-      });
+      await onUpload(file, title, description);
 
       setTitle('');
       setDescription('');
@@ -151,7 +115,7 @@ export default function GalleryUploadModal({ open, onClose, onSubmit, contests }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Загрузить файл в галерею</DialogTitle>
@@ -223,23 +187,6 @@ export default function GalleryUploadModal({ open, onClose, onSubmit, contests }
               placeholder="Опционально"
               rows={3}
             />
-          </div>
-
-          <div>
-            <Label htmlFor="contest">Конкурс</Label>
-            <Select value={contestId} onValueChange={setContestId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Выберите конкурс (опционально)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Без привязки</SelectItem>
-                {contests.map((contest) => (
-                  <SelectItem key={contest.id} value={contest.id.toString()}>
-                    {contest.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="flex items-center gap-2">
