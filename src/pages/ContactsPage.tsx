@@ -17,13 +17,34 @@ const ContactsPage = () => {
     message: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Сообщение отправлено!',
-      description: 'Мы свяжемся с вами в ближайшее время.',
-    });
-    setFormData({ name: '', email: '', subject: '', message: '' });
+    
+    try {
+      const response = await fetch('https://functions.poehali.dev/7b4dd767-4bd4-477d-b8bf-4b1f699b263f', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка отправки');
+      }
+
+      toast({
+        title: 'Сообщение отправлено!',
+        description: 'Мы свяжемся с вами в ближайшее время.',
+      });
+      setFormData({ name: '', email: '', subject: '', message: '' });
+    } catch (error) {
+      toast({
+        title: 'Ошибка отправки',
+        description: 'Попробуйте позже или напишите напрямую на email',
+        variant: 'destructive',
+      });
+    }
   };
 
   const contacts = [
