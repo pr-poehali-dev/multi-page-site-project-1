@@ -25,11 +25,14 @@ import ConcertModal from '@/components/admin/ConcertModal';
 import { useAdminResults } from '@/hooks/useAdminResults';
 import ResultsManagementTab from '@/components/admin/ResultsManagementTab';
 import ResultModal from '@/components/admin/ResultModal';
+import { useAdminPartners } from '@/hooks/useAdminPartners';
+import PartnersManagementTab from '@/components/admin/PartnersManagementTab';
+import PartnerModal from '@/components/admin/PartnerModal';
 
 const AdminPage = () => {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners'>('applications');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [contestFilter, setContestFilter] = useState('all');
@@ -157,6 +160,24 @@ const AdminPage = () => {
     setShowEditModal: setShowEditResultModal,
   } = useAdminResults();
 
+  const {
+    partners,
+    loading: partnersLoading,
+    showCreateModal: showCreatePartnerModal,
+    showEditModal: showEditPartnerModal,
+    selectedPartner,
+    formData: partnerFormData,
+    setFormData: setPartnerFormData,
+    loadPartners,
+    handleCreatePartner,
+    handleEditPartner,
+    handleDeletePartner,
+    openEditModal: openEditPartnerModal,
+    handleCreateClick: handleCreatePartnerClick,
+    setShowCreateModal: setShowCreatePartnerModal,
+    setShowEditModal: setShowEditPartnerModal,
+  } = useAdminPartners();
+
   const handleLogin = () => {
     setIsAuthenticated(true);
   };
@@ -173,9 +194,10 @@ const AdminPage = () => {
       case 'scoring': return scoringLoading;
       case 'gallery': return galleryLoading;
       case 'results': return resultsLoading;
+      case 'partners': return partnersLoading;
       default: return juryLoading;
     }
-  }, [activeTab, applicationsLoading, contestsLoading, concertsLoading, scoringLoading, galleryLoading, resultsLoading, juryLoading]);
+  }, [activeTab, applicationsLoading, contestsLoading, concertsLoading, scoringLoading, galleryLoading, resultsLoading, partnersLoading, juryLoading]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -191,8 +213,11 @@ const AdminPage = () => {
       if (activeTab === 'results') {
         loadResults();
       }
+      if (activeTab === 'partners') {
+        loadPartners();
+      }
     }
-  }, [activeTab, isAuthenticated, loadContests, loadConcerts, loadJuryMembers, loadResults]);
+  }, [activeTab, isAuthenticated, loadContests, loadConcerts, loadJuryMembers, loadResults, loadPartners]);
 
   if (!isAuthenticated) {
     return <AdminAuth onLogin={handleLogin} />;
@@ -289,6 +314,14 @@ const AdminPage = () => {
                 <Icon name="Award" size={18} className="mr-2" />
                 Итоги
               </Button>
+              <Button
+                variant={activeTab === 'partners' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('partners')}
+                className={activeTab === 'partners' ? 'bg-secondary hover:bg-secondary/90' : ''}
+              >
+                <Icon name="Handshake" size={18} className="mr-2" />
+                Партнёры
+              </Button>
             </div>
           </div>
 
@@ -383,6 +416,16 @@ const AdminPage = () => {
               onDeleteClick={handleDeleteResult}
             />
           )}
+
+          {activeTab === 'partners' && (
+            <PartnersManagementTab
+              partners={partners}
+              loading={loading}
+              onCreateClick={handleCreatePartnerClick}
+              onEditClick={openEditPartnerModal}
+              onDeleteClick={handleDeletePartner}
+            />
+          )}
           
           {activeTab === 'scoring' && console.log('[AdminPage] Rendering ScoringTab with:', { contests: contests.length, participants: participants.length })}
 
@@ -459,6 +502,24 @@ const AdminPage = () => {
             onClose={() => setShowEditResultModal(false)}
             onSubmit={handleEditResult}
             resultId={selectedResult?.id}
+          />
+
+          <PartnerModal
+            show={showCreatePartnerModal}
+            mode="create"
+            formData={partnerFormData}
+            setFormData={setPartnerFormData}
+            onClose={() => setShowCreatePartnerModal(false)}
+            onSubmit={handleCreatePartner}
+          />
+
+          <PartnerModal
+            show={showEditPartnerModal}
+            mode="edit"
+            formData={partnerFormData}
+            setFormData={setPartnerFormData}
+            onClose={() => setShowEditPartnerModal(false)}
+            onSubmit={handleEditPartner}
           />
         </div>
       </div>

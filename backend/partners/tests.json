@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {
+      "name": "Get all partners",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "partners": []
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

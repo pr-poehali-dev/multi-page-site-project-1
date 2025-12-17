@@ -1,46 +1,36 @@
+import { useEffect, useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
+import Icon from '@/components/ui/icon';
+
+type Partner = {
+  id: number;
+  name: string;
+  logo_url: string;
+  website_url?: string;
+  display_order: number;
+  is_active: boolean;
+};
 
 const SponsorsPage = () => {
-  const sponsors = [
-    {
-      name: 'Министерство культуры РФ',
-      type: 'Генеральный партнёр',
-      description: 'Поддержка развития культуры и искусства',
-      emoji: '🏛️',
-    },
-    {
-      name: 'Газпром',
-      type: 'Главный спонсор',
-      description: 'Инвестиции в образование и культуру',
-      emoji: '⚡',
-    },
-    {
-      name: 'Сбербанк',
-      type: 'Главный спонсор',
-      description: 'Развитие творческих талантов России',
-      emoji: '🏦',
-    },
-    {
-      name: 'Яндекс',
-      type: 'Технологический партнёр',
-      description: 'Цифровые решения для конкурсов',
-      emoji: '💻',
-    },
-    {
-      name: 'Московская консерватория',
-      type: 'Образовательный партнёр',
-      description: 'Подготовка профессиональных кадров',
-      emoji: '🎓',
-    },
-    {
-      name: 'Третьяковская галерея',
-      type: 'Культурный партнёр',
-      description: 'Площадка для гала-концертов',
-      emoji: '🎨',
-    },
-  ];
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadPartners = async () => {
+      try {
+        const response = await fetch('https://functions.poehali.dev/7b3c1e0e-bd68-4b73-9377-740689560912?active=true');
+        const data = await response.json();
+        setPartners(data.partners || []);
+      } catch (error) {
+        console.error('Ошибка загрузки партнёров:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadPartners();
+  }, []);
 
   const benefits = [
     {
@@ -73,22 +63,58 @@ const SponsorsPage = () => {
             Благодарим партнёров за вклад в развитие искусства и культуры
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto mb-20">
-            {sponsors.map((sponsor, index) => (
-              <Card
-                key={index}
-                className="p-8 text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-2 animate-scale-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="text-7xl mb-4">{sponsor.emoji}</div>
-                <h3 className="text-xl font-heading font-bold mb-2">{sponsor.name}</h3>
-                <div className="inline-block px-3 py-1 bg-secondary/10 text-secondary text-xs font-semibold rounded-full mb-3">
-                  {sponsor.type}
-                </div>
-                <p className="text-sm text-muted-foreground">{sponsor.description}</p>
-              </Card>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Icon name="Loader2" size={48} className="animate-spin text-secondary" />
+            </div>
+          ) : partners.length === 0 ? (
+            <Card className="p-12 text-center max-w-2xl mx-auto mb-20">
+              <Icon name="Handshake" size={64} className="mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-2xl font-semibold mb-2">Партнёры появятся скоро</h3>
+              <p className="text-muted-foreground">
+                Мы работаем над расширением списка наших партнёров
+              </p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 max-w-6xl mx-auto mb-20">
+              {partners.map((partner, index) => (
+                <Card
+                  key={partner.id}
+                  className="p-6 flex items-center justify-center hover:shadow-xl transition-all duration-300 hover:-translate-y-2 animate-scale-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  {partner.website_url ? (
+                    <a
+                      href={partner.website_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center gap-3 w-full"
+                    >
+                      <img
+                        src={partner.logo_url}
+                        alt={partner.name}
+                        className="max-h-24 max-w-full object-contain"
+                      />
+                      <span className="text-sm text-center text-muted-foreground hover:text-primary transition-colors">
+                        {partner.name}
+                      </span>
+                    </a>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3 w-full">
+                      <img
+                        src={partner.logo_url}
+                        alt={partner.name}
+                        className="max-h-24 max-w-full object-contain"
+                      />
+                      <span className="text-sm text-center text-muted-foreground">
+                        {partner.name}
+                      </span>
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
 
           <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-3xl p-12 max-w-5xl mx-auto">
             <h2 className="text-3xl font-heading font-bold text-center mb-12">
