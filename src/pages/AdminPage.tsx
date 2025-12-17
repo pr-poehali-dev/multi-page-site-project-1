@@ -128,6 +128,7 @@ const AdminPage = () => {
     switch (activeTab) {
       case 'applications': return applicationsLoading;
       case 'contests': return contestsLoading;
+      case 'concerts': return contestsLoading;
       case 'scoring': return scoringLoading;
       case 'gallery': return galleryLoading;
       default: return juryLoading;
