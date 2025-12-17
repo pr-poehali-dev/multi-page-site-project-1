@@ -15,7 +15,7 @@ class FileUpload(BaseModel):
     fileData: str = Field(..., min_length=1)
 
 class UploadRequest(BaseModel):
-    applicationId: int = Field(..., gt=0)
+    applicationId: int = Field(default=0, ge=0)
     files: List[FileUpload] = Field(..., min_items=1, max_items=10)
 
 def get_db_connection():
@@ -62,20 +62,24 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
     )
     
-    conn = get_db_connection()
     uploaded_files = []
     
     try:
-        # Verify application exists
-        with conn.cursor() as cur:
-            cur.execute('SELECT id FROM applications WHERE id = %s', (upload_req.applicationId,))
-            if not cur.fetchone():
-                return {
-                    'statusCode': 404,
-                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'error': 'Application not found'}),
-                    'isBase64Encoded': False
-                }
+        # Verify application exists only if applicationId is provided
+        if upload_req.applicationId > 0:
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                cur.execute('SELECT id FROM applications WHERE id = %s', (upload_req.applicationId,))
+                if not cur.fetchone():
+                    conn.close()
+                    return {
+                        'statusCode': 404,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'error': 'Application not found'}),
+                        'isBase64Encoded': False
+                    }
+        else:
+            conn = None
         
         # Upload each file
         for file_upload in upload_req.files:
@@ -84,7 +88,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             # Generate S3 key
             safe_filename = file_upload.fileName.replace(' ', '_')
-            s3_key = f'applications/{upload_req.applicationId}/{safe_filename}'
+            if upload_req.applicationId > 0:
+                s3_key = f'applications/{upload_req.applicationId}/{safe_filename}'
+            else:
+                s3_key = f'uploads/{safe_filename}'
             
             # Upload to S3
             s3.put_object(
@@ -97,17 +104,20 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             # Generate CDN URL
             cdn_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{s3_key}"
             
-            # Save to database
-            with conn.cursor() as cur:
-                cur.execute(
-                    '''
-                    INSERT INTO application_files (application_id, file_name, file_type, file_size, file_url)
-                    VALUES (%s, %s, %s, %s, %s)
-                    RETURNING id
-                    ''',
-                    (upload_req.applicationId, file_upload.fileName, file_upload.fileType, file_upload.fileSize, cdn_url)
-                )
-                file_id = cur.fetchone()['id']
+            # Save to database only if applicationId is provided
+            if conn and upload_req.applicationId > 0:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        '''
+                        INSERT INTO application_files (application_id, file_name, file_type, file_size, file_url)
+                        VALUES (%s, %s, %s, %s, %s)
+                        RETURNING id
+                        ''',
+                        (upload_req.applicationId, file_upload.fileName, file_upload.fileType, file_upload.fileSize, cdn_url)
+                    )
+                    file_id = cur.fetchone()['id']
+            else:
+                file_id = 0
             
             uploaded_files.append({
                 'id': file_id,
@@ -115,7 +125,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'fileUrl': cdn_url
             })
         
-        conn.commit()
+        if conn:
+            conn.commit()
         
         return {
             'statusCode': 200,
@@ -125,7 +136,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     except Exception as e:
-        conn.rollback()
+        if conn:
+            conn.rollback()
         return {
             'statusCode': 500,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
@@ -133,4 +145,5 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'isBase64Encoded': False
         }
     finally:
-        conn.close()
+        if conn:
+            conn.close()
