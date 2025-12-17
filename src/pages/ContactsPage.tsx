@@ -34,6 +34,12 @@ const ContactsPage = () => {
       link: 'mailto:info@индиго-арт.рф',
     },
     {
+      icon: 'Mail',
+      title: 'Email',
+      value: 'indigo_fest@mail.ru',
+      link: 'mailto:indigo_fest@mail.ru',
+    },
+    {
       icon: 'Phone',
       title: 'Телефон',
       value: '+7 (495) 123-45-67',
