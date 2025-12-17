@@ -26,6 +26,11 @@ interface ContestModalProps {
     prizes?: string;
     categories?: string;
     pdf_url?: string;
+    poster_url?: string;
+    ticket_link?: string;
+    details_link?: string;
+    location?: string;
+    event_date?: string;
   };
   setFormData: (data: any) => void;
   onClose: () => void;
@@ -44,7 +49,9 @@ const ContestModal = ({
 }: ContestModalProps) => {
   const { toast } = useToast();
   const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [uploadingPoster, setUploadingPoster] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const posterInputRef = useRef<HTMLInputElement>(null);
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -105,6 +112,72 @@ const ContestModal = ({
       });
     } finally {
       setUploadingPdf(false);
+    }
+  };
+
+  const handlePosterUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Ошибка',
+        description: 'Можно загружать только изображения',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!contestId && mode === 'edit') {
+      toast({
+        title: 'Ошибка',
+        description: 'Сначала сохраните конкурс',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setUploadingPoster(true);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64String = (event.target?.result as string).split(',')[1];
+
+        const response = await fetch('https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            applicationId: contestId,
+            files: [{
+              fileName: `poster_${file.name}`,
+              fileType: file.type,
+              fileSize: file.size,
+              fileData: base64String
+            }]
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.files && data.files.length > 0) {
+          setFormData({ ...formData, poster_url: data.files[0].url });
+          toast({
+            title: 'Успешно',
+            description: 'Афиша загружена'
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось загрузить афишу',
+        variant: 'destructive'
+      });
+    } finally {
+      setUploadingPoster(false);
     }
   };
 
@@ -267,6 +340,107 @@ const ContestModal = ({
               placeholder="Призовой фонд"
               rows={3}
             />
+          </div>
+
+          <div className="border-t pt-4 mt-4">
+            <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Icon name="CalendarDays" size={18} />
+              Информация о концерте/мероприятии
+            </h4>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+                  <Icon name="Image" size={16} />
+                  Афиша концерта (изображение)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    ref={posterInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePosterUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => posterInputRef.current?.click()}
+                    disabled={uploadingPoster || (mode === 'create')}
+                    className="flex-1"
+                  >
+                    <Icon name="Upload" size={16} className="mr-2" />
+                    {uploadingPoster ? 'Загрузка...' : formData.poster_url ? 'Заменить афишу' : 'Загрузить афишу'}
+                  </Button>
+                  {formData.poster_url && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => window.open(formData.poster_url, '_blank')}
+                    >
+                      <Icon name="ExternalLink" size={16} />
+                    </Button>
+                  )}
+                </div>
+                {mode === 'create' && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Афишу можно будет загрузить после создания конкурса
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Дата и время мероприятия</label>
+                <Input
+                  type="datetime-local"
+                  value={formData.event_date || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, event_date: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Место проведения</label>
+                <Input
+                  value={formData.location || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, location: e.target.value })
+                  }
+                  placeholder="Например: ГДК, Воронеж"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+                  <Icon name="Ticket" size={16} />
+                  Ссылка на покупку билетов
+                </label>
+                <Input
+                  value={formData.ticket_link || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, ticket_link: e.target.value })
+                  }
+                  placeholder="https://example.com/tickets"
+                  type="url"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+                  <Icon name="Info" size={16} />
+                  Ссылка на подробности
+                </label>
+                <Input
+                  value={formData.details_link || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, details_link: e.target.value })
+                  }
+                  placeholder="https://example.com/details"
+                  type="url"
+                />
+              </div>
+            </div>
           </div>
         </div>
 

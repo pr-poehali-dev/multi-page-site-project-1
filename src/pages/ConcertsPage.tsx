@@ -1,50 +1,42 @@
+import { useEffect, useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 
+type Concert = {
+  id: number;
+  title: string;
+  description: string;
+  poster_url?: string;
+  ticket_link?: string;
+  details_link?: string;
+  location?: string;
+  event_date?: string;
+};
+
 const ConcertsPage = () => {
-  const concerts = [
-    {
-      title: 'Людмила Николаева - Жить не пережить',
-      date: '1 мая 2025',
-      time: '18:00',
-      venue: 'ГДК',
-      city: 'Воронеж',
-      price: '0+',
-      image: 'https://cdn.poehali.dev/files/260 Воронеж.png',
-      ticketUrl: 'https://iframeab-pre11992.intickets.ru/seance/68895381/',
-      detailsUrl: 'https://iframeab-pre11992.intickets.ru/event/68893364/',
-    },
-    {
-      title: 'Людмила Николаева - Жить не пережить',
-      date: '3 мая 2025',
-      time: '18:00',
-      venue: 'ОЦКНТ',
-      city: 'Липецк',
-      price: '0+',
-      image: 'https://cdn.poehali.dev/files/250 Липецк.png',
-      ticketUrl: 'https://iframeab-pre11992.intickets.ru/seance/68895349/',
-      detailsUrl: 'https://iframeab-pre11992.intickets.ru/event/68895347/',
-    },
-    {
-      title: 'Симфонический оркестр',
-      date: '10 мая 2025',
-      time: '20:00',
-      venue: 'Большой театр',
-      city: 'Москва',
-      price: 'от 2500 ₽',
-    },
-    {
-      title: 'Вокальный вечер',
-      date: '8 июня 2025',
-      time: '19:30',
-      venue: 'Филармония',
-      city: 'Казань',
-      price: 'от 800 ₽',
-    },
-  ];
+  const [concerts, setConcerts] = useState<Concert[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchConcerts = async () => {
+      try {
+        const response = await fetch('https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3');
+        const data = await response.json();
+        const concertsWithEvents = (data.contests || []).filter(
+          (contest: Concert) => contest.event_date && contest.location
+        );
+        setConcerts(concertsWithEvents);
+      } catch (error) {
+        console.error('Ошибка загрузки концертов:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchConcerts();
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -59,18 +51,34 @@ const ConcertsPage = () => {
             Посетите выступления лучших артистов и победителей конкурсов
           </p>
 
+          {loading ? (
+            <div className="text-center py-12">
+              <Icon name="Loader2" size={48} className="mx-auto animate-spin text-primary" />
+              <p className="text-muted-foreground mt-4">Загрузка концертов...</p>
+            </div>
+          ) : concerts.length === 0 ? (
+            <div className="text-center py-12">
+              <Icon name="Calendar" size={48} className="mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Пока нет запланированных концертов</p>
+            </div>
+          ) : (
           <div className="max-w-4xl mx-auto space-y-6">
-            {concerts.map((concert, index) => (
+            {concerts.map((concert, index) => {
+              const eventDate = concert.event_date ? new Date(concert.event_date) : null;
+              const dateStr = eventDate ? eventDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+              const timeStr = eventDate ? eventDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+
+              return (
               <Card
-                key={index}
+                key={concert.id}
                 className="overflow-hidden hover:shadow-xl transition-all duration-300 animate-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div className="md:flex">
-                  {concert.image ? (
+                  {concert.poster_url ? (
                     <div className="md:w-1/3">
                       <img 
-                        src={concert.image} 
+                        src={concert.poster_url} 
                         alt={concert.title}
                         className="w-full h-full object-cover"
                       />
@@ -79,12 +87,16 @@ const ConcertsPage = () => {
                     <div className="md:w-1/3 bg-gradient-to-br from-primary to-secondary p-12 flex flex-col justify-center items-center text-white">
                       <div className="text-6xl mb-4">🎵</div>
                       <div className="text-center">
-                        <div className="text-3xl font-heading font-bold mb-2">
-                          {concert.date.split(' ')[0]}
-                        </div>
-                        <div className="text-lg opacity-90">
-                          {concert.date.split(' ').slice(1).join(' ')}
-                        </div>
+                        {eventDate && (
+                          <>
+                            <div className="text-3xl font-heading font-bold mb-2">
+                              {eventDate.getDate()}
+                            </div>
+                            <div className="text-lg opacity-90">
+                              {eventDate.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   )}
@@ -92,52 +104,51 @@ const ConcertsPage = () => {
                   <div className="md:w-2/3 p-8">
                     <h3 className="text-2xl font-heading font-bold mb-4">{concert.title}</h3>
                     
+                    {concert.description && (
+                      <p className="text-muted-foreground mb-4">{concert.description}</p>
+                    )}
+                    
                     <div className="space-y-3 mb-6">
-                      <div className="flex items-center gap-3 text-muted-foreground">
-                        <Icon name="Clock" size={18} className="text-secondary" />
-                        <span>{concert.time}</span>
-                      </div>
+                      {eventDate && (
+                        <div className="flex items-center gap-3 text-muted-foreground">
+                          <Icon name="Clock" size={18} className="text-secondary" />
+                          <span>{dateStr} в {timeStr}</span>
+                        </div>
+                      )}
 
-                      <div className="flex items-center gap-3 text-muted-foreground">
-                        <Icon name="MapPin" size={18} className="text-secondary" />
-                        <span>{concert.venue}, {concert.city}</span>
-                      </div>
-
-                      <div className="flex items-center gap-3 text-muted-foreground">
-                        <Icon name="Ticket" size={18} className="text-secondary" />
-                        <span>{concert.price}</span>
-                      </div>
+                      {concert.location && (
+                        <div className="flex items-center gap-3 text-muted-foreground">
+                          <Icon name="MapPin" size={18} className="text-secondary" />
+                          <span>{concert.location}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex gap-3">
-                      {concert.ticketUrl ? (
-                        <a href={concert.ticketUrl} target="_blank" rel="noopener noreferrer">
+                      {concert.ticket_link && (
+                        <a href={concert.ticket_link} target="_blank" rel="noopener noreferrer">
                           <Button className="bg-secondary hover:bg-secondary/90">
+                            <Icon name="Ticket" size={18} className="mr-2" />
                             Купить билет
                           </Button>
                         </a>
-                      ) : (
-                        <Button className="bg-secondary hover:bg-secondary/90">
-                          Купить билет
-                        </Button>
                       )}
-                      {concert.detailsUrl ? (
-                        <a href={concert.detailsUrl} target="_blank" rel="noopener noreferrer">
+                      {concert.details_link && (
+                        <a href={concert.details_link} target="_blank" rel="noopener noreferrer">
                           <Button variant="outline">
+                            <Icon name="Info" size={18} className="mr-2" />
                             Подробнее
                           </Button>
                         </a>
-                      ) : (
-                        <Button variant="outline">
-                          Подробнее
-                        </Button>
                       )}
                     </div>
                   </div>
                 </div>
               </Card>
-            ))}
+              );
+            })}
           </div>
+          )}
         </div>
       </section>
 
