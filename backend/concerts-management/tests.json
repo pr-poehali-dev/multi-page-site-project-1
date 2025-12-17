@@ -1,0 +1,32 @@
+{
+  "tests": [
+    {
+      "name": "Get all concerts",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "concerts": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create concert",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "title": "Тестовый концерт",
+        "description": "Описание концерта",
+        "location": "Тестовая площадка",
+        "event_date": "2025-05-01T19:00:00",
+        "status": "upcoming"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "success": true,
+        "id": "number"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

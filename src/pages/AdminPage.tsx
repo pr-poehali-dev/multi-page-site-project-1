@@ -20,6 +20,8 @@ import { useToast } from '@/hooks/use-toast';
 import GalleryTab from '@/components/admin/GalleryTab';
 import GalleryUploadModal from '@/components/admin/GalleryUploadModal';
 import { useAdminGallery } from '@/hooks/useAdminGallery';
+import { useAdminConcerts } from '@/hooks/useAdminConcerts';
+import ConcertModal from '@/components/admin/ConcertModal';
 
 const AdminPage = () => {
   const { toast } = useToast();
@@ -32,6 +34,24 @@ const AdminPage = () => {
   const { participants, loading: scoringLoading, selectedContest: scoringSelectedContest, handleContestChange, exportProtocol } = useAdminScoring();
 
   const { items: galleryItems, loading: galleryLoading, showUploadModal, setShowUploadModal, uploadFile, deleteItem } = useAdminGallery();
+
+  const {
+    concerts: managedConcerts,
+    loading: concertsLoading,
+    showCreateModal: showCreateConcertModal,
+    showEditModal: showEditConcertModal,
+    selectedConcert,
+    formData: concertFormData,
+    setFormData: setConcertFormData,
+    loadConcerts,
+    handleCreateConcert,
+    handleEditConcert,
+    handleDeleteConcert,
+    openEditModal: openEditConcertModal,
+    handleCreateClick: handleCreateConcertClick,
+    setShowCreateModal: setShowCreateConcertModal,
+    setShowEditModal: setShowEditConcertModal,
+  } = useAdminConcerts();
 
   const { applications, loading: applicationsLoading, updateStatus } = useAdminApplications(statusFilter, contestFilter);
   
@@ -128,23 +148,26 @@ const AdminPage = () => {
     switch (activeTab) {
       case 'applications': return applicationsLoading;
       case 'contests': return contestsLoading;
-      case 'concerts': return contestsLoading;
+      case 'concerts': return concertsLoading;
       case 'scoring': return scoringLoading;
       case 'gallery': return galleryLoading;
       default: return juryLoading;
     }
-  }, [activeTab, applicationsLoading, contestsLoading, scoringLoading, galleryLoading, juryLoading]);
+  }, [activeTab, applicationsLoading, contestsLoading, concertsLoading, scoringLoading, galleryLoading, juryLoading]);
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (activeTab === 'contests' || activeTab === 'concerts' || activeTab === 'scoring' || activeTab === 'gallery') {
+      if (activeTab === 'contests' || activeTab === 'scoring' || activeTab === 'gallery') {
         loadContests();
+      }
+      if (activeTab === 'concerts') {
+        loadConcerts();
       }
       if (activeTab === 'jury' || activeTab === 'jury-accounts') {
         loadJuryMembers();
       }
     }
-  }, [activeTab, isAuthenticated, loadContests, loadJuryMembers]);
+  }, [activeTab, isAuthenticated, loadContests, loadConcerts, loadJuryMembers]);
 
   if (!isAuthenticated) {
     return <AdminAuth onLogin={handleLogin} />;
@@ -263,11 +286,11 @@ const AdminPage = () => {
 
           {activeTab === 'concerts' && (
             <ConcertsManagementTab
-              concerts={contests}
+              concerts={managedConcerts}
               loading={loading}
-              onCreateClick={handleCreateClick}
-              onEditClick={openEditModal}
-              onDeleteClick={handleDeleteContest}
+              onCreateClick={handleCreateConcertClick}
+              onEditClick={openEditConcertModal}
+              onDeleteClick={handleDeleteConcert}
             />
           )}
 
@@ -355,6 +378,25 @@ const AdminPage = () => {
             setFormData={setJuryFormData}
             onClose={() => setShowEditJuryModal(false)}
             onSubmit={handleEditJuryMember}
+          />
+
+          <ConcertModal
+            show={showCreateConcertModal}
+            mode="create"
+            formData={concertFormData}
+            setFormData={setConcertFormData}
+            onClose={() => setShowCreateConcertModal(false)}
+            onSubmit={handleCreateConcert}
+          />
+
+          <ConcertModal
+            show={showEditConcertModal}
+            mode="edit"
+            formData={concertFormData}
+            setFormData={setConcertFormData}
+            onClose={() => setShowEditConcertModal(false)}
+            onSubmit={handleEditConcert}
+            concertId={selectedConcert?.id}
           />
         </div>
       </div>

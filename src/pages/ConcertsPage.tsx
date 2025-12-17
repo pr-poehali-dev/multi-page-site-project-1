@@ -23,12 +23,9 @@ const ConcertsPage = () => {
   useEffect(() => {
     const fetchConcerts = async () => {
       try {
-        const response = await fetch('https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3');
+        const response = await fetch('https://functions.poehali.dev/de057f50-7d1e-49bc-a61f-f23335190f32');
         const data = await response.json();
-        const concertsWithEvents = (data.contests || []).filter(
-          (contest: Concert) => contest.event_date && contest.location
-        );
-        setConcerts(concertsWithEvents);
+        setConcerts(data.concerts || []);
       } catch (error) {
         console.error('Ошибка загрузки концертов:', error);
       } finally {

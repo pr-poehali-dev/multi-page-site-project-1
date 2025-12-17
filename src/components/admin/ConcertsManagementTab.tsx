@@ -43,7 +43,11 @@ const ConcertsManagementTab = ({
     }
   };
 
-  const concertsWithEvents = concerts.filter(c => c.event_date && c.location);
+  const sortedConcerts = [...concerts].sort((a, b) => {
+    if (!a.event_date) return 1;
+    if (!b.event_date) return -1;
+    return new Date(b.event_date).getTime() - new Date(a.event_date).getTime();
+  });
 
   if (loading) {
     return (
@@ -59,7 +63,7 @@ const ConcertsManagementTab = ({
         <div>
           <h2 className="text-2xl font-heading font-bold">Управление концертами</h2>
           <p className="text-muted-foreground">
-            Всего мероприятий: {concertsWithEvents.length}
+            Всего мероприятий: {concerts.length}
           </p>
         </div>
         <Button onClick={onCreateClick} className="bg-secondary hover:bg-secondary/90">
@@ -68,17 +72,17 @@ const ConcertsManagementTab = ({
         </Button>
       </div>
 
-      {concertsWithEvents.length === 0 ? (
+      {concerts.length === 0 ? (
         <Card className="p-12 text-center">
           <Icon name="Calendar" size={48} className="mx-auto text-muted-foreground mb-4" />
           <h3 className="text-xl font-semibold mb-2">Нет концертов</h3>
           <p className="text-muted-foreground mb-6">
-            Добавьте информацию о концерте через редактирование конкурса
+            Нажмите кнопку "Добавить концерт" чтобы создать мероприятие
           </p>
         </Card>
       ) : (
         <div className="space-y-4">
-          {concertsWithEvents.map((concert) => {
+          {sortedConcerts.map((concert) => {
             const eventDate = concert.event_date ? new Date(concert.event_date) : null;
             const dateStr = eventDate
               ? eventDate.toLocaleDateString('ru-RU', {
