@@ -230,7 +230,15 @@ const ConcertModal = ({
                 </Button>
               )}
             </div>
-
+            {formData.poster_url && (
+              <div className="mt-2">
+                <img 
+                  src={formData.poster_url} 
+                  alt="Афиша" 
+                  className="w-24 h-24 object-contain border rounded p-2"
+                />
+              </div>
+            )}
           </div>
 
           <div>
