@@ -23,7 +23,7 @@ const AdminPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [contestFilter, setContestFilter] = useState('all');
 
-  const { participants, loading: scoringLoading, selectedContest: scoringSelectedContest, handleContestChange, exportProtocol } = useAdminScoring();
+  const { participants, loading: scoringLoading, selectedContest: scoringSelectedContest, handleContestChange, exportProtocol, deleteParticipant } = useAdminScoring();
 
   const { items: galleryItems, loading: galleryLoading, showUploadModal, setShowUploadModal, uploadFile, deleteItem } = useAdminGallery();
 
@@ -249,6 +249,14 @@ const AdminPage = () => {
             scoringSelectedContest={scoringSelectedContest}
             handleContestChange={handleContestChange}
             exportProtocol={exportProtocol}
+            handleDeleteParticipant={async (id: number) => {
+              try {
+                await deleteParticipant(id);
+                toast({ title: 'Участник удалён', description: 'Участник и все его оценки успешно удалены' });
+              } catch {
+                toast({ title: 'Ошибка', description: 'Не удалось удалить участника', variant: 'destructive' });
+              }
+            }}
             galleryItems={galleryItems}
             setShowUploadModal={setShowUploadModal}
             deleteItem={deleteItem}

@@ -44,6 +44,7 @@ interface AdminTabContentProps {
   scoringSelectedContest: string;
   handleContestChange: (contestId: string) => void;
   exportProtocol: () => void;
+  handleDeleteParticipant: (participantId: number) => Promise<void>;
 
   galleryItems: any[];
   setShowUploadModal: (show: boolean) => void;
@@ -89,6 +90,7 @@ const AdminTabContent = ({
   scoringSelectedContest,
   handleContestChange,
   exportProtocol,
+  handleDeleteParticipant,
   galleryItems,
   setShowUploadModal,
   deleteItem,
@@ -173,6 +175,7 @@ const AdminTabContent = ({
           selectedContest={scoringSelectedContest}
           onContestChange={handleContestChange}
           onExportProtocol={exportProtocol}
+          onDeleteParticipant={handleDeleteParticipant}
         />
       );
 

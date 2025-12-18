@@ -29,6 +29,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     GET /verify - проверка токена (X-Jury-Token)
     GET /scores?contest_id=N - список участников с оценками
     POST /scores - сохранение оценки (participant_id, contest_id, score, comment)
+    DELETE /delete_participant?participant_id=N - удаление участника и всех его оценок
     '''
     method: str = event.get('httpMethod', 'GET')
     params = event.get('queryStringParameters') or {}
@@ -39,7 +40,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type, X-Jury-Token',
                 'Access-Control-Max-Age': '86400'
             },
@@ -339,6 +340,36 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'score_id': score_id,
                     'message': 'Оценка сохранена'
                 }),
+                'isBase64Encoded': False
+            }
+        
+        # DELETE participant - удаление участника (только для админа)
+        if method == 'DELETE' and action == 'delete_participant':
+            participant_id = params.get('participant_id')
+            
+            if not participant_id:
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Требуется participant_id'}),
+                    'isBase64Encoded': False
+                }
+            
+            cur = conn.cursor()
+            
+            # Удаляем все оценки участника
+            cur.execute('DELETE FROM participant_scores WHERE participant_id = %s', (participant_id,))
+            
+            # Удаляем самого участника
+            cur.execute('DELETE FROM participants WHERE id = %s', (participant_id,))
+            
+            conn.commit()
+            cur.close()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'success': True, 'message': 'Участник удалён'}),
                 'isBase64Encoded': False
             }
         

@@ -23,6 +23,7 @@ interface ScoringTabProps {
   loading: boolean;
   onContestChange: (contestId: number) => void;
   onExportProtocol: () => void;
+  onDeleteParticipant: (participantId: number) => Promise<void>;
 }
 
 const ScoringTab = ({
@@ -31,7 +32,8 @@ const ScoringTab = ({
   participants,
   loading,
   onContestChange,
-  onExportProtocol
+  onExportProtocol,
+  onDeleteParticipant
 }: ScoringTabProps) => {
   const sortedParticipants = useMemo(() => {
     return [...participants].sort((a, b) => {
@@ -116,15 +118,29 @@ const ScoringTab = ({
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-bold text-secondary">
-                      {participant.avg_score !== null 
-                        ? participant.avg_score.toFixed(2) 
-                        : '—'}
+                  <div className="flex items-start gap-4">
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-secondary">
+                        {participant.avg_score !== null 
+                          ? participant.avg_score.toFixed(2) 
+                          : '—'}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {participant.scores_count} {participant.scores_count === 1 ? 'оценка' : participant.scores_count >= 2 && participant.scores_count <= 4 ? 'оценки' : 'оценок'}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {participant.scores_count} {participant.scores_count === 1 ? 'оценка' : participant.scores_count >= 2 && participant.scores_count <= 4 ? 'оценки' : 'оценок'}
-                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (confirm(`Удалить участника ${participant.name}? Это также удалит все оценки жюри.`)) {
+                          onDeleteParticipant(participant.id);
+                        }
+                      }}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Icon name="Trash2" size={18} />
+                    </Button>
                   </div>
                 </div>
 

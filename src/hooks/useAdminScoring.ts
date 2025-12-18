@@ -51,6 +51,26 @@ export const useAdminScoring = () => {
     }
   };
 
+  const deleteParticipant = async (participantId: number) => {
+    try {
+      const response = await fetch(
+        `https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d?action=delete_participant&participant_id=${participantId}`,
+        { method: 'DELETE' }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to delete participant');
+      }
+
+      if (selectedContest) {
+        await loadScores(selectedContest);
+      }
+    } catch (error) {
+      console.error('Ошибка удаления участника:', error);
+      throw error;
+    }
+  };
+
   const exportProtocol = () => {
     if (!selectedContest || participants.length === 0) return;
 
@@ -98,6 +118,7 @@ export const useAdminScoring = () => {
     loading,
     selectedContest,
     handleContestChange,
-    exportProtocol
+    exportProtocol,
+    deleteParticipant
   };
 };
