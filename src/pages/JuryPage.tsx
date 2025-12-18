@@ -78,9 +78,9 @@ const JuryPage = () => {
                     <div className="inline-block px-3 py-1 bg-muted text-xs font-semibold rounded-full mb-4">
                       {member.specialty}
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
+                    <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
                       {member.bio}
-                    </p>
+                    </div>
                   </div>
                 </Card>
               ))}
