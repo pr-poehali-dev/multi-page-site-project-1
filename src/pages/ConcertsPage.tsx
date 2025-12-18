@@ -26,8 +26,8 @@ const ConcertsPage = () => {
         const response = await fetch('https://functions.poehali.dev/de057f50-7d1e-49bc-a61f-f23335190f32');
         const data = await response.json();
         const sortedConcerts = (data.concerts || []).sort((a: Concert, b: Concert) => {
-          const dateA = new Date(a.date).getTime();
-          const dateB = new Date(b.date).getTime();
+          const dateA = a.event_date ? new Date(a.event_date).getTime() : 0;
+          const dateB = b.event_date ? new Date(b.event_date).getTime() : 0;
           return dateA - dateB;
         });
         setConcerts(sortedConcerts);
