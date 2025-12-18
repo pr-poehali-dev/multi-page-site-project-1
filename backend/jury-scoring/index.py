@@ -276,6 +276,36 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'isBase64Encoded': False
             }
         
+        # DELETE participant - удаление участника (админская функция, не требует токена)
+        if method == 'DELETE' and action == 'delete_participant':
+            participant_id = params.get('participant_id')
+            
+            if not participant_id:
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Требуется participant_id'}),
+                    'isBase64Encoded': False
+                }
+            
+            cur = conn.cursor()
+            
+            # Удаляем все оценки участника
+            cur.execute('DELETE FROM participant_scores WHERE participant_id = %s', (participant_id,))
+            
+            # Удаляем самого участника
+            cur.execute('DELETE FROM participants WHERE id = %s', (participant_id,))
+            
+            conn.commit()
+            cur.close()
+            
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'success': True, 'message': 'Участник удалён'}),
+                'isBase64Encoded': False
+            }
+        
         # Для POST/PUT требуется токен
         token = event.get('headers', {}).get('X-Jury-Token') or event.get('headers', {}).get('x-jury-token')
         
@@ -340,36 +370,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'score_id': score_id,
                     'message': 'Оценка сохранена'
                 }),
-                'isBase64Encoded': False
-            }
-        
-        # DELETE participant - удаление участника (только для админа)
-        if method == 'DELETE' and action == 'delete_participant':
-            participant_id = params.get('participant_id')
-            
-            if not participant_id:
-                return {
-                    'statusCode': 400,
-                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'error': 'Требуется participant_id'}),
-                    'isBase64Encoded': False
-                }
-            
-            cur = conn.cursor()
-            
-            # Удаляем все оценки участника
-            cur.execute('DELETE FROM participant_scores WHERE participant_id = %s', (participant_id,))
-            
-            # Удаляем самого участника
-            cur.execute('DELETE FROM participants WHERE id = %s', (participant_id,))
-            
-            conn.commit()
-            cur.close()
-            
-            return {
-                'statusCode': 200,
-                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'success': True, 'message': 'Участник удалён'}),
                 'isBase64Encoded': False
             }
         
