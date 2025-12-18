@@ -25,7 +25,12 @@ const ConcertsPage = () => {
       try {
         const response = await fetch('https://functions.poehali.dev/de057f50-7d1e-49bc-a61f-f23335190f32');
         const data = await response.json();
-        setConcerts(data.concerts || []);
+        const sortedConcerts = (data.concerts || []).sort((a: Concert, b: Concert) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          return dateA - dateB;
+        });
+        setConcerts(sortedConcerts);
       } catch (error) {
         console.error('Ошибка загрузки концертов:', error);
       } finally {

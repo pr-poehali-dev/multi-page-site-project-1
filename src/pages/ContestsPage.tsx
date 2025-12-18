@@ -30,7 +30,12 @@ const ContestsPage = () => {
     try {
       const response = await fetch('https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3');
       const data = await response.json();
-      setContests(data.contests || []);
+      const sortedContests = (data.contests || []).sort((a: Contest, b: Contest) => {
+        const dateA = new Date(a.start_date).getTime();
+        const dateB = new Date(b.start_date).getTime();
+        return dateA - dateB;
+      });
+      setContests(sortedContests);
     } catch (error) {
       console.error('Ошибка загрузки конкурсов:', error);
     } finally {
