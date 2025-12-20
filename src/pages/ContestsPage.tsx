@@ -96,10 +96,10 @@ const ContestsPage = () => {
                           <img 
                             src={contest.poster_url}
                             alt={contest.title} 
-                            className="w-24 h-24 object-contain mb-3"
+                            className="w-48 h-48 object-contain mb-3"
                           />
                         ) : (
-                          <div className="w-24 h-24 flex items-center justify-center text-4xl mb-3">🎭</div>
+                          <div className="w-48 h-48 flex items-center justify-center text-4xl mb-3">🎭</div>
                         )}
                         <Badge 
                           className={`${
