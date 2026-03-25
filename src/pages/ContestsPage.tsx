@@ -49,8 +49,8 @@ const ContestsPage = () => {
     <div className="min-h-screen">
       <Navigation />
 
-      <section className="pt-32 pb-20 px-4">
-        <div className="container mx-auto">
+      <section className="pt-32 pb-20 px-6">
+        <div className="max-w-screen-2xl mx-auto">
           <h1 className="text-5xl md:text-6xl font-heading font-bold mb-6 text-center animate-fade-in">
             Календарь конкурсов
           </h1>
@@ -70,7 +70,7 @@ const ContestsPage = () => {
               <p className="text-muted-foreground">Следите за обновлениями - скоро здесь появятся новые конкурсы!</p>
             </Card>
           ) : (
-            <div className="space-y-6 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {contests.map((contest, index) => {
                 const startDate = new Date(contest.start_date);
                 const endDate = new Date(contest.end_date);
@@ -85,65 +85,59 @@ const ContestsPage = () => {
                 return (
                   <Card
                     key={contest.id}
-                    className={`overflow-hidden hover:shadow-xl transition-all duration-300 animate-scale-in ${
+                    className={`overflow-hidden hover:shadow-xl transition-all duration-300 animate-scale-in flex flex-col ${
                       isPast ? 'opacity-60' : ''
                     }`}
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
-                    <div className="flex flex-col md:flex-row">
-                      <div className="md:w-48 bg-gradient-to-br from-primary/10 to-secondary/10 p-6 flex flex-col items-center justify-center border-r">
-                        {contest.poster_url ? (
-                          <img 
-                            src={contest.poster_url}
-                            alt={contest.title} 
-                            className="w-48 h-48 object-contain mb-3"
-                          />
-                        ) : (
-                          <div className="w-48 h-48 flex items-center justify-center text-4xl mb-3">🎭</div>
-                        )}
-                        <Badge 
-                          className={`${
-                            isPast ? 'bg-gray-500' :
-                            isActive ? 'bg-green-500' : 
-                            'bg-orange-500'
-                          }`}
-                        >
-                          {isPast ? 'Завершён' : isActive ? 'Активен' : 'Скоро'}
-                        </Badge>
-                      </div>
+                    <div className="bg-gradient-to-br from-primary/10 to-secondary/10 p-8 flex flex-col items-center justify-center border-b">
+                      {contest.poster_url ? (
+                        <img 
+                          src={contest.poster_url}
+                          alt={contest.title} 
+                          className="w-48 h-48 object-contain mb-4"
+                        />
+                      ) : (
+                        <div className="w-48 h-48 flex items-center justify-center text-7xl mb-4">🎭</div>
+                      )}
+                      <Badge 
+                        className={`${
+                          isPast ? 'bg-gray-500' :
+                          isActive ? 'bg-green-500' : 
+                          'bg-orange-500'
+                        }`}
+                      >
+                        {isPast ? 'Завершён' : isActive ? 'Активен' : 'Скоро'}
+                      </Badge>
+                    </div>
 
-                      <div className="flex-1 p-6">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h3 className="text-2xl font-heading font-bold mb-2">{contest.title}</h3>
+                    <div className="flex-1 p-6 flex flex-col">
+                      <h3 className="text-xl font-heading font-bold mb-4">{contest.title}</h3>
+
+                      <div className="space-y-3 mb-4 flex-1">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Icon name="CalendarDays" size={16} className="text-primary shrink-0" />
+                          <div>
+                            <div className="font-medium">Начало приёма</div>
+                            <div className="text-muted-foreground">
+                              {startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </div>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Icon name="CalendarDays" size={18} className="text-primary" />
-                            <div>
-                              <div className="font-medium">Начало приёма заявок</div>
-                              <div className="text-muted-foreground">
-                                {startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 text-sm">
-                            <Icon name="CalendarX" size={18} className="text-destructive" />
-                            <div>
-                              <div className="font-medium">Окончание приёма</div>
-                              <div className="text-muted-foreground">
-                                {endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                              </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Icon name="CalendarX" size={16} className="text-destructive shrink-0" />
+                          <div>
+                            <div className="font-medium">Окончание приёма</div>
+                            <div className="text-muted-foreground">
+                              {endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
                             </div>
                           </div>
                         </div>
 
                         {!isPast && (
-                          <div className="flex items-center gap-2 p-3 bg-secondary/10 rounded-lg mb-4">
-                            <Icon name="Clock" size={18} className="text-secondary" />
+                          <div className="flex items-center gap-2 p-3 bg-secondary/10 rounded-lg">
+                            <Icon name="Clock" size={16} className="text-secondary shrink-0" />
                             <span className="text-sm font-medium">
                               {isFuture ? (
                                 `Старт через ${daysUntilStart} ${daysUntilStart === 1 ? 'день' : daysUntilStart < 5 ? 'дня' : 'дней'}`
@@ -155,20 +149,20 @@ const ContestsPage = () => {
                             </span>
                           </div>
                         )}
+                      </div>
 
-                        <div className="flex gap-3">
-                          <Button 
-                            className="bg-secondary hover:bg-secondary/90"
-                            disabled={isPast || isFuture}
-                          >
-                            <Icon name="Send" size={18} className="mr-2" />
-                            {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется' : 'Подать заявку'}
-                          </Button>
-                          <Button variant="outline" onClick={() => navigate(`/contests/${contest.id}`)}>
-                            <Icon name="Info" size={18} className="mr-2" />
-                            Подробнее
-                          </Button>
-                        </div>
+                      <div className="flex flex-col gap-2 mt-auto">
+                        <Button 
+                          className="w-full bg-secondary hover:bg-secondary/90"
+                          disabled={isPast || isFuture}
+                        >
+                          <Icon name="Send" size={16} className="mr-2" />
+                          {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется' : 'Подать заявку'}
+                        </Button>
+                        <Button variant="outline" className="w-full" onClick={() => navigate(`/contests/${contest.id}`)}>
+                          <Icon name="Info" size={16} className="mr-2" />
+                          Подробнее
+                        </Button>
                       </div>
                     </div>
                   </Card>
