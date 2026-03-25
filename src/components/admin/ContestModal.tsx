@@ -1,38 +1,17 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { ContestFormData } from './ContestModalTypes';
+import ContestBasicFields from './ContestBasicFields';
+import ContestUploadFields from './ContestUploadFields';
+import ContestEventFields from './ContestEventFields';
 
 interface ContestModalProps {
   isOpen: boolean;
   mode: 'create' | 'edit';
-  formData: {
-    title: string;
-    description: string;
-    start_date: string;
-    end_date: string;
-    status: string;
-    rules?: string;
-    prizes?: string;
-    categories?: string;
-    pdf_url?: string;
-    poster_url?: string;
-    ticket_link?: string;
-    details_link?: string;
-    location?: string;
-    event_date?: string;
-    application_form_url?: string;
-  };
+  formData: ContestFormData;
   setFormData: (data: any) => void;
   onClose: () => void;
   onSubmit: () => void;
@@ -52,29 +31,18 @@ const ContestModal = ({
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [uploadingPoster, setUploadingPoster] = useState(false);
   const [uploadingForm, setUploadingForm] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const posterInputRef = useRef<HTMLInputElement>(null);
-  const formFileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.type !== 'application/pdf') {
-      toast({
-        title: 'Ошибка',
-        description: 'Можно загружать только PDF файлы',
-        variant: 'destructive'
-      });
+      toast({ title: 'Ошибка', description: 'Можно загружать только PDF файлы', variant: 'destructive' });
       return;
     }
 
     if (!contestId && mode === 'edit') {
-      toast({
-        title: 'Ошибка',
-        description: 'Сначала сохраните конкурс',
-        variant: 'destructive'
-      });
+      toast({ title: 'Ошибка', description: 'Сначала сохраните конкурс', variant: 'destructive' });
       return;
     }
 
@@ -88,31 +56,20 @@ const ContestModal = ({
         const response = await fetch('https://functions.poehali.dev/b0d40cbb-41ff-48a1-a800-101845d59a03', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            file_base64: base64String,
-            file_name: file.name,
-            contest_id: contestId || 0
-          })
+          body: JSON.stringify({ file_base64: base64String, file_name: file.name, contest_id: contestId || 0 })
         });
 
         const data = await response.json();
 
         if (data.pdf_url) {
           setFormData({ ...formData, pdf_url: data.pdf_url });
-          toast({
-            title: 'Успешно',
-            description: 'PDF загружен'
-          });
+          toast({ title: 'Успешно', description: 'PDF загружен' });
         }
       };
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Upload error:', error);
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось загрузить PDF',
-        variant: 'destructive'
-      });
+      toast({ title: 'Ошибка', description: 'Не удалось загрузить PDF', variant: 'destructive' });
     } finally {
       setUploadingPdf(false);
     }
@@ -123,11 +80,7 @@ const ContestModal = ({
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast({
-        title: 'Ошибка',
-        description: 'Можно загружать только изображения',
-        variant: 'destructive'
-      });
+      toast({ title: 'Ошибка', description: 'Можно загружать только изображения', variant: 'destructive' });
       return;
     }
 
@@ -144,12 +97,7 @@ const ContestModal = ({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               applicationId: 0,
-              files: [{
-                fileName: `logo_${file.name}`,
-                fileType: file.type,
-                fileSize: file.size,
-                fileData: base64String
-              }]
+              files: [{ fileName: `logo_${file.name}`, fileType: file.type, fileSize: file.size, fileData: base64String }]
             })
           });
 
@@ -157,24 +105,13 @@ const ContestModal = ({
 
           if (data.files && data.files.length > 0) {
             setFormData({ ...formData, poster_url: data.files[0].fileUrl });
-            toast({
-              title: 'Успешно',
-              description: 'Логотип загружен'
-            });
+            toast({ title: 'Успешно', description: 'Логотип загружен' });
           } else {
-            toast({
-              title: 'Ошибка',
-              description: 'Не удалось получить URL файла',
-              variant: 'destructive'
-            });
+            toast({ title: 'Ошибка', description: 'Не удалось получить URL файла', variant: 'destructive' });
           }
         } catch (error) {
           console.error('Upload error:', error);
-          toast({
-            title: 'Ошибка',
-            description: 'Не удалось загрузить логотип',
-            variant: 'destructive'
-          });
+          toast({ title: 'Ошибка', description: 'Не удалось загрузить логотип', variant: 'destructive' });
         } finally {
           setUploadingPoster(false);
         }
@@ -182,11 +119,7 @@ const ContestModal = ({
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('FileReader error:', error);
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось прочитать файл',
-        variant: 'destructive'
-      });
+      toast({ title: 'Ошибка', description: 'Не удалось прочитать файл', variant: 'destructive' });
       setUploadingPoster(false);
     }
   };
@@ -239,7 +172,7 @@ const ContestModal = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-2xl mx-4 p-6">
+      <Card className="w-full max-w-2xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-2xl font-heading font-bold">
             {mode === 'create' ? 'Создать конкурс' : 'Редактировать конкурс'}
@@ -250,307 +183,26 @@ const ContestModal = ({
         </div>
 
         <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium mb-2 block">Название</label>
-            <Input
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-              placeholder="Введите название конкурса"
-            />
-          </div>
+          <ContestBasicFields formData={formData} setFormData={setFormData} />
 
-          <div>
-            <label className="text-sm font-medium mb-2 block">Описание</label>
-            <Textarea
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              placeholder="Введите описание конкурса"
-              rows={3}
-            />
-          </div>
+          <ContestUploadFields
+            formData={formData}
+            setFormData={setFormData}
+            mode={mode}
+            contestId={contestId}
+            uploadingPdf={uploadingPdf}
+            uploadingPoster={uploadingPoster}
+            uploadingForm={uploadingForm}
+            onPdfUpload={handlePdfUpload}
+            onPosterUpload={handlePosterUpload}
+            onFormUpload={handleFormUpload}
+          />
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Дата начала
-              </label>
-              <Input
-                type="date"
-                value={formData.start_date}
-                onChange={(e) =>
-                  setFormData({ ...formData, start_date: e.target.value })
-                }
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Дата окончания
-              </label>
-              <Input
-                type="date"
-                value={formData.end_date}
-                onChange={(e) =>
-                  setFormData({ ...formData, end_date: e.target.value })
-                }
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-2 block">Статус</label>
-            <Select
-              value={formData.status}
-              onValueChange={(value) =>
-                setFormData({ ...formData, status: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="upcoming">Предстоящий</SelectItem>
-                <SelectItem value="active">Активный</SelectItem>
-                <SelectItem value="completed">Завершён</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-2 block flex items-center gap-2">
-              <Icon name="FileText" size={16} />
-              Положение конкурса (PDF)
-            </label>
-            <div className="flex gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/pdf"
-                onChange={handlePdfUpload}
-                className="hidden"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingPdf || (mode === 'create')}
-                className="flex-1"
-              >
-                <Icon name="Upload" size={16} className="mr-2" />
-                {uploadingPdf ? 'Загрузка...' : formData.pdf_url ? 'Заменить PDF' : 'Загрузить PDF'}
-              </Button>
-              {formData.pdf_url && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => window.open(formData.pdf_url, '_blank')}
-                >
-                  <Icon name="ExternalLink" size={16} />
-                </Button>
-              )}
-            </div>
-            {mode === 'create' && (
-              <p className="text-xs text-muted-foreground mt-1">
-                PDF можно будет загрузить после создания конкурса
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-2 block flex items-center gap-2">
-              <Icon name="FileDown" size={16} />
-              Бланк заявки (Word .docx)
-            </label>
-            <div className="flex gap-2">
-              <input
-                ref={formFileInputRef}
-                type="file"
-                accept=".docx,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
-                onChange={handleFormUpload}
-                className="hidden"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => formFileInputRef.current?.click()}
-                disabled={uploadingForm || mode === 'create'}
-                className="flex-1"
-              >
-                <Icon name="Upload" size={16} className="mr-2" />
-                {uploadingForm ? 'Загрузка...' : formData.application_form_url ? 'Заменить бланк' : 'Загрузить бланк (.docx)'}
-              </Button>
-              {formData.application_form_url && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => window.open(formData.application_form_url, '_blank')}
-                >
-                  <Icon name="ExternalLink" size={16} />
-                </Button>
-              )}
-            </div>
-            {mode === 'create' && (
-              <p className="text-xs text-muted-foreground mt-1">Бланк можно загрузить после создания конкурса</p>
-            )}
-            {formData.application_form_url && (
-              <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                <Icon name="CheckCircle" size={12} />
-                Бланк загружен
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-2 block">Правила (опционально)</label>
-            <Textarea
-              value={formData.rules || ''}
-              onChange={(e) =>
-                setFormData({ ...formData, rules: e.target.value })
-              }
-              placeholder="Правила участия в конкурсе"
-              rows={3}
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-2 block">Категории (опционально)</label>
-            <Textarea
-              value={formData.categories || ''}
-              onChange={(e) =>
-                setFormData({ ...formData, categories: e.target.value })
-              }
-              placeholder="Категории участия"
-              rows={3}
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-2 block">Призы (опционально)</label>
-            <Textarea
-              value={formData.prizes || ''}
-              onChange={(e) =>
-                setFormData({ ...formData, prizes: e.target.value })
-              }
-              placeholder="Призовой фонд"
-              rows={3}
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-2 block flex items-center gap-2">
-              <Icon name="Image" size={16} />
-              Логотип конкурса
-            </label>
-            <div className="flex gap-2">
-              <input
-                ref={posterInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handlePosterUpload}
-                className="hidden"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => posterInputRef.current?.click()}
-                disabled={uploadingPoster}
-                className="flex-1"
-              >
-                <Icon name="Upload" size={16} className="mr-2" />
-                {uploadingPoster ? 'Загрузка...' : formData.poster_url ? 'Заменить логотип' : 'Загрузить логотип'}
-              </Button>
-              {formData.poster_url && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => window.open(formData.poster_url, '_blank')}
-                >
-                  <Icon name="ExternalLink" size={16} />
-                </Button>
-              )}
-            </div>
-            {formData.poster_url && (
-              <div className="mt-2">
-                <img 
-                  src={formData.poster_url} 
-                  alt="Логотип" 
-                  className="w-24 h-24 object-contain border rounded p-2"
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="border-t pt-4 mt-4">
-            <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Icon name="CalendarDays" size={18} />
-              Информация о концерте/мероприятии (опционально)
-            </h4>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Дата и время мероприятия</label>
-                <Input
-                  type="datetime-local"
-                  value={formData.event_date || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, event_date: e.target.value })
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Место проведения</label>
-                <Input
-                  value={formData.location || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, location: e.target.value })
-                  }
-                  placeholder="Например: ГДК, Воронеж"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block flex items-center gap-2">
-                  <Icon name="Ticket" size={16} />
-                  Ссылка на покупку билетов
-                </label>
-                <Input
-                  value={formData.ticket_link || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, ticket_link: e.target.value })
-                  }
-                  placeholder="https://example.com/tickets"
-                  type="url"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block flex items-center gap-2">
-                  <Icon name="Info" size={16} />
-                  Ссылка на подробности
-                </label>
-                <Input
-                  value={formData.details_link || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, details_link: e.target.value })
-                  }
-                  placeholder="https://example.com/details"
-                  type="url"
-                />
-              </div>
-            </div>
-          </div>
+          <ContestEventFields formData={formData} setFormData={setFormData} />
         </div>
 
         <div className="flex gap-3 mt-6">
-          <Button
-            className="flex-1 bg-secondary hover:bg-secondary/90"
-            onClick={onSubmit}
-          >
+          <Button className="flex-1 bg-secondary hover:bg-secondary/90" onClick={onSubmit}>
             {mode === 'create' ? 'Создать' : 'Сохранить'}
           </Button>
           <Button variant="outline" className="flex-1" onClick={onClose}>
