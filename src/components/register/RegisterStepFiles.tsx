@@ -29,10 +29,14 @@ const RegisterStepFiles = ({ formData, handleFilesChange }: RegisterStepFilesPro
       <h2 className="text-2xl font-heading font-bold mb-6">Загрузка файлов</h2>
       
       <div>
-        <label className="block text-sm font-medium mb-2">ВНИМАНИЕ!
-1. Обязательно приложите заполненный бланк заявки в формате Word;
-2. ДЛЯ ОЧНОГО УЧАСТИЯ: минусовую фонограмму или композицию, фото работ (ИЗО, ДПИ, ФОТО);
-3. ДЛЯ ЗАОЧНОГО: видео конкурсного номера или фото работ.</label>
+        <label className="block text-sm font-medium mb-2">
+          <span className="font-bold">ВНИМАНИЕ!</span>
+          <ol className="list-decimal list-inside mt-1 space-y-1">
+            <li>Обязательно приложите заполненный бланк заявки в формате Word;</li>
+            <li>ДЛЯ ОЧНОГО УЧАСТИЯ: минусовую фонограмму или композицию, фото работ (ИЗО, ДПИ, ФОТО);</li>
+            <li>ДЛЯ ЗАОЧНОГО: видео конкурсного номера или фото работ.</li>
+          </ol>
+        </label>
         <p className="text-sm text-muted-foreground mb-4">
           Загрузите фото, видео или документы (макс. 50 МБ каждый)
         </p>
