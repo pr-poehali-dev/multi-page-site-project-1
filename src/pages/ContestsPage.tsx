@@ -37,7 +37,7 @@ const ContestsPage = () => {
         const isPastA = endA < now;
         const isPastB = endB < now;
         if (isPastA !== isPastB) return isPastA ? 1 : -1;
-        return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+        return endA.getTime() - endB.getTime();
       });
       setContests(sortedContests);
     } catch (error) {
