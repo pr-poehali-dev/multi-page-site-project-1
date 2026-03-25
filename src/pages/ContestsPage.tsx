@@ -91,25 +91,27 @@ const ContestsPage = () => {
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     <div className="flex flex-col md:flex-row">
-                      <div className="md:w-72 bg-gradient-to-br from-primary/10 to-secondary/10 p-8 flex flex-col items-center justify-center border-r shrink-0">
+                      <div className="md:w-72 relative flex flex-col items-center justify-center border-r shrink-0 overflow-hidden min-h-[280px]">
                         {contest.poster_url ? (
                           <img 
                             src={contest.poster_url}
                             alt={contest.title} 
-                            className="w-56 h-56 object-contain mb-4"
+                            className="absolute inset-0 w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-56 h-56 flex items-center justify-center text-8xl mb-4">🎭</div>
+                          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center text-8xl">🎭</div>
                         )}
-                        <Badge 
-                          className={`${
-                            isPast ? 'bg-gray-500' :
-                            isActive ? 'bg-green-500' : 
-                            'bg-orange-500'
-                          }`}
-                        >
-                          {isPast ? 'Завершён' : isActive ? 'Активен' : 'Скоро'}
-                        </Badge>
+                        <div className="absolute bottom-3 left-0 right-0 flex justify-center">
+                          <Badge 
+                            className={`${
+                              isPast ? 'bg-gray-500' :
+                              isActive ? 'bg-green-500' : 
+                              'bg-orange-500'
+                            }`}
+                          >
+                            {isPast ? 'Завершён' : isActive ? 'Активен' : 'Скоро'}
+                          </Badge>
+                        </div>
                       </div>
 
                       <div className="flex-1 p-8 flex flex-col justify-between">
