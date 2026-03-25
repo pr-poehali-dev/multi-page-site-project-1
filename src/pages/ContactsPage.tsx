@@ -207,7 +207,7 @@ const ContactsPage = () => {
                     <Icon name="Send" size={24} className="text-primary" />
                   </a>
                   <a
-                    href="https://max.ru"
+                    href="https://max.ru/join/jW37Cke3ml5YoFU3XLRbKuX1TvdlEWuTG5mmBZZRZkU"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-12 h-12 bg-white rounded-xl flex items-center justify-center hover:shadow-lg transition-shadow"
