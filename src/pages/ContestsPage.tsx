@@ -16,6 +16,7 @@ interface Contest {
   status: string;
   poster_url?: string;
   application_form_url?: string;
+  pdf_url?: string;
 }
 
 const ContestsPage = () => {
@@ -169,13 +170,22 @@ const ContestsPage = () => {
                             <Icon name="Send" size={18} className="mr-2" />
                             {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется' : 'Подать заявку'}
                           </Button>
+                          {contest.pdf_url && (
+                            <Button
+                              variant="outline"
+                              onClick={() => window.open(contest.pdf_url, '_blank')}
+                            >
+                              <Icon name="FileText" size={18} className="mr-2" />
+                              Скачать положение
+                            </Button>
+                          )}
                           {contest.application_form_url && (
                             <Button
                               variant="outline"
                               onClick={() => window.open(contest.application_form_url, '_blank')}
                             >
                               <Icon name="FileDown" size={18} className="mr-2" />
-                              Скачать бланк
+                              Скачать бланк заявки
                             </Button>
                           )}
                           <Button variant="outline" onClick={() => navigate(`/contests/${contest.id}`)}>

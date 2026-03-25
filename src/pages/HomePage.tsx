@@ -25,6 +25,8 @@ interface Contest {
   end_date: string;
   status: string;
   poster_url?: string;
+  application_form_url?: string;
+  pdf_url?: string;
 }
 
 const HomePage = () => {
@@ -287,9 +289,31 @@ const HomePage = () => {
                         <Icon name="Calendar" size={16} />
                         {formatDateRange(contest.start_date, contest.end_date)}
                       </p>
-                      <Button variant="outline" className="w-full">
-                        Подробнее
-                      </Button>
+                      <div className="flex flex-col gap-2">
+                        {contest.pdf_url && (
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={(e) => { e.preventDefault(); window.open(contest.pdf_url, '_blank'); }}
+                          >
+                            <Icon name="FileText" size={16} className="mr-2" />
+                            Скачать положение
+                          </Button>
+                        )}
+                        {contest.application_form_url && (
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={(e) => { e.preventDefault(); window.open(contest.application_form_url, '_blank'); }}
+                          >
+                            <Icon name="FileDown" size={16} className="mr-2" />
+                            Скачать бланк заявки
+                          </Button>
+                        )}
+                        <Button variant="outline" className="w-full">
+                          Подробнее
+                        </Button>
+                      </div>
                     </div>
                   </Card>
                 </Link>
