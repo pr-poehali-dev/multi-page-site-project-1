@@ -30,10 +30,14 @@ const ContestsPage = () => {
     try {
       const response = await fetch('https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3');
       const data = await response.json();
+      const now = new Date();
       const sortedContests = (data.contests || []).sort((a: Contest, b: Contest) => {
-        const dateA = new Date(a.start_date).getTime();
-        const dateB = new Date(b.start_date).getTime();
-        return dateA - dateB;
+        const endA = new Date(a.end_date);
+        const endB = new Date(b.end_date);
+        const isPastA = endA < now;
+        const isPastB = endB < now;
+        if (isPastA !== isPastB) return isPastA ? 1 : -1;
+        return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
       });
       setContests(sortedContests);
     } catch (error) {
