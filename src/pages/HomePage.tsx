@@ -48,9 +48,10 @@ const HomePage = () => {
         setFeaturedPhotos(featured);
         
         const contestsData = await contestsResponse.json();
+        const now = new Date();
         const upcomingContests = (contestsData.contests || [])
-          .filter((c: Contest) => c.status === 'active' || c.status === 'upcoming')
-          .sort((a: Contest, b: Contest) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
+          .filter((c: Contest) => new Date(c.end_date) >= now)
+          .sort((a: Contest, b: Contest) => new Date(a.end_date).getTime() - new Date(b.end_date).getTime())
           .slice(0, 3);
         setContests(upcomingContests);
       } catch (error) {
