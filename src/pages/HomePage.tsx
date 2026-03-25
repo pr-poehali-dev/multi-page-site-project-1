@@ -176,7 +176,7 @@ const HomePage = () => {
               <img 
                 src="https://cdn.poehali.dev/projects/ecdaf1c5-6d12-4487-8a18-89243ebbcc9e/bucket/02cf2a9d-772a-4e52-a691-79f2bf6e4461.png" 
                 alt="ИНДИГО" 
-                className="h-32 md:h-48 w-auto mx-auto relative z-20 object-contain"
+                className="w-auto mx-auto relative z-20 object-contain" style={{ height: 'clamp(128px, 48vw, 768px)' }}
               />
             </div>
             
