@@ -207,14 +207,12 @@ const ContactsPage = () => {
                     <Icon name="Send" size={24} className="text-primary" />
                   </a>
                   <a
-                    href="https://ok.ru/indigo_rf"
+                    href="https://max.ru"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-12 h-12 bg-white rounded-xl flex items-center justify-center hover:shadow-lg transition-shadow"
                   >
-                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-primary">
-                      <path d="M12 1C5.925 1 1 5.925 1 12s4.925 11 11 11 11-4.925 11-11S18.075 1 12 1zm0 5.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zm4.243 8.914a6.03 6.03 0 0 1-2.743.94l2.19 2.19a1 1 0 1 1-1.414 1.414L12 17.676l-2.276 2.282a1 1 0 1 1-1.414-1.414l2.19-2.19a6.03 6.03 0 0 1-2.743-.94 1 1 0 1 1 1.086-1.678A4.01 4.01 0 0 0 12 14.5c.78 0 1.53-.222 2.157-.664a1 1 0 1 1 1.086 1.678z"/>
-                    </svg>
+                    <span className="text-primary font-black text-xs leading-none tracking-tight">MAX</span>
                   </a>
                 </div>
               </Card>
