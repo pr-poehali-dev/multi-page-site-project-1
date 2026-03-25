@@ -154,6 +154,7 @@ const ContestDetailPage = () => {
                       size="lg"
                       className="bg-secondary hover:bg-secondary/90"
                       disabled={isPast || isFuture}
+                      onClick={() => navigate('/register')}
                     >
                       <Icon name="Send" size={20} className="mr-2" />
                       {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется приём заявок' : 'Подать заявку'}
