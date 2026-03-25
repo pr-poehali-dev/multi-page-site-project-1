@@ -70,7 +70,7 @@ const ContestsPage = () => {
               <p className="text-muted-foreground">Следите за обновлениями - скоро здесь появятся новые конкурсы!</p>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="flex flex-col gap-6">
               {contests.map((contest, index) => {
                 const startDate = new Date(contest.start_date);
                 const endDate = new Date(contest.end_date);
@@ -85,84 +85,88 @@ const ContestsPage = () => {
                 return (
                   <Card
                     key={contest.id}
-                    className={`overflow-hidden hover:shadow-xl transition-all duration-300 animate-scale-in flex flex-col ${
+                    className={`overflow-hidden hover:shadow-xl transition-all duration-300 animate-scale-in ${
                       isPast ? 'opacity-60' : ''
                     }`}
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
-                    <div className="bg-gradient-to-br from-primary/10 to-secondary/10 p-8 flex flex-col items-center justify-center border-b">
-                      {contest.poster_url ? (
-                        <img 
-                          src={contest.poster_url}
-                          alt={contest.title} 
-                          className="w-48 h-48 object-contain mb-4"
-                        />
-                      ) : (
-                        <div className="w-48 h-48 flex items-center justify-center text-7xl mb-4">🎭</div>
-                      )}
-                      <Badge 
-                        className={`${
-                          isPast ? 'bg-gray-500' :
-                          isActive ? 'bg-green-500' : 
-                          'bg-orange-500'
-                        }`}
-                      >
-                        {isPast ? 'Завершён' : isActive ? 'Активен' : 'Скоро'}
-                      </Badge>
-                    </div>
-
-                    <div className="flex-1 p-6 flex flex-col">
-                      <h3 className="text-xl font-heading font-bold mb-4">{contest.title}</h3>
-
-                      <div className="space-y-3 mb-4 flex-1">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Icon name="CalendarDays" size={16} className="text-primary shrink-0" />
-                          <div>
-                            <div className="font-medium">Начало приёма</div>
-                            <div className="text-muted-foreground">
-                              {startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-sm">
-                          <Icon name="CalendarX" size={16} className="text-destructive shrink-0" />
-                          <div>
-                            <div className="font-medium">Окончание приёма</div>
-                            <div className="text-muted-foreground">
-                              {endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                            </div>
-                          </div>
-                        </div>
-
-                        {!isPast && (
-                          <div className="flex items-center gap-2 p-3 bg-secondary/10 rounded-lg">
-                            <Icon name="Clock" size={16} className="text-secondary shrink-0" />
-                            <span className="text-sm font-medium">
-                              {isFuture ? (
-                                `Старт через ${daysUntilStart} ${daysUntilStart === 1 ? 'день' : daysUntilStart < 5 ? 'дня' : 'дней'}`
-                              ) : isActive ? (
-                                daysUntilEnd > 0 
-                                  ? `Осталось ${daysUntilEnd} ${daysUntilEnd === 1 ? 'день' : daysUntilEnd < 5 ? 'дня' : 'дней'}`
-                                  : 'Последний день приёма заявок!'
-                              ) : ''}
-                            </span>
-                          </div>
+                    <div className="flex flex-col md:flex-row">
+                      <div className="md:w-72 bg-gradient-to-br from-primary/10 to-secondary/10 p-8 flex flex-col items-center justify-center border-r shrink-0">
+                        {contest.poster_url ? (
+                          <img 
+                            src={contest.poster_url}
+                            alt={contest.title} 
+                            className="w-56 h-56 object-contain mb-4"
+                          />
+                        ) : (
+                          <div className="w-56 h-56 flex items-center justify-center text-8xl mb-4">🎭</div>
                         )}
+                        <Badge 
+                          className={`${
+                            isPast ? 'bg-gray-500' :
+                            isActive ? 'bg-green-500' : 
+                            'bg-orange-500'
+                          }`}
+                        >
+                          {isPast ? 'Завершён' : isActive ? 'Активен' : 'Скоро'}
+                        </Badge>
                       </div>
 
-                      <div className="flex flex-col gap-2 mt-auto">
-                        <Button 
-                          className="w-full bg-secondary hover:bg-secondary/90"
-                          disabled={isPast || isFuture}
-                        >
-                          <Icon name="Send" size={16} className="mr-2" />
-                          {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется' : 'Подать заявку'}
-                        </Button>
-                        <Button variant="outline" className="w-full" onClick={() => navigate(`/contests/${contest.id}`)}>
-                          <Icon name="Info" size={16} className="mr-2" />
-                          Подробнее
-                        </Button>
+                      <div className="flex-1 p-8 flex flex-col justify-between">
+                        <div>
+                          <h3 className="text-3xl font-heading font-bold mb-6">{contest.title}</h3>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                            <div className="flex items-center gap-3 text-sm">
+                              <Icon name="CalendarDays" size={20} className="text-primary shrink-0" />
+                              <div>
+                                <div className="font-medium">Начало приёма заявок</div>
+                                <div className="text-muted-foreground">
+                                  {startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 text-sm">
+                              <Icon name="CalendarX" size={20} className="text-destructive shrink-0" />
+                              <div>
+                                <div className="font-medium">Окончание приёма</div>
+                                <div className="text-muted-foreground">
+                                  {endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {!isPast && (
+                            <div className="flex items-center gap-2 p-3 bg-secondary/10 rounded-lg mb-5 w-fit">
+                              <Icon name="Clock" size={18} className="text-secondary shrink-0" />
+                              <span className="text-sm font-medium">
+                                {isFuture ? (
+                                  `Старт через ${daysUntilStart} ${daysUntilStart === 1 ? 'день' : daysUntilStart < 5 ? 'дня' : 'дней'}`
+                                ) : isActive ? (
+                                  daysUntilEnd > 0 
+                                    ? `Осталось ${daysUntilEnd} ${daysUntilEnd === 1 ? 'день' : daysUntilEnd < 5 ? 'дня' : 'дней'}`
+                                    : 'Последний день приёма заявок!'
+                                ) : ''}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex gap-3">
+                          <Button 
+                            className="bg-secondary hover:bg-secondary/90"
+                            disabled={isPast || isFuture}
+                          >
+                            <Icon name="Send" size={18} className="mr-2" />
+                            {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется' : 'Подать заявку'}
+                          </Button>
+                          <Button variant="outline" onClick={() => navigate(`/contests/${contest.id}`)}>
+                            <Icon name="Info" size={18} className="mr-2" />
+                            Подробнее
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </Card>
