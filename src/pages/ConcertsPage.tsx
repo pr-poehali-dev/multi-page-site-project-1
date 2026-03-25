@@ -64,7 +64,7 @@ const ConcertsPage = () => {
               <p className="text-muted-foreground">Пока нет запланированных концертов</p>
             </div>
           ) : (
-          <div className="max-w-4xl mx-auto space-y-6">
+          <div className="space-y-8">
             {concerts.map((concert, index) => {
               const eventDate = concert.event_date ? new Date(concert.event_date) : null;
               const dateStr = eventDate ? eventDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
@@ -73,12 +73,12 @@ const ConcertsPage = () => {
               return (
               <Card
                 key={concert.id}
-                className="overflow-hidden hover:shadow-xl transition-all duration-300 animate-fade-in"
+                className="overflow-hidden hover:shadow-2xl transition-all duration-300 animate-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className="md:flex">
+                <div className="md:flex min-h-[320px]">
                   {concert.poster_url ? (
-                    <div className="md:w-1/3">
+                    <div className="md:w-2/5 min-h-[280px] md:min-h-full">
                       <img 
                         src={concert.poster_url} 
                         alt={concert.title}
@@ -86,15 +86,15 @@ const ConcertsPage = () => {
                       />
                     </div>
                   ) : (
-                    <div className="md:w-1/3 bg-gradient-to-br from-primary to-secondary p-12 flex flex-col justify-center items-center text-white">
-                      <div className="text-6xl mb-4">🎵</div>
+                    <div className="md:w-2/5 bg-gradient-to-br from-primary to-secondary p-16 flex flex-col justify-center items-center text-white">
+                      <div className="text-8xl mb-6">🎵</div>
                       <div className="text-center">
                         {eventDate && (
                           <>
-                            <div className="text-3xl font-heading font-bold mb-2">
+                            <div className="text-5xl font-heading font-bold mb-2">
                               {eventDate.getDate()}
                             </div>
-                            <div className="text-lg opacity-90">
+                            <div className="text-xl opacity-90">
                               {eventDate.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
                             </div>
                           </>
@@ -103,42 +103,42 @@ const ConcertsPage = () => {
                     </div>
                   )}
 
-                  <div className="md:w-2/3 p-8">
-                    <h3 className="text-2xl font-heading font-bold mb-4">{concert.title}</h3>
+                  <div className="md:w-3/5 p-10 md:p-14 flex flex-col justify-center">
+                    <h3 className="text-3xl md:text-4xl font-heading font-bold mb-5">{concert.title}</h3>
                     
                     {concert.description && (
-                      <p className="text-muted-foreground mb-4">{concert.description}</p>
+                      <p className="text-lg text-muted-foreground mb-6">{concert.description}</p>
                     )}
                     
-                    <div className="space-y-3 mb-6">
+                    <div className="space-y-4 mb-8">
                       {eventDate && (
                         <div className="flex items-center gap-3 text-muted-foreground">
-                          <Icon name="Clock" size={18} className="text-secondary" />
-                          <span>{dateStr} в {timeStr}</span>
+                          <Icon name="Clock" size={22} className="text-secondary" />
+                          <span className="text-lg">{dateStr} в {timeStr}</span>
                         </div>
                       )}
 
                       {concert.location && (
                         <div className="flex items-center gap-3 text-muted-foreground">
-                          <Icon name="MapPin" size={18} className="text-secondary" />
-                          <span>{concert.location}</span>
+                          <Icon name="MapPin" size={22} className="text-secondary" />
+                          <span className="text-lg">{concert.location}</span>
                         </div>
                       )}
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-4">
                       {concert.ticket_link && (
                         <a href={concert.ticket_link} target="_blank" rel="noopener noreferrer">
-                          <Button className="bg-secondary hover:bg-secondary/90">
-                            <Icon name="Ticket" size={18} className="mr-2" />
+                          <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-base px-8">
+                            <Icon name="Ticket" size={20} className="mr-2" />
                             Купить билет
                           </Button>
                         </a>
                       )}
                       {concert.details_link && (
                         <a href={concert.details_link} target="_blank" rel="noopener noreferrer">
-                          <Button variant="outline">
-                            <Icon name="Info" size={18} className="mr-2" />
+                          <Button size="lg" variant="outline" className="text-base px-8">
+                            <Icon name="Info" size={20} className="mr-2" />
                             Подробнее
                           </Button>
                         </a>
