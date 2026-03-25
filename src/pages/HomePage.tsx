@@ -173,7 +173,7 @@ const HomePage = () => {
               <img 
                 src="https://cdn.poehali.dev/projects/ecdaf1c5-6d12-4487-8a18-89243ebbcc9e/bucket/02cf2a9d-772a-4e52-a691-79f2bf6e4461.png" 
                 alt="ИНДИГО" 
-                className="h-96 md:h-[32rem] w-auto mx-auto relative z-20"
+                className="h-96 md:h-[32rem] w-auto mx-auto relative z-20 drop-shadow-2xl"
               />
             </div>
             
