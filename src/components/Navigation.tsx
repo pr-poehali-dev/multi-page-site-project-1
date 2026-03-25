@@ -25,7 +25,7 @@ const Navigation = () => {
         <div className="flex items-center justify-between h-20">
           <Link to="/" className="flex items-center">
             <img 
-              src="https://cdn.poehali.dev/files/лого 2.png" 
+              src="https://cdn.poehali.dev/projects/ecdaf1c5-6d12-4487-8a18-89243ebbcc9e/bucket/02cf2a9d-772a-4e52-a691-79f2bf6e4461.png" 
               alt="ИНДИГО" 
               className="h-16 w-auto"
             />
