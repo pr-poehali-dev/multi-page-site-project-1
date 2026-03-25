@@ -28,7 +28,8 @@ interface AdminModalsContainerProps {
 
   showUploadModal: boolean;
   setShowUploadModal: (show: boolean) => void;
-  uploadFile: (file: File, title: string, description: string) => Promise<void>;
+  uploadFile: (file: File, title: string, description: string, contestId: number | null, isFeatured: boolean) => Promise<void>;
+  galleryContests: { id: number; title: string }[];
 
   showCreateConcertModal: boolean;
   showEditConcertModal: boolean;
@@ -85,6 +86,7 @@ const AdminModalsContainer = ({
   showUploadModal,
   setShowUploadModal,
   uploadFile,
+  galleryContests,
 
   showCreateConcertModal,
   showEditConcertModal,
@@ -160,6 +162,7 @@ const AdminModalsContainer = ({
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         onUpload={uploadFile}
+        contests={galleryContests}
       />
 
       <ConcertModal

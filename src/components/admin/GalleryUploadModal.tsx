@@ -7,13 +7,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 
+interface Contest {
+  id: number;
+  title: string;
+}
+
 interface GalleryUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpload: (file: File, title: string, description: string) => Promise<void>;
+  onUpload: (file: File, title: string, description: string, contestId: number | null, isFeatured: boolean) => Promise<void>;
+  contests: Contest[];
 }
 
-export default function GalleryUploadModal({ isOpen, onClose, onUpload }: GalleryUploadModalProps) {
+export default function GalleryUploadModal({ isOpen, onClose, onUpload, contests }: GalleryUploadModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [mediaType, setMediaType] = useState<'photo' | 'video'>('photo');
@@ -33,8 +39,6 @@ export default function GalleryUploadModal({ isOpen, onClose, onUpload }: Galler
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          
-          // Ограничиваем максимальный размер 1920px
           const maxSize = 1920;
           if (width > maxSize || height > maxSize) {
             if (width > height) {
@@ -45,13 +49,10 @@ export default function GalleryUploadModal({ isOpen, onClose, onUpload }: Galler
               height = maxSize;
             }
           }
-          
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
-          
-          // Сжимаем до 80% качества
           resolve(canvas.toDataURL('image/jpeg', 0.8));
         };
         img.onerror = reject;
@@ -66,39 +67,29 @@ export default function GalleryUploadModal({ isOpen, onClose, onUpload }: Galler
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
-      
-      // Для изображений - сжимаем
       if (selectedFile.type.startsWith('image/')) {
         try {
           const compressed = await compressImage(selectedFile);
           setPreview(compressed);
         } catch (error) {
-          console.error('Compression error:', error);
-          // Fallback на оригинал
           const reader = new FileReader();
-          reader.onload = (event) => {
-            setPreview(event.target?.result as string);
-          };
+          reader.onload = (event) => setPreview(event.target?.result as string);
           reader.readAsDataURL(selectedFile);
         }
       } else {
-        // Для видео - показываем как есть
         const reader = new FileReader();
-        reader.onload = (event) => {
-          setPreview(event.target?.result as string);
-        };
+        reader.onload = (event) => setPreview(event.target?.result as string);
         reader.readAsDataURL(selectedFile);
       }
     }
   };
 
   const handleSubmit = async () => {
-    if (!title || !file) return;
+    if (!title || !file || contestId === 'none') return;
 
     setLoading(true);
     try {
-      await onUpload(file, title, description);
-
+      await onUpload(file, title, description, Number(contestId), isFeatured);
       setTitle('');
       setDescription('');
       setMediaType('photo');
@@ -142,7 +133,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onUpload }: Galler
                 <Icon name="Upload" size={18} className="mr-2" />
                 {file ? file.name : 'Выбрать файл'}
               </Button>
-              
+
               {preview && (
                 <div className="mt-4 relative aspect-video bg-muted rounded-lg overflow-hidden">
                   {mediaType === 'photo' ? (
@@ -153,6 +144,21 @@ export default function GalleryUploadModal({ isOpen, onClose, onUpload }: Galler
                 </div>
               )}
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="contest">Конкурс *</Label>
+            <Select value={contestId} onValueChange={setContestId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Выберите конкурс" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none" disabled>Выберите конкурс</SelectItem>
+                {contests.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -207,7 +213,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onUpload }: Galler
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Отмена
           </Button>
-          <Button onClick={handleSubmit} disabled={!title || !file || loading}>
+          <Button onClick={handleSubmit} disabled={!title || !file || contestId === 'none' || loading}>
             {loading ? 'Загрузка...' : 'Загрузить'}
           </Button>
         </DialogFooter>

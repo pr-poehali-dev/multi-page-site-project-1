@@ -27,7 +27,7 @@ const AdminPage = () => {
 
   const { items: galleryItems, loading: galleryLoading, showUploadModal, setShowUploadModal, uploadFile, deleteItem } = useAdminGallery();
 
-  const handleGalleryUpload = async (file: File, title: string, description: string): Promise<void> => {
+  const handleGalleryUpload = async (file: File, title: string, description: string, contestId: number | null, isFeatured: boolean): Promise<void> => {
     const reader = new FileReader();
     const base64 = await new Promise<string>((resolve, reject) => {
       reader.onload = (e) => resolve((e.target?.result as string).split(',')[1]);
@@ -35,7 +35,7 @@ const AdminPage = () => {
       reader.readAsDataURL(file);
     });
     const mediaType = file.type.startsWith('video/') ? 'video' : 'photo';
-    await uploadFile({ title, description, media_type: mediaType, is_featured: false, file_base64: base64, file_name: file.name });
+    await uploadFile({ title, description, media_type: mediaType, is_featured: isFeatured, contest_id: contestId ?? undefined, file_base64: base64, file_name: file.name });
   };
 
   const {
@@ -305,6 +305,7 @@ const AdminPage = () => {
         showUploadModal={showUploadModal}
         setShowUploadModal={setShowUploadModal}
         uploadFile={handleGalleryUpload}
+        galleryContests={contests.map((c) => ({ id: c.id, title: c.title }))}
         showCreateConcertModal={showCreateConcertModal}
         showEditConcertModal={showEditConcertModal}
         selectedConcert={selectedConcert}
