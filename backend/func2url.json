@@ -1,14 +1,5 @@
 {
-  "partners": "https://functions.poehali.dev/7b3c1e0e-bd68-4b73-9377-740689560912",
-  "contest-results": "https://functions.poehali.dev/7ff9bf2f-1648-49f2-9137-02fe1da936eb",
-  "concerts-management": "https://functions.poehali.dev/de057f50-7d1e-49bc-a61f-f23335190f32",
-  "upload-files": "https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3",
-  "contact-form": "https://functions.poehali.dev/7b4dd767-4bd4-477d-b8bf-4b1f699b263f",
-  "participant-auth": "https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904",
-  "contest-pdf-upload": "https://functions.poehali.dev/b0d40cbb-41ff-48a1-a800-101845d59a03",
-  "jury-scoring": "https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d",
-  "jury": "https://functions.poehali.dev/29a5a3ab-7964-41f0-baf5-d85b81b743bc",
+  "contest-form-upload": "https://functions.poehali.dev/511414f3-ced6-45f9-a821-bfcc988e50b0",
   "contests": "https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3",
-  "admin-applications": "https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b",
-  "applications": "https://functions.poehali.dev/065d2b6a-5112-4a26-a642-211398843a75"
+  "admin-applications": "https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b"
 }

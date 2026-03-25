@@ -15,6 +15,7 @@ interface Contest {
   end_date: string;
   status: string;
   poster_url?: string;
+  application_form_url?: string;
 }
 
 const ContestsPage = () => {
@@ -160,7 +161,7 @@ const ContestsPage = () => {
                           )}
                         </div>
 
-                        <div className="flex gap-3">
+                        <div className="flex flex-wrap gap-3">
                           <Button 
                             className="bg-secondary hover:bg-secondary/90"
                             disabled={isPast || isFuture}
@@ -168,6 +169,15 @@ const ContestsPage = () => {
                             <Icon name="Send" size={18} className="mr-2" />
                             {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется' : 'Подать заявку'}
                           </Button>
+                          {contest.application_form_url && (
+                            <Button
+                              variant="outline"
+                              onClick={() => window.open(contest.application_form_url, '_blank')}
+                            >
+                              <Icon name="FileDown" size={18} className="mr-2" />
+                              Скачать бланк
+                            </Button>
+                          )}
                           <Button variant="outline" onClick={() => navigate(`/contests/${contest.id}`)}>
                             <Icon name="Info" size={18} className="mr-2" />
                             Подробнее

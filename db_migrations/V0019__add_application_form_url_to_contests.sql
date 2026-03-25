@@ -1,0 +1,1 @@
+ALTER TABLE t_p73771717_multi_page_site_proj.contests ADD COLUMN application_form_url text NULL;

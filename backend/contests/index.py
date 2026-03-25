@@ -86,7 +86,8 @@ def get_contests(conn) -> Dict[str, Any]:
                 ticket_link,
                 details_link,
                 location,
-                event_date
+                event_date,
+                application_form_url
             FROM contests
             WHERE status IS NOT NULL
             ORDER BY start_date
@@ -135,6 +136,7 @@ def create_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
     details_link = body.get('details_link')
     location = body.get('location')
     event_date = body.get('event_date')
+    application_form_url = body.get('application_form_url')
     
     if not title or not start_date or not end_date:
         return {
@@ -154,10 +156,10 @@ def create_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
         contest_key = hashlib.md5(f"{title}{time.time()}".encode()).hexdigest()[:16]
         
         cur.execute('''
-            INSERT INTO contests (contest_key, title, description, start_date, end_date, status, pdf_url, rules, prizes, categories, poster_url, ticket_link, details_link, location, event_date)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO contests (contest_key, title, description, start_date, end_date, status, pdf_url, rules, prizes, categories, poster_url, ticket_link, details_link, location, event_date, application_form_url)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
-        ''', (contest_key, title, description, start_date, end_date, status, pdf_url, rules, prizes, categories, poster_url, ticket_link, details_link, location, event_date))
+        ''', (contest_key, title, description, start_date, end_date, status, pdf_url, rules, prizes, categories, poster_url, ticket_link, details_link, location, event_date, application_form_url))
         
         result = cur.fetchone()
         
@@ -234,6 +236,9 @@ def update_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
         if 'event_date' in body:
             updates.append('event_date = %s')
             values.append(body['event_date'])
+        if 'application_form_url' in body:
+            updates.append('application_form_url = %s')
+            values.append(body['application_form_url'])
         
         if not updates:
             return {

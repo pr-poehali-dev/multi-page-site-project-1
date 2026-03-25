@@ -31,6 +31,7 @@ interface ContestModalProps {
     details_link?: string;
     location?: string;
     event_date?: string;
+    application_form_url?: string;
   };
   setFormData: (data: any) => void;
   onClose: () => void;
@@ -50,8 +51,10 @@ const ContestModal = ({
   const { toast } = useToast();
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [uploadingPoster, setUploadingPoster] = useState(false);
+  const [uploadingForm, setUploadingForm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const posterInputRef = useRef<HTMLInputElement>(null);
+  const formFileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -188,6 +191,50 @@ const ContestModal = ({
     }
   };
 
+  const handleFormUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowed = [
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword'
+    ];
+    if (!allowed.includes(file.type)) {
+      toast({ title: 'Ошибка', description: 'Можно загружать только файлы Word (.docx, .doc)', variant: 'destructive' });
+      return;
+    }
+
+    if (!contestId && mode === 'edit') {
+      toast({ title: 'Ошибка', description: 'Сначала сохраните конкурс', variant: 'destructive' });
+      return;
+    }
+
+    setUploadingForm(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64String = (event.target?.result as string).split(',')[1];
+        const response = await fetch('https://functions.poehali.dev/511414f3-ced6-45f9-a821-bfcc988e50b0', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_base64: base64String, file_name: file.name, contest_id: contestId || 0 })
+        });
+        const data = await response.json();
+        if (data.form_url) {
+          setFormData({ ...formData, application_form_url: data.form_url });
+          toast({ title: 'Успешно', description: 'Бланк заявки загружен' });
+        } else {
+          toast({ title: 'Ошибка', description: 'Не удалось загрузить бланк', variant: 'destructive' });
+        }
+        setUploadingForm(false);
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      toast({ title: 'Ошибка', description: 'Не удалось загрузить бланк', variant: 'destructive' });
+      setUploadingForm(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -309,6 +356,50 @@ const ContestModal = ({
             {mode === 'create' && (
               <p className="text-xs text-muted-foreground mt-1">
                 PDF можно будет загрузить после создания конкурса
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+              <Icon name="FileDown" size={16} />
+              Бланк заявки (Word .docx)
+            </label>
+            <div className="flex gap-2">
+              <input
+                ref={formFileInputRef}
+                type="file"
+                accept=".docx,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
+                onChange={handleFormUpload}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => formFileInputRef.current?.click()}
+                disabled={uploadingForm || mode === 'create'}
+                className="flex-1"
+              >
+                <Icon name="Upload" size={16} className="mr-2" />
+                {uploadingForm ? 'Загрузка...' : formData.application_form_url ? 'Заменить бланк' : 'Загрузить бланк (.docx)'}
+              </Button>
+              {formData.application_form_url && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => window.open(formData.application_form_url, '_blank')}
+                >
+                  <Icon name="ExternalLink" size={16} />
+                </Button>
+              )}
+            </div>
+            {mode === 'create' && (
+              <p className="text-xs text-muted-foreground mt-1">Бланк можно загрузить после создания конкурса</p>
+            )}
+            {formData.application_form_url && (
+              <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                <Icon name="CheckCircle" size={12} />
+                Бланк загружен
               </p>
             )}
           </div>
