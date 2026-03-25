@@ -96,7 +96,7 @@ const ContestsPage = () => {
                           <img 
                             src={contest.poster_url}
                             alt={contest.title} 
-                            className="absolute inset-0 w-full h-full object-cover"
+                            className="absolute inset-0 w-full h-full object-contain p-4"
                           />
                         ) : (
                           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center text-8xl">🎭</div>
