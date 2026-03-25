@@ -27,6 +27,17 @@ const AdminPage = () => {
 
   const { items: galleryItems, loading: galleryLoading, showUploadModal, setShowUploadModal, uploadFile, deleteItem } = useAdminGallery();
 
+  const handleGalleryUpload = async (file: File, title: string, description: string): Promise<void> => {
+    const reader = new FileReader();
+    const base64 = await new Promise<string>((resolve, reject) => {
+      reader.onload = (e) => resolve((e.target?.result as string).split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const mediaType = file.type.startsWith('video/') ? 'video' : 'photo';
+    await uploadFile({ title, description, media_type: mediaType, is_featured: false, file_base64: base64, file_name: file.name });
+  };
+
   const {
     concerts: managedConcerts,
     loading: concertsLoading,
@@ -293,7 +304,7 @@ const AdminPage = () => {
         setShowEditJuryModal={setShowEditJuryModal}
         showUploadModal={showUploadModal}
         setShowUploadModal={setShowUploadModal}
-        uploadFile={uploadFile}
+        uploadFile={handleGalleryUpload}
         showCreateConcertModal={showCreateConcertModal}
         showEditConcertModal={showEditConcertModal}
         selectedConcert={selectedConcert}
