@@ -26,7 +26,7 @@ interface RegisterStepFilesProps {
 const RegisterStepFiles = ({ formData, handleFilesChange }: RegisterStepFilesProps) => {
   return (
     <div className="space-y-6 animate-fade-in">
-      <h2 className="text-2xl font-heading font-bold mb-6">Загрузка работ</h2>
+      <h2 className="text-2xl font-heading font-bold mb-6">Загрузка файлов</h2>
       
       <div>
         <label className="block text-sm font-medium mb-2">
