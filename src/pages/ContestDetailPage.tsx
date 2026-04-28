@@ -71,11 +71,11 @@ const ContestDetailPage = () => {
     try {
       const response = await fetch(GALLERY_URL);
       const data = await response.json();
-      const contestPhotos = (data.items || [])
-        .filter((item: GalleryItem) => item.media_type === 'photo' && item.contest_id === Number(id))
+      const photos = (data.items || [])
+        .filter((item: GalleryItem) => item.media_type === 'photo')
         .slice(0, 8);
-      if (contestPhotos.length >= 4) {
-        setPhotosToShow(contestPhotos.map((p: GalleryItem, i: number) => ({
+      if (photos.length >= 4) {
+        setPhotosToShow(photos.map((p: GalleryItem, i: number) => ({
           img: p.file_url,
           side: i % 2 === 0 ? 'left' : 'right',
           title: p.title,
@@ -141,9 +141,9 @@ const ContestDetailPage = () => {
       <div className="orbit-container" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: 1 }}>
         {photosToShow.map((item, i) => {
           const isLeft = item.side === 'left';
-          const startX = isLeft ? -550 : 550;
-          const midX = isLeft ? -530 : 530;
-          const endX = isLeft ? -570 : 570;
+          const startX = isLeft ? -750 : 750;
+          const midX = isLeft ? -730 : 730;
+          const endX = isLeft ? -770 : 770;
           const rotateStart = isLeft ? -15 : 15;
           const rotateMid = isLeft ? -5 : 5;
           const rotateEnd = isLeft ? -20 : 20;
