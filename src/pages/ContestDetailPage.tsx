@@ -21,14 +21,37 @@ interface Contest {
   pdf_url?: string;
 }
 
+const GALLERY_URL = 'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?endpoint=gallery';
+
+interface GalleryItem {
+  id: number;
+  title: string;
+  file_url: string;
+  media_type: 'photo' | 'video';
+  contest_id?: number;
+}
+
+const defaultPhotos = [
+  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_performing_ballet.jpg', side: 'left' },
+  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/young_musicians_orchestra.jpg', side: 'right' },
+  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/theater_kids_stage.jpg', side: 'left' },
+  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_singing_choir.jpg', side: 'right' },
+  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/dance_group_performance.jpg', side: 'left' },
+  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/piano_student_concert.jpg', side: 'right' },
+  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/art_class_children.jpg', side: 'left' },
+  { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_drama_performance.jpg', side: 'right' },
+];
+
 const ContestDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [contest, setContest] = useState<Contest | null>(null);
   const [loading, setLoading] = useState(true);
+  const [photosToShow, setPhotosToShow] = useState<{ img: string; side: string; title?: string }[]>([]);
 
   useEffect(() => {
     loadContest();
+    loadPhotos();
   }, [id]);
 
   const loadContest = async () => {
@@ -41,6 +64,27 @@ const ContestDetailPage = () => {
       console.error('Ошибка загрузки конкурса:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPhotos = async () => {
+    try {
+      const response = await fetch(GALLERY_URL);
+      const data = await response.json();
+      const contestPhotos = (data.items || [])
+        .filter((item: GalleryItem) => item.media_type === 'photo' && item.contest_id === Number(id))
+        .slice(0, 8);
+      if (contestPhotos.length >= 4) {
+        setPhotosToShow(contestPhotos.map((p: GalleryItem, i: number) => ({
+          img: p.file_url,
+          side: i % 2 === 0 ? 'left' : 'right',
+          title: p.title,
+        })));
+      } else {
+        setPhotosToShow(defaultPhotos);
+      }
+    } catch {
+      setPhotosToShow(defaultPhotos);
     }
   };
 
@@ -93,7 +137,38 @@ const ContestDetailPage = () => {
     <div className="min-h-screen">
       <Navigation />
 
-      <section className="pt-32 pb-20 px-4">
+      {/* Водопад фото по бокам */}
+      <div className="orbit-container" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: 1 }}>
+        {photosToShow.map((item, i) => {
+          const isLeft = item.side === 'left';
+          const startX = isLeft ? -550 : 550;
+          const midX = isLeft ? -530 : 530;
+          const endX = isLeft ? -570 : 570;
+          const rotateStart = isLeft ? -15 : 15;
+          const rotateMid = isLeft ? -5 : 5;
+          const rotateEnd = isLeft ? -20 : 20;
+          return (
+            <div
+              key={i}
+              className="orbit-item"
+              style={{
+                '--orbit-delay': `${i * 1.2}s`,
+                '--orbit-duration': '8s',
+                '--start-x': `${startX}px`,
+                '--mid-x': `${midX}px`,
+                '--end-x': `${endX}px`,
+                '--rotate-start': `${rotateStart}deg`,
+                '--rotate-mid': `${rotateMid}deg`,
+                '--rotate-end': `${rotateEnd}deg`,
+              } as React.CSSProperties}
+            >
+              <img src={item.img} alt={item.title || `Фото ${i + 1}`} className="orbit-photo" />
+            </div>
+          );
+        })}
+      </div>
+
+      <section className="pt-32 pb-20 px-4 relative z-10">
         <div className="container mx-auto max-w-5xl">
           <Button 
             variant="ghost" 
