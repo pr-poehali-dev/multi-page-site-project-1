@@ -182,7 +182,7 @@ const HomePage = () => {
             
             <p className="md:text-2xl text-muted-foreground max-w-2xl text-4xl mx-[111px] my-[17px]">Здесь рождаются звезды!</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/register">
+              <Link to="/contests">
                 <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-lg px-8 animate-scale-in">
                   <Icon name="Sparkles" size={20} className="mr-2" />
                   Подать заявку
@@ -215,7 +215,7 @@ const HomePage = () => {
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center mx-auto mb-4 rotate-6 hover:rotate-12 transition-transform">
-                    <Icon name={feature.icon as any} size={32} className="text-white" />
+                    <Icon name={feature.icon} size={32} className="text-white" />
                   </div>
                   <h3 className="text-xl font-heading font-semibold mb-2">{feature.title}</h3>
                   <p className="text-sm text-muted-foreground">{feature.description}</p>
