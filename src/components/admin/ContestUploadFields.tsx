@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 import { ContestFormData } from './ContestModalTypes';
 
@@ -18,6 +19,7 @@ interface ContestUploadFieldsProps {
 
 const ContestUploadFields = ({
   formData,
+  setFormData,
   mode,
   uploadingPdf,
   uploadingPoster,
@@ -74,6 +76,32 @@ const ContestUploadFields = ({
 
       <div>
         <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+          <Icon name="Link" size={16} />
+          Ссылка на форму заявки
+        </label>
+        <div className="flex gap-2">
+          <Input
+            type="url"
+            placeholder="https://forms.google.com/..."
+            value={formData.application_form_url || ''}
+            onChange={(e) => setFormData({ ...formData, application_form_url: e.target.value })}
+            className="flex-1"
+          />
+          {formData.application_form_url && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => window.open(formData.application_form_url, '_blank')}
+            >
+              <Icon name="ExternalLink" size={16} />
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">Вставьте ссылку на Google Forms, Яндекс Формы или любую другую форму</p>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium mb-2 block flex items-center gap-2">
           <Icon name="FileDown" size={16} />
           Бланк заявки (Word .docx)
         </label>
@@ -95,24 +123,9 @@ const ContestUploadFields = ({
             <Icon name="Upload" size={16} className="mr-2" />
             {uploadingForm ? 'Загрузка...' : formData.application_form_url ? 'Заменить бланк' : 'Загрузить бланк (.docx)'}
           </Button>
-          {formData.application_form_url && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => window.open(formData.application_form_url, '_blank')}
-            >
-              <Icon name="ExternalLink" size={16} />
-            </Button>
-          )}
         </div>
         {mode === 'create' && (
           <p className="text-xs text-muted-foreground mt-1">Бланк можно загрузить после создания конкурса</p>
-        )}
-        {formData.application_form_url && (
-          <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-            <Icon name="CheckCircle" size={12} />
-            Бланк загружен
-          </p>
         )}
       </div>
 
