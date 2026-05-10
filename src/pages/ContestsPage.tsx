@@ -165,8 +165,8 @@ const ContestsPage = () => {
                         <div className="flex flex-wrap gap-3">
                           <Button 
                             className="bg-secondary hover:bg-secondary/90"
-                            disabled={isPast || isFuture}
-                            onClick={() => navigate('/register')}
+                            disabled={isPast || isFuture || !contest.application_form_url}
+                            onClick={() => contest.application_form_url && window.open(contest.application_form_url, '_blank')}
                           >
                             <Icon name="Send" size={18} className="mr-2" />
                             {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется' : 'Подать заявку'}

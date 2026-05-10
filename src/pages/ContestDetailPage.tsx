@@ -19,6 +19,7 @@ interface Contest {
   prizes?: string;
   categories?: string;
   pdf_url?: string;
+  application_form_url?: string;
 }
 
 const GALLERY_URL = 'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?endpoint=gallery';
@@ -228,8 +229,8 @@ const ContestDetailPage = () => {
                     <Button 
                       size="lg"
                       className="bg-secondary hover:bg-secondary/90"
-                      disabled={isPast || isFuture}
-                      onClick={() => navigate('/register')}
+                      disabled={isPast || isFuture || !contest.application_form_url}
+                      onClick={() => contest.application_form_url && window.open(contest.application_form_url, '_blank')}
                     >
                       <Icon name="Send" size={20} className="mr-2" />
                       {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется приём заявок' : 'Подать заявку'}
