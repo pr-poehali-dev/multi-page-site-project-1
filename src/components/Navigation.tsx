@@ -43,7 +43,7 @@ const Navigation = () => {
                 {link.label}
               </Link>
             ))}
-            <Link to="/register">
+            <Link to="/contests">
               <Button className="bg-secondary hover:bg-secondary/90">
                 Участвовать
               </Button>
