@@ -24,6 +24,7 @@ interface ProgramRow {
   duration: string;
   region: string;
   directing_party: string;
+  assigned: boolean;
   score: number | null;
   comment: string | null;
   score_id: number | null;
@@ -167,9 +168,10 @@ const JuryPanelPage = () => {
     );
   }
 
-  // Экран оценивания
-  const scoredCount = rows.filter(r => r.score !== null).length;
-  const progress = rows.length > 0 ? Math.round((scoredCount / rows.length) * 100) : 0;
+  // Экран оценивания — прогресс только по назначенным участникам
+  const assignedRows = rows.filter(r => r.assigned);
+  const scoredCount = assignedRows.filter(r => r.score !== null).length;
+  const progress = assignedRows.length > 0 ? Math.round((scoredCount / assignedRows.length) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -185,7 +187,7 @@ const JuryPanelPage = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">{scoredCount}/{rows.length} оценено</span>
+          <span className="text-sm text-muted-foreground">{scoredCount}/{assignedRows.length} оценено</span>
           <Button variant="outline" size="sm" onClick={handleLogout}>
             <Icon name="LogOut" size={16} />
           </Button>
@@ -205,7 +207,7 @@ const JuryPanelPage = () => {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Icon name="Users" size={48} className="mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">Участники не назначены</p>
+            <p className="text-muted-foreground">Программа конкурса ещё не заполнена</p>
             <Button className="mt-6" variant="outline" onClick={() => { setSelectedContest(null); setRows([]); }}>
               Назад к конкурсам
             </Button>
@@ -266,25 +268,33 @@ const JuryPanelPage = () => {
 
               {/* Блок оценивания */}
               <div className="mt-4">
-                {isScored ? (
+                {!currentRow.assigned ? (
+                  <div>
+                    <p className="text-sm text-muted-foreground text-center mb-3">Оценивание недоступно для этого участника</p>
+                    <div className="grid grid-cols-5 gap-2">
+                      {SCORES.map(s => (
+                        <button key={s} disabled
+                          className="h-12 rounded-lg text-lg font-bold border-2 border-border bg-muted/20 text-muted-foreground/40 cursor-not-allowed">
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : isScored ? (
                   <div className="text-center py-4">
                     <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 rounded-xl px-6 py-3 mb-3">
                       <Icon name="CheckCircle" size={20} />
                       <span className="font-semibold">Оценка выставлена: {currentRow.score}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">Оценку изменить нельзя</p>
-                    {/* Неактивные кнопки для отображения */}
                     <div className="grid grid-cols-5 gap-2 mt-4">
                       {SCORES.map(s => (
-                        <button
-                          key={s}
-                          disabled
+                        <button key={s} disabled
                           className={`h-12 rounded-lg text-lg font-bold border-2 transition-all
                             ${s === currentRow.score
                               ? 'border-green-500 bg-green-500 text-white opacity-100'
                               : 'border-border bg-muted/30 text-muted-foreground opacity-40 cursor-not-allowed'
-                            }`}
-                        >
+                            }`}>
                           {s}
                         </button>
                       ))}
@@ -295,12 +305,8 @@ const JuryPanelPage = () => {
                     <p className="text-sm font-medium text-center mb-3">Выберите балл</p>
                     <div className="grid grid-cols-5 gap-2">
                       {SCORES.map(s => (
-                        <button
-                          key={s}
-                          disabled={saving}
-                          onClick={() => handleScore(s)}
-                          className="h-12 rounded-lg text-lg font-bold border-2 border-green-500 bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500 hover:text-white active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
+                        <button key={s} disabled={saving} onClick={() => handleScore(s)}
+                          className="h-12 rounded-lg text-lg font-bold border-2 border-green-500 bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500 hover:text-white active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                           {saving ? <Icon name="Loader" size={16} className="mx-auto animate-spin" /> : s}
                         </button>
                       ))}

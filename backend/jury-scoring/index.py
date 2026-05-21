@@ -487,7 +487,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             cur.close()
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'contests': contests}), 'isBase64Encoded': False}
 
-        # GET jury_program - участники из программы для жюри (назначенные ему)
+        # GET jury_program - все участники конкурса для жюри, assigned=True если назначен
         if method == 'GET' and action == 'jury_program':
             token = event.get('headers', {}).get('X-Jury-Token') or event.get('headers', {}).get('x-jury-token')
             if not token:
@@ -501,10 +501,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             cur.execute(f'''
                 SELECT cp.id, cp.order_number, cp.participant_name, cp.age,
                        cp.nomination, cp.piece_title, cp.duration, cp.region, cp.directing_party,
-                       pja.jury_member_id IS NOT NULL AS assigned,
+                       (pja.jury_member_id IS NOT NULL) AS assigned,
                        ps.score, ps.comment, ps.id AS score_id
                 FROM {schema}.contest_program cp
-                JOIN {schema}.program_jury_assignments pja
+                LEFT JOIN {schema}.program_jury_assignments pja
                   ON pja.program_row_id = cp.id AND pja.jury_member_id = %s
                 LEFT JOIN {schema}.program_scores ps
                   ON ps.program_row_id = cp.id AND ps.jury_member_id = %s
@@ -517,6 +517,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'id': r[0], 'order_number': r[1], 'participant_name': r[2],
                     'age': r[3], 'nomination': r[4], 'piece_title': r[5],
                     'duration': r[6], 'region': r[7], 'directing_party': r[8],
+                    'assigned': bool(r[9]),
                     'score': float(r[10]) if r[10] is not None else None,
                     'comment': r[11], 'score_id': r[12]
                 })
