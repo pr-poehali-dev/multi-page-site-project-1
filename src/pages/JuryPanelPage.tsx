@@ -1,13 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 
 const API = 'https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d';
+const SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 interface Contest {
   id: number;
@@ -32,13 +30,14 @@ interface ProgramRow {
 }
 
 const JuryPanelPage = () => {
+  const [juryName, setJuryName] = useState('');
   const [contests, setContests] = useState<Contest[]>([]);
-  const [selectedContest, setSelectedContest] = useState<number | null>(null);
+  const [selectedContest, setSelectedContest] = useState<Contest | null>(null);
   const [rows, setRows] = useState<ProgramRow[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingRows, setLoadingRows] = useState(false);
-  const [saving, setSaving] = useState<number | null>(null);
-  const [juryName, setJuryName] = useState('');
+  const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
   const getToken = () => localStorage.getItem('jury_token') || '';
@@ -73,11 +72,15 @@ const JuryPanelPage = () => {
     verifyAuth().then(loadContests);
   }, [verifyAuth, loadContests]);
 
-  const loadRows = async (contestId: number) => {
+  const handleContestSelect = async (contest: Contest) => {
+    setSelectedContest(contest);
+    setCurrentIndex(0);
     setLoadingRows(true);
     const token = getToken();
     try {
-      const res = await fetch(`${API}?action=jury_program&contest_id=${contestId}`, { headers: { 'X-Jury-Token': token } });
+      const res = await fetch(`${API}?action=jury_program&contest_id=${contest.id}`, {
+        headers: { 'X-Jury-Token': token },
+      });
       const data = await res.json();
       setRows(data.rows || []);
     } catch {
@@ -87,158 +90,260 @@ const JuryPanelPage = () => {
     }
   };
 
-  const handleContestSelect = (contestId: number) => {
-    setSelectedContest(contestId);
-    loadRows(contestId);
-  };
-
-  const handleScoreSubmit = async (rowId: number, score: number, comment: string) => {
-    setSaving(rowId);
+  const handleScore = async (score: number) => {
+    const row = rows[currentIndex];
+    if (!row || row.score !== null || !selectedContest) return;
+    setSaving(true);
     const token = getToken();
     try {
       await fetch(`${API}?action=program_score`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Jury-Token': token },
-        body: JSON.stringify({ program_row_id: rowId, contest_id: selectedContest, score, comment }),
+        body: JSON.stringify({ program_row_id: row.id, contest_id: selectedContest.id, score, comment: '' }),
       });
-      setRows(prev => prev.map(r => r.id === rowId ? { ...r, score, comment } : r));
+      setRows(prev => prev.map((r, i) => i === currentIndex ? { ...r, score } : r));
     } finally {
-      setSaving(null);
+      setSaving(false);
     }
   };
 
   const handleLogout = () => { localStorage.clear(); navigate('/jury-login'); };
 
-  return (
-    <div className="min-h-screen">
-      <Navigation />
-      <div className="container mx-auto px-4 py-20">
-        <div className="flex justify-between items-center mb-8">
+  const currentRow = rows[currentIndex] ?? null;
+  const isScored = currentRow?.score !== null && currentRow?.score !== undefined;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Icon name="Loader" size={40} className="animate-spin text-secondary" />
+      </div>
+    );
+  }
+
+  // Экран выбора конкурса
+  if (!selectedContest) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b px-4 py-4 flex justify-between items-center">
           <div>
-            <h1 className="text-4xl font-heading font-bold mb-2">Панель оценивания</h1>
-            <p className="text-muted-foreground">Добро пожаловать, <span className="font-semibold">{juryName}</span></p>
+            <p className="text-sm text-muted-foreground">Панель жюри</p>
+            <p className="font-semibold">{juryName}</p>
           </div>
-          <Button onClick={handleLogout} variant="outline">
-            <Icon name="LogOut" size={18} className="mr-2" />Выйти
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            <Icon name="LogOut" size={16} className="mr-2" />Выйти
+          </Button>
+        </header>
+
+        <div className="max-w-2xl mx-auto px-4 py-12">
+          <h1 className="text-3xl font-heading font-bold mb-2 text-center">Добро пожаловать!</h1>
+          <p className="text-muted-foreground text-center mb-10">Выберите конкурс для оценивания</p>
+
+          {contests.length === 0 ? (
+            <Card className="p-12 text-center">
+              <Icon name="Calendar" size={48} className="mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">Вам пока не назначены конкурсы</p>
+            </Card>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {contests.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => handleContestSelect(c)}
+                  className="group w-full text-left border rounded-xl p-5 hover:border-secondary hover:bg-secondary/5 transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-semibold group-hover:text-secondary transition-colors">{c.title}</span>
+                    <Icon name="ChevronRight" size={20} className="text-muted-foreground group-hover:text-secondary" />
+                  </div>
+                  {c.start_date && (
+                    <p className="text-sm text-muted-foreground mt-1">{new Date(c.start_date).toLocaleDateString('ru-RU')}</p>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Экран оценивания
+  const scoredCount = rows.filter(r => r.score !== null).length;
+  const progress = rows.length > 0 ? Math.round((scoredCount / rows.length) * 100) : 0;
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Шапка */}
+      <header className="border-b px-4 py-3 flex justify-between items-center shrink-0">
+        <div className="flex items-center gap-3">
+          <button onClick={() => { setSelectedContest(null); setRows([]); }} className="text-muted-foreground hover:text-foreground transition-colors">
+            <Icon name="ArrowLeft" size={20} />
+          </button>
+          <div>
+            <p className="font-semibold text-sm leading-tight">{selectedContest.title}</p>
+            <p className="text-xs text-muted-foreground">{juryName}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">{scoredCount}/{rows.length} оценено</span>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            <Icon name="LogOut" size={16} />
           </Button>
         </div>
+      </header>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <Icon name="Loader" size={48} className="mx-auto mb-4 animate-spin text-secondary" />
-            <p className="text-muted-foreground">Загрузка...</p>
-          </div>
-        ) : (
-          <>
-            <Card className="p-6 mb-8">
-              <h2 className="text-xl font-heading font-bold mb-4">Выберите конкурс</h2>
-              {contests.length === 0 ? (
-                <p className="text-muted-foreground">Вам не назначены конкурсы для оценивания</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {contests.map(c => (
-                    <Button
-                      key={c.id}
-                      onClick={() => handleContestSelect(c.id)}
-                      variant={selectedContest === c.id ? 'default' : 'outline'}
-                      className={selectedContest === c.id ? 'bg-secondary hover:bg-secondary/90' : ''}
-                    >
-                      {c.title}
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </Card>
-
-            {selectedContest && (
-              loadingRows ? (
-                <div className="text-center py-12">
-                  <Icon name="Loader" size={48} className="mx-auto mb-4 animate-spin text-secondary" />
-                  <p className="text-muted-foreground">Загрузка участников...</p>
-                </div>
-              ) : rows.length === 0 ? (
-                <Card className="p-12 text-center">
-                  <Icon name="Users" size={48} className="mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">Вам не назначены участники в этом конкурсе</p>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {rows.map(row => (
-                    <RowCard
-                      key={row.id}
-                      row={row}
-                      onSubmit={handleScoreSubmit}
-                      saving={saving === row.id}
-                    />
-                  ))}
-                </div>
-              )
-            )}
-          </>
-        )}
+      {/* Прогресс-бар */}
+      <div className="h-1 bg-muted shrink-0">
+        <div className="h-full bg-secondary transition-all duration-500" style={{ width: `${progress}%` }} />
       </div>
-      <Footer />
-    </div>
-  );
-};
 
-interface RowCardProps {
-  row: ProgramRow;
-  onSubmit: (id: number, score: number, comment: string) => void;
-  saving: boolean;
-}
-
-const RowCard = ({ row, onSubmit, saving }: RowCardProps) => {
-  const [score, setScore] = useState(row.score?.toString() || '');
-  const [comment, setComment] = useState(row.comment || '');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const v = parseFloat(score);
-    if (!isNaN(v) && v >= 0 && v <= 100) onSubmit(row.id, v, comment);
-  };
-
-  return (
-    <Card className="p-6">
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="flex-grow">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-2xl font-bold text-secondary">#{row.order_number}</span>
-            <h3 className="text-xl font-heading font-bold">{row.participant_name}</h3>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-muted-foreground mb-3">
-            {row.age && <span>Возраст: {row.age}</span>}
-            {row.nomination && <span>Номинация: {row.nomination}</span>}
-            {row.region && <span>Регион: {row.region}</span>}
-            {row.directing_party && <span>Направляющая: {row.directing_party}</span>}
-            {row.duration && <span>Хронометраж: {row.duration}</span>}
-          </div>
-          {row.piece_title && (
-            <p className="text-muted-foreground mb-4">
-              <span className="font-medium">Произведение:</span> {row.piece_title}
-            </p>
-          )}
-          <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-3 items-end">
-            <div className="w-36">
-              <label className="block text-sm font-medium mb-1">Оценка (0–100)</label>
-              <Input type="number" min="0" max="100" step="0.1" value={score} onChange={e => setScore(e.target.value)} placeholder="0" required />
-            </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium mb-1">Комментарий</label>
-              <Input value={comment} onChange={e => setComment(e.target.value)} placeholder="Необязательно" />
-            </div>
-            <Button type="submit" className="bg-secondary hover:bg-secondary/90" disabled={saving}>
-              {saving ? <><Icon name="Loader" size={16} className="mr-2 animate-spin" />Сохранение...</> : <><Icon name="Save" size={16} className="mr-2" />{row.score !== null ? 'Обновить' : 'Сохранить'}</>}
-            </Button>
-          </form>
+      {loadingRows ? (
+        <div className="flex-1 flex items-center justify-center">
+          <Icon name="Loader" size={40} className="animate-spin text-secondary" />
         </div>
-        {row.score !== null && (
-          <div className="flex items-center justify-center w-20 h-20 rounded-full bg-secondary/10 shrink-0">
-            <span className="text-2xl font-bold text-secondary">{row.score}</span>
+      ) : rows.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Icon name="Users" size={48} className="mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">Участники не назначены</p>
+            <Button className="mt-6" variant="outline" onClick={() => { setSelectedContest(null); setRows([]); }}>
+              Назад к конкурсам
+            </Button>
           </div>
-        )}
-      </div>
-    </Card>
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col max-w-2xl mx-auto w-full px-4 py-6">
+
+          {/* Карточка участника */}
+          {currentRow && (
+            <Card className="p-6 mb-6 flex-grow flex flex-col justify-between">
+              <div>
+                {/* Номер и навигация */}
+                <div className="flex items-center justify-between mb-6">
+                  <span className="text-4xl font-bold text-secondary">#{currentRow.order_number}</span>
+                  <span className="text-sm text-muted-foreground">{currentIndex + 1} из {rows.length}</span>
+                </div>
+
+                {/* Информация */}
+                <h2 className="text-2xl font-heading font-bold mb-4 leading-tight">{currentRow.participant_name}</h2>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {currentRow.age && (
+                    <div className="bg-muted/40 rounded-lg px-3 py-2">
+                      <p className="text-xs text-muted-foreground mb-0.5">Возраст</p>
+                      <p className="font-medium text-sm">{currentRow.age}</p>
+                    </div>
+                  )}
+                  {currentRow.nomination && (
+                    <div className="bg-muted/40 rounded-lg px-3 py-2">
+                      <p className="text-xs text-muted-foreground mb-0.5">Номинация</p>
+                      <p className="font-medium text-sm">{currentRow.nomination}</p>
+                    </div>
+                  )}
+                  {currentRow.piece_title && (
+                    <div className="bg-muted/40 rounded-lg px-3 py-2 col-span-2">
+                      <p className="text-xs text-muted-foreground mb-0.5">Название номера</p>
+                      <p className="font-medium text-sm">{currentRow.piece_title}</p>
+                    </div>
+                  )}
+                  {currentRow.region && (
+                    <div className="bg-muted/40 rounded-lg px-3 py-2">
+                      <p className="text-xs text-muted-foreground mb-0.5">Регион</p>
+                      <p className="font-medium text-sm">{currentRow.region}</p>
+                    </div>
+                  )}
+                  {currentRow.duration && (
+                    <div className="bg-muted/40 rounded-lg px-3 py-2">
+                      <p className="text-xs text-muted-foreground mb-0.5">Хронометраж</p>
+                      <p className="font-medium text-sm">{currentRow.duration}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Блок оценивания */}
+              <div className="mt-4">
+                {isScored ? (
+                  <div className="text-center py-4">
+                    <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 rounded-xl px-6 py-3 mb-3">
+                      <Icon name="CheckCircle" size={20} />
+                      <span className="font-semibold">Оценка выставлена: {currentRow.score}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Оценку изменить нельзя</p>
+                    {/* Неактивные кнопки для отображения */}
+                    <div className="grid grid-cols-5 gap-2 mt-4">
+                      {SCORES.map(s => (
+                        <button
+                          key={s}
+                          disabled
+                          className={`h-12 rounded-lg text-lg font-bold border-2 transition-all
+                            ${s === currentRow.score
+                              ? 'border-green-500 bg-green-500 text-white opacity-100'
+                              : 'border-border bg-muted/30 text-muted-foreground opacity-40 cursor-not-allowed'
+                            }`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm font-medium text-center mb-3">Выберите балл</p>
+                    <div className="grid grid-cols-5 gap-2">
+                      {SCORES.map(s => (
+                        <button
+                          key={s}
+                          disabled={saving}
+                          onClick={() => handleScore(s)}
+                          className="h-12 rounded-lg text-lg font-bold border-2 border-green-500 bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500 hover:text-white active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {saving ? <Icon name="Loader" size={16} className="mx-auto animate-spin" /> : s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Навигация */}
+          <div className="flex gap-3 shrink-0">
+            <Button
+              variant="outline"
+              className="flex-1 h-12"
+              disabled={currentIndex === 0}
+              onClick={() => setCurrentIndex(i => i - 1)}
+            >
+              <Icon name="ChevronLeft" size={18} className="mr-2" />Назад
+            </Button>
+            <Button
+              className="flex-1 h-12 bg-secondary hover:bg-secondary/90"
+              disabled={currentIndex === rows.length - 1}
+              onClick={() => setCurrentIndex(i => i + 1)}
+            >
+              Далее<Icon name="ChevronRight" size={18} className="ml-2" />
+            </Button>
+          </div>
+
+          {/* Счётчик снизу */}
+          <div className="flex justify-center gap-1.5 mt-4 flex-wrap">
+            {rows.map((r, i) => (
+              <button
+                key={r.id}
+                onClick={() => setCurrentIndex(i)}
+                title={r.participant_name}
+                className={`w-6 h-6 rounded-full text-xs font-bold transition-all
+                  ${i === currentIndex ? 'ring-2 ring-secondary ring-offset-1' : ''}
+                  ${r.score !== null ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}
+              >
+                {r.order_number}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
