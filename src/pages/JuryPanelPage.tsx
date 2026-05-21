@@ -323,7 +323,7 @@ const JuryPanelPage = () => {
             </Button>
             <Button
               className="flex-1 h-12 bg-secondary hover:bg-secondary/90"
-              disabled={currentIndex === rows.length - 1}
+              disabled={currentIndex >= rows.length - 1}
               onClick={() => setCurrentIndex(i => i + 1)}
             >
               Далее<Icon name="ChevronRight" size={18} className="ml-2" />
