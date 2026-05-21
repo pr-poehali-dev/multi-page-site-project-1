@@ -212,7 +212,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
     if (!selectedContestId) return;
     setSavingScoring(true);
     try {
-      await fetch(`${API_URL}/scoring`, {
+      await fetch(`${API_URL}?action=scoring`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contest_id: Number(selectedContestId), ...scoring }),

@@ -35,13 +35,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     conn = psycopg2.connect(dsn)
     conn.autocommit = True
 
-    path = event.get('path', '/')
-    is_scoring = path.endswith('/scoring')
+    params = event.get('queryStringParameters') or {}
+    action = params.get('action', '')
 
     try:
         if method == 'GET':
             return get_program(conn, event)
-        elif method == 'POST' and is_scoring:
+        elif method == 'POST' and action == 'scoring':
             return save_scoring(conn, event)
         elif method == 'POST':
             return create_row(conn, event)
