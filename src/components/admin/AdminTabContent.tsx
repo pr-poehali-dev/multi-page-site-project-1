@@ -7,8 +7,9 @@ import ScoringTab from '@/components/admin/ScoringTab';
 import GalleryTab from '@/components/admin/GalleryTab';
 import ResultsManagementTab from '@/components/admin/ResultsManagementTab';
 import PartnersManagementTab from '@/components/admin/PartnersManagementTab';
+import ContestProgramTab from '@/components/admin/ContestProgramTab';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program';
 
 interface AdminTabContentProps {
   activeTab: TabType;
@@ -206,6 +207,11 @@ const AdminTabContent = ({
           onEditClick={openEditPartnerModal}
           onDeleteClick={handleDeletePartner}
         />
+      );
+
+    case 'program':
+      return (
+        <ContestProgramTab contests={contests} />
       );
 
     default:

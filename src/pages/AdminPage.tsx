@@ -18,7 +18,7 @@ import AdminModalsContainer from '@/components/admin/AdminModalsContainer';
 const AdminPage = () => {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program'>('applications');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [contestFilter, setContestFilter] = useState('all');
@@ -197,7 +197,7 @@ const AdminPage = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (activeTab === 'contests' || activeTab === 'scoring' || activeTab === 'gallery') {
+      if (activeTab === 'contests' || activeTab === 'scoring' || activeTab === 'gallery' || activeTab === 'program') {
         loadContests();
       }
       if (activeTab === 'concerts') {
