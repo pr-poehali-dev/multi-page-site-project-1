@@ -65,6 +65,62 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newRow, setNewRow] = useState(emptyRow());
 
+  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedContestId) return;
+    e.target.value = '';
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+        const wb = XLSX.read(data, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rawRows = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1 }) as unknown[][];
+
+        const dataRows = rawRows.slice(1).filter(r => Array.isArray(r) && r.some(cell => cell !== undefined && cell !== ''));
+
+        if (dataRows.length === 0) {
+          toast({ title: 'Файл пуст', description: 'Не найдено строк для импорта', variant: 'destructive' });
+          return;
+        }
+
+        let imported = 0;
+        const newRows: ProgramRow[] = [];
+        for (const r of dataRows) {
+          const row = r as (string | number)[];
+          const payload = {
+            contest_id: Number(selectedContestId),
+            order_number: Number(row[0]) || (rows.length + imported + 1),
+            region: String(row[1] ?? ''),
+            directing_party: String(row[2] ?? ''),
+            participant_name: String(row[3] ?? ''),
+            age: String(row[4] ?? ''),
+            nomination: String(row[5] ?? ''),
+            piece_title: String(row[6] ?? ''),
+            duration: String(row[7] ?? ''),
+          };
+          const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const result = await res.json();
+          if (result.row) {
+            newRows.push(result.row);
+            imported++;
+          }
+        }
+
+        setRows(prev => [...prev, ...newRows]);
+        toast({ title: 'Импорт завершён', description: `Добавлено строк: ${imported}` });
+      } catch {
+        toast({ title: 'Ошибка', description: 'Не удалось прочитать файл', variant: 'destructive' });
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
   const handleExportExcel = () => {
     const contestName = contests.find(c => String(c.id) === selectedContestId)?.title || 'программа';
 
@@ -205,6 +261,15 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
               <Icon name="Download" className="mr-2 h-4 w-4" />
               Экспорт Excel
             </Button>
+            <label>
+              <Button variant="outline" asChild>
+                <span className="cursor-pointer">
+                  <Icon name="Upload" className="mr-2 h-4 w-4" />
+                  Импорт Excel
+                </span>
+              </Button>
+              <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportExcel} />
+            </label>
           </>
         )}
       </div>
