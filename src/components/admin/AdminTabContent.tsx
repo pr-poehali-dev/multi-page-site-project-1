@@ -173,10 +173,11 @@ const AdminTabContent = ({
         <ScoringTab
           participants={participants}
           contests={contests}
-          selectedContest={scoringSelectedContest}
-          onContestChange={handleContestChange}
+          selectedContest={scoringSelectedContest ? String(scoringSelectedContest) : ''}
+          onContestChange={(id) => handleContestChange(Number(id))}
           onExportProtocol={exportProtocol}
           onDeleteParticipant={handleDeleteParticipant}
+          loading={false}
         />
       );
 

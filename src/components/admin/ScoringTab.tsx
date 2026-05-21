@@ -1,178 +1,205 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
-interface Participant {
+const API = 'https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d';
+
+interface ProgramRow {
+  id: number;
+  order_number: number;
+  region: string;
+  directing_party: string;
+  participant_name: string;
+  age: string;
+  nomination: string;
+  piece_title: string;
+  duration: string;
+}
+
+interface JuryMember {
   id: number;
   name: string;
-  age: number;
-  nomination: string;
-  avg_score: number | null;
-  scores_count: number;
-  jury_scores: Array<{
-    jury_name: string;
-    score: number;
-    comment: string | null;
-  }>;
+  role: string;
+  has_access: boolean;
 }
 
 interface ScoringTabProps {
   contests: Array<{ id: number; title: string }>;
-  selectedContest: number | null;
-  participants: Participant[];
+  selectedContest: string;
+  participants: unknown[];
   loading: boolean;
-  onContestChange: (contestId: number) => void;
+  onContestChange: (contestId: string) => void;
   onExportProtocol: () => void;
-  onDeleteParticipant: (participantId: number) => Promise<void>;
+  onDeleteParticipant: (id: number) => Promise<void>;
 }
 
-const ScoringTab = ({
-  contests,
-  selectedContest,
-  participants,
-  loading,
-  onContestChange,
-  onExportProtocol,
-  onDeleteParticipant
-}: ScoringTabProps) => {
-  const sortedParticipants = useMemo(() => {
-    return [...participants].sort((a, b) => {
-      const scoreA = a.avg_score ?? 0;
-      const scoreB = b.avg_score ?? 0;
-      return scoreB - scoreA;
-    });
-  }, [participants]);
+const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabProps) => {
+  const { toast } = useToast();
+  const [programRows, setProgramRows] = useState<ProgramRow[]>([]);
+  const [juryList, setJuryList] = useState<JuryMember[]>([]);
+  const [loadingProgram, setLoadingProgram] = useState(false);
+  const [loadingJury, setLoadingJury] = useState(false);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  const loadData = useCallback(async (contestId: string) => {
+    setLoadingProgram(true);
+    setLoadingJury(true);
+
+    try {
+      const [progRes, juryRes] = await Promise.all([
+        fetch(`${API}?action=program_scores&contest_id=${contestId}`),
+        fetch(`${API}?action=jury_access&contest_id=${contestId}`),
+      ]);
+      const progData = await progRes.json();
+      const juryData = await juryRes.json();
+      setProgramRows(progData.rows || []);
+      setJuryList(juryData.jury || []);
+    } catch {
+      toast({ title: 'Ошибка', description: 'Не удалось загрузить данные', variant: 'destructive' });
+    } finally {
+      setLoadingProgram(false);
+      setLoadingJury(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (selectedContest) {
+      loadData(selectedContest);
+    } else {
+      setProgramRows([]);
+      setJuryList([]);
+    }
+  }, [selectedContest, loadData]);
+
+  const toggleJuryAccess = async (juryMember: JuryMember) => {
+    setTogglingId(juryMember.id);
+    try {
+      await fetch(`${API}?action=jury_access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contest_id: Number(selectedContest),
+          jury_member_id: juryMember.id,
+          has_access: !juryMember.has_access,
+        }),
+      });
+      setJuryList(prev =>
+        prev.map(j => j.id === juryMember.id ? { ...j, has_access: !j.has_access } : j)
+      );
+    } catch {
+      toast({ title: 'Ошибка', description: 'Не удалось изменить доступ', variant: 'destructive' });
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const columns = [
+    { key: 'order_number', label: '№' },
+    { key: 'region', label: 'Регион' },
+    { key: 'directing_party', label: 'Направляющая сторона' },
+    { key: 'participant_name', label: 'ФИО / Коллектив' },
+    { key: 'age', label: 'Возраст' },
+    { key: 'nomination', label: 'Номинация' },
+    { key: 'piece_title', label: 'Произведение / номер' },
+    { key: 'duration', label: 'Хронометраж' },
+  ] as const;
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <label className="text-sm font-medium">Выберите конкурс:</label>
-          <select
-            value={selectedContest || ''}
-            onChange={(e) => onContestChange(Number(e.target.value))}
-            className="px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary"
-          >
-            <option value="">Все конкурсы</option>
-            {contests.map((contest) => (
-              <option key={contest.id} value={contest.id}>
-                {contest.title}
-              </option>
+    <div className="space-y-6">
+      <div className="w-72">
+        <Select value={selectedContest || ''} onValueChange={onContestChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="Выберите конкурс" />
+          </SelectTrigger>
+          <SelectContent>
+            {contests.map(c => (
+              <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>
             ))}
-          </select>
-        </div>
-
-        {selectedContest && participants.length > 0 && (
-          <Button
-            onClick={onExportProtocol}
-            className="bg-secondary hover:bg-secondary/90 gap-2"
-          >
-            <Icon name="FileDown" size={18} />
-            Скачать протокол
-          </Button>
-        )}
+          </SelectContent>
+        </Select>
       </div>
 
-      {loading ? (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Загрузка...</p>
-        </div>
-      ) : !selectedContest ? (
-        <div className="text-center py-8">
-          <Icon name="BarChart3" size={48} className="mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">Выберите конкурс для просмотра оценок</p>
-        </div>
-      ) : participants.length === 0 ? (
-        <div className="text-center py-8">
-          <Icon name="Users" size={48} className="mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">Нет участников с оценками</p>
+      {!selectedContest ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <Icon name="BarChart3" size={48} className="mx-auto mb-4" />
+          <p>Выберите конкурс для просмотра</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          <div className="bg-muted/30 rounded-lg p-4">
-            <h3 className="font-semibold mb-2">
-              Всего участников: {participants.length}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Участники отсортированы по среднему баллу (от большего к меньшему)
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {sortedParticipants.map((participant, index) => (
-              <div
-                key={participant.id}
-                className="bg-card border border-border rounded-lg p-6"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center w-12 h-12 bg-secondary/10 rounded-full">
-                      <span className="text-xl font-bold text-secondary">
-                        {index + 1}
-                      </span>
-                    </div>
+        <>
+          <Card className="p-4">
+            <h3 className="text-lg font-semibold mb-4">Доступ жюри к конкурсу</h3>
+            {loadingJury ? (
+              <p className="text-muted-foreground text-sm">Загрузка...</p>
+            ) : juryList.length === 0 ? (
+              <p className="text-muted-foreground text-sm">Нет членов жюри</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {juryList.map(j => (
+                  <div
+                    key={j.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${j.has_access ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : 'border-border bg-muted/20'}`}
+                  >
                     <div>
-                      <h3 className="text-lg font-semibold">{participant.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {participant.age} {participant.age >= 5 && participant.age <= 20 ? 'лет' : participant.age === 1 ? 'год' : 'года'} • {participant.nomination}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4">
-                    <div className="text-right">
-                      <div className="text-3xl font-bold text-secondary">
-                        {participant.avg_score !== null 
-                          ? participant.avg_score.toFixed(2) 
-                          : '—'}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {participant.scores_count} {participant.scores_count === 1 ? 'оценка' : participant.scores_count >= 2 && participant.scores_count <= 4 ? 'оценки' : 'оценок'}
-                      </p>
+                      <p className="font-medium text-sm">{j.name}</p>
+                      <p className="text-xs text-muted-foreground">{j.role}</p>
                     </div>
                     <Button
-                      variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        if (confirm(`Удалить участника ${participant.name}? Это также удалит все оценки жюри.`)) {
-                          onDeleteParticipant(participant.id);
-                        }
-                      }}
-                      className="text-destructive hover:text-destructive"
+                      variant={j.has_access ? 'default' : 'outline'}
+                      className={j.has_access ? 'bg-green-600 hover:bg-green-700' : ''}
+                      disabled={togglingId === j.id}
+                      onClick={() => toggleJuryAccess(j)}
                     >
-                      <Icon name="Trash2" size={18} />
+                      {togglingId === j.id ? (
+                        <Icon name="Loader" size={14} className="animate-spin" />
+                      ) : j.has_access ? (
+                        <><Icon name="Check" size={14} className="mr-1" />Доступ</>
+                      ) : (
+                        <><Icon name="Plus" size={14} className="mr-1" />Дать</>
+                      )}
                     </Button>
                   </div>
-                </div>
-
-                {participant.jury_scores.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <h4 className="text-sm font-medium mb-3">Оценки жюри:</h4>
-                    <div className="space-y-2">
-                      {participant.jury_scores.map((juryScore, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-start justify-between bg-muted/30 rounded p-3"
-                        >
-                          <div className="flex-1">
-                            <p className="font-medium">{juryScore.jury_name}</p>
-                            {juryScore.comment && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {juryScore.comment}
-                              </p>
-                            )}
-                          </div>
-                          <div className="ml-4 text-lg font-semibold text-secondary">
-                            {juryScore.score.toFixed(1)}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            )}
+          </Card>
+
+          <Card className="p-4">
+            <h3 className="text-lg font-semibold mb-4">Программа конкурса</h3>
+            {loadingProgram ? (
+              <p className="text-muted-foreground text-sm">Загрузка...</p>
+            ) : programRows.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Программа ещё не заполнена.</p>
+                <p className="text-sm mt-1">Добавьте участников на вкладке «Программа».</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      {columns.map(col => (
+                        <th key={col.key} className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap">{col.label}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {programRows.map(row => (
+                      <tr key={row.id} className="border-b hover:bg-muted/30">
+                        {columns.map(col => (
+                          <td key={col.key} className="py-2 px-2">{row[col.key]}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </>
       )}
     </div>
   );
