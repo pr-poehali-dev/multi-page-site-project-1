@@ -59,8 +59,13 @@ interface Assignment {
 interface ResultRow {
   id: number;
   order_number: number;
+  region: string;
+  directing_party: string;
   participant_name: string;
+  age: string;
   nomination: string;
+  piece_title: string;
+  duration: string;
   jury_scores: Array<{ order: number; score: number | null }>;
   jury_count: number;
   total: number | null;
@@ -388,25 +393,35 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm whitespace-nowrap">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground w-10">№</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Участник</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground hidden md:table-cell">Номинация</th>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">№</th>
+                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Регион</th>
+                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Направляющая сторона</th>
+                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">ФИО / Коллектив</th>
+                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Возраст</th>
+                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Номинация</th>
+                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Произведение / номер</th>
+                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Хронометраж</th>
                     {Array.from({ length: Math.max(maxJury, 1) }, (_, i) => (
-                      <th key={i} className="text-center py-2 px-2 font-medium text-muted-foreground w-20">Судья {i+1}</th>
+                      <th key={i} className="text-center py-2 px-2 font-medium text-muted-foreground">Судья {i+1}</th>
                     ))}
-                    <th className="text-center py-2 px-2 font-medium text-muted-foreground w-20">Итог</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground w-28">Звание</th>
+                    <th className="text-center py-2 px-2 font-medium text-muted-foreground">Итог</th>
+                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Звание</th>
                   </tr>
                 </thead>
                 <tbody>
                   {results.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/20">
                       <td className="py-2 px-2 text-secondary font-bold">{row.order_number}</td>
+                      <td className="py-2 px-2 text-muted-foreground">{row.region || '—'}</td>
+                      <td className="py-2 px-2 text-muted-foreground">{row.directing_party || '—'}</td>
                       <td className="py-2 px-2 font-medium">{row.participant_name}</td>
-                      <td className="py-2 px-2 text-muted-foreground hidden md:table-cell">{row.nomination}</td>
+                      <td className="py-2 px-2 text-muted-foreground">{row.age || '—'}</td>
+                      <td className="py-2 px-2 text-muted-foreground">{row.nomination || '—'}</td>
+                      <td className="py-2 px-2 text-muted-foreground">{row.piece_title || '—'}</td>
+                      <td className="py-2 px-2 text-muted-foreground">{row.duration || '—'}</td>
                       {Array.from({ length: Math.max(maxJury, 1) }, (_, i) => {
                         const entry = row.jury_scores.find(s => s.order === i + 1);
                         return (
