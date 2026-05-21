@@ -225,36 +225,40 @@ const JuryPanelPage = () => {
                 </div>
 
                 {/* Информация */}
-                <h2 className="text-2xl font-heading font-bold mb-4 leading-tight">{currentRow.participant_name}</h2>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  {currentRow.age && (
-                    <div className="bg-muted/40 rounded-lg px-3 py-2">
-                      <p className="text-xs text-muted-foreground mb-0.5">Возраст</p>
-                      <p className="font-medium text-sm">{currentRow.age}</p>
+                <h2 className="text-3xl font-heading font-bold mb-5 leading-tight">{currentRow.participant_name}</h2>
+                <div className="flex flex-col gap-3 mb-4">
+                  {currentRow.piece_title && (
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Название номера</p>
+                      <p className="text-xl font-semibold">{currentRow.piece_title}</p>
                     </div>
                   )}
                   {currentRow.nomination && (
-                    <div className="bg-muted/40 rounded-lg px-3 py-2">
-                      <p className="text-xs text-muted-foreground mb-0.5">Номинация</p>
-                      <p className="font-medium text-sm">{currentRow.nomination}</p>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Номинация</p>
+                      <p className="text-xl font-semibold">{currentRow.nomination}</p>
                     </div>
                   )}
-                  {currentRow.piece_title && (
-                    <div className="bg-muted/40 rounded-lg px-3 py-2 col-span-2">
-                      <p className="text-xs text-muted-foreground mb-0.5">Название номера</p>
-                      <p className="font-medium text-sm">{currentRow.piece_title}</p>
+                  {currentRow.age && (
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Возраст</p>
+                      <p className="text-xl font-semibold">{currentRow.age}</p>
                     </div>
                   )}
-                  {currentRow.region && (
-                    <div className="bg-muted/40 rounded-lg px-3 py-2">
-                      <p className="text-xs text-muted-foreground mb-0.5">Регион</p>
-                      <p className="font-medium text-sm">{currentRow.region}</p>
-                    </div>
-                  )}
-                  {currentRow.duration && (
-                    <div className="bg-muted/40 rounded-lg px-3 py-2">
-                      <p className="text-xs text-muted-foreground mb-0.5">Хронометраж</p>
-                      <p className="font-medium text-sm">{currentRow.duration}</p>
+                  {(currentRow.region || currentRow.duration) && (
+                    <div className="flex gap-6">
+                      {currentRow.region && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Регион</p>
+                          <p className="text-sm font-medium">{currentRow.region}</p>
+                        </div>
+                      )}
+                      {currentRow.duration && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Хронометраж</p>
+                          <p className="text-sm font-medium">{currentRow.duration}</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
