@@ -348,6 +348,132 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             cur.close()
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'rows': rows}), 'isBase64Encoded': False}
 
+        # GET jury_contests - конкурсы, к которым у жюри есть доступ (для панели жюри)
+        if method == 'GET' and action == 'jury_contests':
+            token = event.get('headers', {}).get('X-Jury-Token') or event.get('headers', {}).get('x-jury-token')
+            if not token:
+                return {'statusCode': 401, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется авторизация'}), 'isBase64Encoded': False}
+            jury_id = verify_jury_token(token, conn)
+            schema = 't_p73771717_multi_page_site_proj'
+            cur = conn.cursor()
+            cur.execute(f'''
+                SELECT c.id, c.title, c.start_date, c.end_date
+                FROM {schema}.contests c
+                JOIN {schema}.contest_jury_access cja ON cja.contest_id = c.id AND cja.jury_member_id = %s
+                ORDER BY c.start_date
+            ''', (jury_id,))
+            contests = []
+            for r in cur.fetchall():
+                contests.append({'id': r[0], 'title': r[1], 'start_date': r[2].isoformat() if r[2] else None, 'end_date': r[3].isoformat() if r[3] else None})
+            cur.close()
+            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'contests': contests}), 'isBase64Encoded': False}
+
+        # GET jury_program - участники из программы для жюри (назначенные ему)
+        if method == 'GET' and action == 'jury_program':
+            token = event.get('headers', {}).get('X-Jury-Token') or event.get('headers', {}).get('x-jury-token')
+            if not token:
+                return {'statusCode': 401, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется авторизация'}), 'isBase64Encoded': False}
+            jury_id = verify_jury_token(token, conn)
+            contest_id = params.get('contest_id')
+            if not contest_id:
+                return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется contest_id'}), 'isBase64Encoded': False}
+            schema = 't_p73771717_multi_page_site_proj'
+            cur = conn.cursor()
+            cur.execute(f'''
+                SELECT cp.id, cp.order_number, cp.participant_name, cp.age,
+                       cp.nomination, cp.piece_title, cp.duration, cp.region, cp.directing_party,
+                       pja.jury_member_id IS NOT NULL AS assigned,
+                       ps.score, ps.comment, ps.id AS score_id
+                FROM {schema}.contest_program cp
+                JOIN {schema}.program_jury_assignments pja
+                  ON pja.program_row_id = cp.id AND pja.jury_member_id = %s
+                LEFT JOIN {schema}.program_scores ps
+                  ON ps.program_row_id = cp.id AND ps.jury_member_id = %s
+                WHERE cp.contest_id = %s
+                ORDER BY cp.order_number
+            ''', (jury_id, jury_id, contest_id))
+            rows = []
+            for r in cur.fetchall():
+                rows.append({
+                    'id': r[0], 'order_number': r[1], 'participant_name': r[2],
+                    'age': r[3], 'nomination': r[4], 'piece_title': r[5],
+                    'duration': r[6], 'region': r[7], 'directing_party': r[8],
+                    'score': float(r[10]) if r[10] is not None else None,
+                    'comment': r[11], 'score_id': r[12]
+                })
+            cur.close()
+            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'rows': rows}), 'isBase64Encoded': False}
+
+        # GET program_assignments - назначения жюри для участников программы (admin)
+        if method == 'GET' and action == 'program_assignments':
+            contest_id = params.get('contest_id')
+            if not contest_id:
+                return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется contest_id'}), 'isBase64Encoded': False}
+            schema = 't_p73771717_multi_page_site_proj'
+            cur = conn.cursor()
+            cur.execute(f'''
+                SELECT pja.program_row_id, pja.jury_member_id, jm.name
+                FROM {schema}.program_jury_assignments pja
+                JOIN {schema}.jury_members jm ON jm.id = pja.jury_member_id
+                WHERE pja.contest_id = %s
+            ''', (contest_id,))
+            assignments = [{'program_row_id': r[0], 'jury_member_id': r[1], 'jury_name': r[2]} for r in cur.fetchall()]
+            cur.close()
+            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'assignments': assignments}), 'isBase64Encoded': False}
+
+        # POST program_assignment - назначить/снять жюри для участника программы (admin)
+        if method == 'POST' and action == 'program_assignment':
+            body = json.loads(event.get('body', '{}'))
+            program_row_id = body.get('program_row_id')
+            jury_member_id = body.get('jury_member_id')
+            contest_id = body.get('contest_id')
+            assigned = body.get('assigned', True)
+            if not program_row_id or not jury_member_id or not contest_id:
+                return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'program_row_id, jury_member_id, contest_id обязательны'}), 'isBase64Encoded': False}
+            schema = 't_p73771717_multi_page_site_proj'
+            cur = conn.cursor()
+            if assigned:
+                cur.execute(f'''
+                    INSERT INTO {schema}.program_jury_assignments (program_row_id, contest_id, jury_member_id)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (program_row_id, jury_member_id) DO NOTHING
+                ''', (program_row_id, contest_id, jury_member_id))
+            else:
+                cur.execute(f'''
+                    DELETE FROM {schema}.program_jury_assignments
+                    WHERE program_row_id = %s AND jury_member_id = %s
+                ''', (program_row_id, jury_member_id))
+            conn.commit()
+            cur.close()
+            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True}), 'isBase64Encoded': False}
+
+        # POST program_score - сохранение оценки участника программы жюри
+        if method == 'POST' and action == 'program_score':
+            token = event.get('headers', {}).get('X-Jury-Token') or event.get('headers', {}).get('x-jury-token')
+            if not token:
+                return {'statusCode': 401, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется авторизация'}), 'isBase64Encoded': False}
+            jury_id = verify_jury_token(token, conn)
+            body = json.loads(event.get('body', '{}'))
+            program_row_id = body.get('program_row_id')
+            contest_id = body.get('contest_id')
+            score = body.get('score')
+            comment = body.get('comment', '')
+            if not program_row_id or not contest_id or score is None:
+                return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'program_row_id, contest_id, score обязательны'}), 'isBase64Encoded': False}
+            schema = 't_p73771717_multi_page_site_proj'
+            cur = conn.cursor()
+            cur.execute(f'''
+                INSERT INTO {schema}.program_scores (program_row_id, jury_member_id, contest_id, score, comment)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (program_row_id, jury_member_id) DO UPDATE
+                SET score = EXCLUDED.score, comment = EXCLUDED.comment, updated_at = NOW()
+                RETURNING id
+            ''', (program_row_id, jury_id, contest_id, float(score), comment))
+            score_id = cur.fetchone()[0]
+            conn.commit()
+            cur.close()
+            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True, 'score_id': score_id}), 'isBase64Encoded': False}
+
         # DELETE participant - удаление участника (админская функция, не требует токена)
         if method == 'DELETE' and action == 'delete_participant':
             participant_id = params.get('participant_id')
