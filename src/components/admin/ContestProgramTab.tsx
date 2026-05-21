@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
+import * as XLSX from 'xlsx';
 
 const API_URL = 'https://functions.poehali.dev/9fcbf70c-fd6d-4489-bc77-1e4bcd6f1cb1';
 
@@ -63,6 +64,23 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
   const [editingRow, setEditingRow] = useState<ProgramRow | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newRow, setNewRow] = useState(emptyRow());
+
+  const handleExportExcel = () => {
+    const contestName = contests.find(c => String(c.id) === selectedContestId)?.title || 'программа';
+
+    const wsData = [
+      ['№', 'Регион', 'Направляющая сторона', 'ФИО / Коллектив', 'Возраст', 'Номинация', 'Произведение / номер', 'Хронометраж'],
+      ...rows.map(r => [r.order_number, r.region, r.directing_party, r.participant_name, r.age, r.nomination, r.piece_title, r.duration]),
+    ];
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    ws['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 10 }, { wch: 20 }, { wch: 35 }, { wch: 12 }];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Программа');
+    XLSX.writeFile(wb, `${contestName}_программа.xlsx`);
+  };
 
   const loadProgram = useCallback(async (contestId: string) => {
     setLoading(true);
@@ -178,10 +196,16 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
           </Select>
         </div>
         {selectedContestId && (
-          <Button onClick={() => setShowAddForm(true)} disabled={showAddForm}>
-            <Icon name="Plus" className="mr-2 h-4 w-4" />
-            Добавить строку
-          </Button>
+          <>
+            <Button onClick={() => setShowAddForm(true)} disabled={showAddForm}>
+              <Icon name="Plus" className="mr-2 h-4 w-4" />
+              Добавить строку
+            </Button>
+            <Button variant="outline" onClick={handleExportExcel} disabled={rows.length === 0}>
+              <Icon name="Download" className="mr-2 h-4 w-4" />
+              Экспорт Excel
+            </Button>
+          </>
         )}
       </div>
 
