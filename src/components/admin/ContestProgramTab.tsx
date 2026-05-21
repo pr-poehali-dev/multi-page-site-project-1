@@ -21,13 +21,6 @@ interface ProgramRow {
   duration: string;
 }
 
-interface ScoringRules {
-  grand_prix_min: number;
-  laureate_1_min: number;
-  laureate_2_min: number;
-  laureate_3_min: number;
-}
-
 interface Contest {
   id: number;
   title: string;
@@ -47,20 +40,11 @@ const emptyRow = (): Omit<ProgramRow, 'id' | 'order_number'> => ({
   duration: '',
 });
 
-const defaultScoring: ScoringRules = {
-  grand_prix_min: 95,
-  laureate_1_min: 85,
-  laureate_2_min: 75,
-  laureate_3_min: 65,
-};
-
 const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
   const { toast } = useToast();
   const [selectedContestId, setSelectedContestId] = useState<string>('');
   const [rows, setRows] = useState<ProgramRow[]>([]);
-  const [scoring, setScoring] = useState<ScoringRules>(defaultScoring);
   const [loading, setLoading] = useState(false);
-  const [savingScoring, setSavingScoring] = useState(false);
   const [editingRow, setEditingRow] = useState<ProgramRow | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newRow, setNewRow] = useState(emptyRow());
@@ -144,7 +128,6 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
       const res = await fetch(`${API_URL}?contest_id=${contestId}`);
       const data = await res.json();
       setRows(data.rows || []);
-      setScoring(data.scoring || defaultScoring);
     } catch {
       toast({ title: 'Ошибка', description: 'Не удалось загрузить программу', variant: 'destructive' });
     } finally {
@@ -208,23 +191,6 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
     }
   };
 
-  const handleSaveScoring = async () => {
-    if (!selectedContestId) return;
-    setSavingScoring(true);
-    try {
-      await fetch(`${API_URL}?action=scoring`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contest_id: Number(selectedContestId), ...scoring }),
-      });
-      toast({ title: 'Система оценивания сохранена' });
-    } catch {
-      toast({ title: 'Ошибка', description: 'Не удалось сохранить систему оценивания', variant: 'destructive' });
-    } finally {
-      setSavingScoring(false);
-    }
-  };
-
   const columns = [
     { key: 'order_number', label: '№', width: 'w-12' },
     { key: 'region', label: 'Регион', width: 'w-28' },
@@ -276,32 +242,6 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
 
       {selectedContestId && (
         <>
-          <Card className="p-4">
-            <h3 className="text-lg font-semibold mb-4">Система оценивания</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {([
-                { key: 'grand_prix_min', label: 'Гран-При (от баллов)' },
-                { key: 'laureate_1_min', label: 'Лауреат 1 степени (от)' },
-                { key: 'laureate_2_min', label: 'Лауреат 2 степени (от)' },
-                { key: 'laureate_3_min', label: 'Лауреат 3 степени (от)' },
-              ] as const).map(({ key, label }) => (
-                <div key={key}>
-                  <label className="text-sm font-medium mb-1 block">{label}</label>
-                  <Input
-                    type="number"
-                    value={scoring[key]}
-                    onChange={e => setScoring(prev => ({ ...prev, [key]: Number(e.target.value) }))}
-                    min={0}
-                    max={100}
-                  />
-                </div>
-              ))}
-            </div>
-            <Button className="mt-4" onClick={handleSaveScoring} disabled={savingScoring}>
-              {savingScoring ? 'Сохраняю...' : 'Сохранить систему оценивания'}
-            </Button>
-          </Card>
-
           <Card className="p-4">
             <h3 className="text-lg font-semibold mb-4">Программа конкурса</h3>
 

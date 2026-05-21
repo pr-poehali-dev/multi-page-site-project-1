@@ -1,11 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
 const API = 'https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d';
+const PROGRAM_API = 'https://functions.poehali.dev/9fcbf70c-fd6d-4489-bc77-1e4bcd6f1cb1';
+
+interface ScoringRules {
+  grand_prix_min: number;
+  laureate_1_min: number;
+  laureate_2_min: number;
+  laureate_3_min: number;
+}
+
+const defaultScoring: ScoringRules = {
+  grand_prix_min: 95,
+  laureate_1_min: 85,
+  laureate_2_min: 75,
+  laureate_3_min: 65,
+};
 
 interface ProgramRow {
   id: number;
@@ -47,6 +63,8 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
   const [programRows, setProgramRows] = useState<ProgramRow[]>([]);
   const [juryList, setJuryList] = useState<JuryMember[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [scoring, setScoring] = useState<ScoringRules>(defaultScoring);
+  const [savingScoring, setSavingScoring] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [togglingJury, setTogglingJury] = useState<number | null>(null);
   const [togglingAssign, setTogglingAssign] = useState<string | null>(null);
@@ -55,15 +73,17 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
   const loadData = useCallback(async (contestId: string) => {
     setLoadingData(true);
     try {
-      const [progRes, juryRes, assignRes] = await Promise.all([
+      const [progRes, juryRes, assignRes, scoringRes] = await Promise.all([
         fetch(`${API}?action=program_scores&contest_id=${contestId}`),
         fetch(`${API}?action=jury_access&contest_id=${contestId}`),
         fetch(`${API}?action=program_assignments&contest_id=${contestId}`),
+        fetch(`${PROGRAM_API}?contest_id=${contestId}`),
       ]);
-      const [prog, jury, assign] = await Promise.all([progRes.json(), juryRes.json(), assignRes.json()]);
+      const [prog, jury, assign, scoringData] = await Promise.all([progRes.json(), juryRes.json(), assignRes.json(), scoringRes.json()]);
       setProgramRows(prog.rows || []);
       setJuryList(jury.jury || []);
       setAssignments(assign.assignments || []);
+      setScoring(scoringData.scoring || defaultScoring);
     } catch {
       toast({ title: 'Ошибка', description: 'Не удалось загрузить данные', variant: 'destructive' });
     } finally {
@@ -81,6 +101,23 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
       setAssignments([]);
     }
   }, [selectedContest, loadData]);
+
+  const handleSaveScoring = async () => {
+    if (!selectedContest) return;
+    setSavingScoring(true);
+    try {
+      await fetch(`${PROGRAM_API}?action=scoring`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contest_id: Number(selectedContest), ...scoring }),
+      });
+      toast({ title: 'Система оценивания сохранена' });
+    } catch {
+      toast({ title: 'Ошибка', description: 'Не удалось сохранить систему оценивания', variant: 'destructive' });
+    } finally {
+      setSavingScoring(false);
+    }
+  };
 
   const toggleJuryAccess = async (juryMember: JuryMember) => {
     setTogglingJury(juryMember.id);
@@ -152,6 +189,32 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
         </div>
       ) : (
         <>
+          <Card className="p-4">
+            <h3 className="text-lg font-semibold mb-4">Система оценивания</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {([
+                { key: 'grand_prix_min', label: 'Гран-При (от баллов)' },
+                { key: 'laureate_1_min', label: 'Лауреат 1 степени (от)' },
+                { key: 'laureate_2_min', label: 'Лауреат 2 степени (от)' },
+                { key: 'laureate_3_min', label: 'Лауреат 3 степени (от)' },
+              ] as const).map(({ key, label }) => (
+                <div key={key}>
+                  <label className="text-sm font-medium mb-1 block">{label}</label>
+                  <Input
+                    type="number"
+                    value={scoring[key]}
+                    onChange={e => setScoring(prev => ({ ...prev, [key]: Number(e.target.value) }))}
+                    min={0}
+                    max={100}
+                  />
+                </div>
+              ))}
+            </div>
+            <Button className="mt-4" onClick={handleSaveScoring} disabled={savingScoring}>
+              {savingScoring ? 'Сохраняю...' : 'Сохранить систему оценивания'}
+            </Button>
+          </Card>
+
           <Card className="p-4">
             <h3 className="text-lg font-semibold mb-4">Доступ жюри к конкурсу</h3>
             {juryList.length === 0 ? (
