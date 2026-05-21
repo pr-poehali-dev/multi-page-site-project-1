@@ -6,15 +6,25 @@ from typing import Dict, Any
 
 SCHEMA = 't_p73771717_multi_page_site_proj'
 
+JURY_COUNTS = [1, 2, 3, 4, 5]
+LEVELS = ['grand_prix_min', 'laureate_1_min', 'laureate_2_min', 'laureate_3_min']
+
+DEFAULT_SCORING = {}
+for n in JURY_COUNTS:
+    DEFAULT_SCORING[f'jury_count_{n}_grand_prix_min'] = n * 95
+    DEFAULT_SCORING[f'jury_count_{n}_laureate_1_min'] = n * 85
+    DEFAULT_SCORING[f'jury_count_{n}_laureate_2_min'] = n * 75
+    DEFAULT_SCORING[f'jury_count_{n}_laureate_3_min'] = n * 65
+
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
     Управление программой конкурса и системой оценивания
     GET /?contest_id=X - получить программу и правила оценивания конкурса
-    POST / - создать/обновить строку программы
+    POST / - создать строку программы
     PUT / - обновить строку программы
     DELETE / - удалить строку программы
-    POST /scoring - сохранить систему оценивания конкурса
+    POST /?action=scoring - сохранить систему оценивания конкурса
     '''
     method = event.get('httpMethod', 'GET')
 
@@ -63,6 +73,8 @@ def get_program(conn, event: Dict[str, Any]) -> Dict[str, Any]:
     if not contest_id:
         return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'contest_id обязателен'}), 'isBase64Encoded': False}
 
+    scoring_cols = ', '.join([f'jury_count_{n}_{lvl}' for n in JURY_COUNTS for lvl in LEVELS])
+
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(f'''
             SELECT id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration
@@ -73,7 +85,7 @@ def get_program(conn, event: Dict[str, Any]) -> Dict[str, Any]:
         rows = list(cur.fetchall())
 
         cur.execute(f'''
-            SELECT grand_prix_min, laureate_1_min, laureate_2_min, laureate_3_min
+            SELECT {scoring_cols}
             FROM {SCHEMA}.contest_scoring_rules
             WHERE contest_id = %s
         ''', (contest_id,))
@@ -82,7 +94,7 @@ def get_program(conn, event: Dict[str, Any]) -> Dict[str, Any]:
     return {
         'statusCode': 200,
         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'rows': rows, 'scoring': dict(scoring) if scoring else None}),
+        'body': json.dumps({'rows': rows, 'scoring': dict(scoring) if scoring else DEFAULT_SCORING}),
         'isBase64Encoded': False
     }
 
@@ -179,28 +191,29 @@ def delete_row(conn, event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def save_scoring(conn, event: Dict[str, Any]) -> Dict[str, Any]:
-    '''Сохранение системы оценивания конкурса (upsert)'''
+    '''Сохранение системы оценивания конкурса (upsert) для 1-5 судей'''
     body = json.loads(event.get('body', '{}'))
     contest_id = body.get('contest_id')
     if not contest_id:
         return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'contest_id обязателен'}), 'isBase64Encoded': False}
 
-    grand_prix_min = body.get('grand_prix_min', 95)
-    laureate_1_min = body.get('laureate_1_min', 85)
-    laureate_2_min = body.get('laureate_2_min', 75)
-    laureate_3_min = body.get('laureate_3_min', 65)
+    all_cols = [f'jury_count_{n}_{lvl}' for n in JURY_COUNTS for lvl in LEVELS]
+    values_dict = {col: body.get(col, DEFAULT_SCORING.get(col, 0)) for col in all_cols}
+
+    set_clause = ', '.join([f'{col} = %s' for col in all_cols])
+    insert_cols = ', '.join(['contest_id'] + all_cols)
+    insert_placeholders = ', '.join(['%s'] * (1 + len(all_cols)))
+    insert_values = [contest_id] + [values_dict[col] for col in all_cols]
+    update_values = [values_dict[col] for col in all_cols]
 
     with conn.cursor() as cur:
         cur.execute(f'''
-            INSERT INTO {SCHEMA}.contest_scoring_rules (contest_id, grand_prix_min, laureate_1_min, laureate_2_min, laureate_3_min)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO {SCHEMA}.contest_scoring_rules ({insert_cols})
+            VALUES ({insert_placeholders})
             ON CONFLICT (contest_id) DO UPDATE SET
-              grand_prix_min = EXCLUDED.grand_prix_min,
-              laureate_1_min = EXCLUDED.laureate_1_min,
-              laureate_2_min = EXCLUDED.laureate_2_min,
-              laureate_3_min = EXCLUDED.laureate_3_min,
+              {set_clause},
               updated_at = NOW()
-        ''', (contest_id, grand_prix_min, laureate_1_min, laureate_2_min, laureate_3_min))
+        ''', insert_values + update_values)
 
     return {
         'statusCode': 200,

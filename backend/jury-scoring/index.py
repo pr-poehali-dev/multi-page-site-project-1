@@ -348,6 +348,125 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             cur.close()
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'rows': rows}), 'isBase64Encoded': False}
 
+        # GET results_table - таблица результатов с оценками судей, итогом и званием (admin)
+        if method == 'GET' and action == 'results_table':
+            contest_id = params.get('contest_id')
+            if not contest_id:
+                return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется contest_id'}), 'isBase64Encoded': False}
+
+            schema = 't_p73771717_multi_page_site_proj'
+            cur = conn.cursor()
+
+            # Получаем всех участников программы
+            cur.execute(f'''
+                SELECT cp.id, cp.order_number, cp.participant_name, cp.age, cp.nomination, cp.piece_title, cp.region, cp.directing_party
+                FROM {schema}.contest_program cp
+                WHERE cp.contest_id = %s
+                ORDER BY cp.order_number
+            ''', (contest_id,))
+            program_rows = cur.fetchall()
+
+            # Получаем всех назначенных судей для каждого участника (в порядке назначения)
+            cur.execute(f'''
+                SELECT pja.program_row_id, pja.jury_member_id, jm.name,
+                       ROW_NUMBER() OVER (PARTITION BY pja.program_row_id ORDER BY pja.id) AS jury_order
+                FROM {schema}.program_jury_assignments pja
+                JOIN {schema}.jury_members jm ON jm.id = pja.jury_member_id
+                WHERE pja.contest_id = %s
+                ORDER BY pja.program_row_id, pja.id
+            ''', (contest_id,))
+            assignments_raw = cur.fetchall()
+
+            # Получаем все оценки
+            cur.execute(f'''
+                SELECT ps.program_row_id, ps.jury_member_id, ps.score
+                FROM {schema}.program_scores ps
+                WHERE ps.contest_id = %s
+            ''', (contest_id,))
+            scores_raw = cur.fetchall()
+
+            # Получаем систему оценивания
+            cur.execute(f'''
+                SELECT jury_count_1_grand_prix_min, jury_count_1_laureate_1_min, jury_count_1_laureate_2_min, jury_count_1_laureate_3_min,
+                       jury_count_2_grand_prix_min, jury_count_2_laureate_1_min, jury_count_2_laureate_2_min, jury_count_2_laureate_3_min,
+                       jury_count_3_grand_prix_min, jury_count_3_laureate_1_min, jury_count_3_laureate_2_min, jury_count_3_laureate_3_min,
+                       jury_count_4_grand_prix_min, jury_count_4_laureate_1_min, jury_count_4_laureate_2_min, jury_count_4_laureate_3_min,
+                       jury_count_5_grand_prix_min, jury_count_5_laureate_1_min, jury_count_5_laureate_2_min, jury_count_5_laureate_3_min
+                FROM {schema}.contest_scoring_rules
+                WHERE contest_id = %s
+            ''', (contest_id,))
+            scoring_row = cur.fetchone()
+            cur.close()
+
+            # Дефолтные пороги
+            default_thresholds = {n: {'grand_prix': n*95, 'laureate_1': n*85, 'laureate_2': n*75, 'laureate_3': n*65} for n in range(1, 6)}
+            if scoring_row:
+                thresholds = {}
+                cols = ['grand_prix', 'laureate_1', 'laureate_2', 'laureate_3']
+                for i, n in enumerate(range(1, 6)):
+                    thresholds[n] = {cols[j]: scoring_row[i*4 + j] for j in range(4)}
+            else:
+                thresholds = default_thresholds
+
+            # Индексируем назначения и оценки
+            assignments_by_row = {}
+            for row_id, jury_id, jury_name, order in assignments_raw:
+                if row_id not in assignments_by_row:
+                    assignments_by_row[row_id] = []
+                assignments_by_row[row_id].append({'jury_member_id': jury_id, 'jury_name': jury_name, 'order': order})
+
+            scores_index = {(r[0], r[1]): float(r[2]) for r in scores_raw}
+
+            def get_award(total, jury_count):
+                if jury_count < 1 or jury_count > 5:
+                    return ''
+                t = thresholds.get(jury_count, default_thresholds.get(jury_count, {}))
+                if total >= t.get('grand_prix', 9999):
+                    return 'Гран-При'
+                elif total >= t.get('laureate_1', 9999):
+                    return 'Лауреат I'
+                elif total >= t.get('laureate_2', 9999):
+                    return 'Лауреат II'
+                elif total >= t.get('laureate_3', 9999):
+                    return 'Лауреат III'
+                return 'Диплом'
+
+            result = []
+            for row in program_rows:
+                row_id = row[0]
+                jury_list = assignments_by_row.get(row_id, [])
+                jury_scores = []
+                total = 0.0
+                all_scored = len(jury_list) > 0
+                for j in jury_list:
+                    score = scores_index.get((row_id, j['jury_member_id']))
+                    jury_scores.append({'order': j['order'], 'score': score})
+                    if score is not None:
+                        total += score
+                    else:
+                        all_scored = False
+
+                jury_count = len(jury_list)
+                award = get_award(total, jury_count) if all_scored and jury_count > 0 else ''
+
+                result.append({
+                    'id': row_id,
+                    'order_number': row[1],
+                    'participant_name': row[2],
+                    'age': row[3],
+                    'nomination': row[4],
+                    'piece_title': row[5],
+                    'region': row[6],
+                    'directing_party': row[7],
+                    'jury_scores': jury_scores,
+                    'jury_count': jury_count,
+                    'total': round(total, 2) if all_scored and jury_count > 0 else None,
+                    'award': award,
+                    'all_scored': all_scored and jury_count > 0,
+                })
+
+            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'rows': result, 'thresholds': {str(k): v for k, v in thresholds.items()}}), 'isBase64Encoded': False}
+
         # GET jury_contests - конкурсы, к которым у жюри есть доступ (для панели жюри)
         if method == 'GET' and action == 'jury_contests':
             token = event.get('headers', {}).get('X-Jury-Token') or event.get('headers', {}).get('x-jury-token')
