@@ -1,10 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const API = 'https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d';
 const PROGRAM_API = 'https://functions.poehali.dev/9fcbf70c-fd6d-4489-bc77-1e4bcd6f1cb1';
@@ -105,6 +108,68 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
   const [togglingAssign, setTogglingAssign] = useState<string | null>(null);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'setup' | 'results'>('setup');
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  const contestTitle = contests.find(c => String(c.id) === selectedContest)?.title || 'результаты';
+
+  const exportExcel = () => {
+    if (!results.length) return;
+    const juryCount = Math.max(...results.map(r => r.jury_count), 1);
+    const juryHeaders = Array.from({ length: juryCount }, (_, i) => `Судья ${i + 1}`);
+    const headers = ['№', 'Регион', 'Направляющая сторона', 'ФИО / Коллектив', 'Возраст', 'Номинация', 'Произведение / номер', 'Хронометраж', ...juryHeaders, 'Итог', 'Звание'];
+    const rows = results.map(row => {
+      const juryScores = Array.from({ length: juryCount }, (_, i) => {
+        const entry = row.jury_scores.find(s => s.order === i + 1);
+        return i < row.jury_count ? (entry?.score ?? '') : '';
+      });
+      return [row.order_number, row.region, row.directing_party, row.participant_name, row.age, row.nomination, row.piece_title, row.duration, ...juryScores, row.total ?? '', row.award];
+    });
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    ws['!cols'] = [{ wch: 4 }, { wch: 18 }, { wch: 22 }, { wch: 28 }, { wch: 8 }, { wch: 20 }, { wch: 30 }, { wch: 12 }, ...Array(juryCount).fill({ wch: 10 }), { wch: 8 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, ws, 'Результаты');
+    XLSX.writeFile(wb, `${contestTitle}_результаты.xlsx`);
+  };
+
+  const exportPdf = async () => {
+    if (!tableRef.current || !results.length) return;
+    setExportingPdf(true);
+    try {
+      const canvas = await html2canvas(tableRef.current, { scale: 1.5, useCORS: true, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW - 10;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      let y = 5;
+      pdf.setFontSize(12);
+      pdf.text(`Результаты оценивания: ${contestTitle}`, 5, y + 5);
+      y += 10;
+      if (imgH <= pageH - y) {
+        pdf.addImage(imgData, 'PNG', 5, y, imgW, imgH);
+      } else {
+        let srcY = 0;
+        const sliceH = ((pageH - y) / imgH) * canvas.height;
+        while (srcY < canvas.height) {
+          const sliceCanvas = document.createElement('canvas');
+          sliceCanvas.width = canvas.width;
+          sliceCanvas.height = Math.min(sliceH, canvas.height - srcY);
+          const ctx = sliceCanvas.getContext('2d')!;
+          ctx.drawImage(canvas, 0, -srcY);
+          const sliceImg = sliceCanvas.toDataURL('image/png');
+          const sliceImgH = (sliceCanvas.height * imgW) / canvas.width;
+          pdf.addImage(sliceImg, 'PNG', 5, y, imgW, sliceImgH);
+          srcY += sliceH;
+          if (srcY < canvas.height) { pdf.addPage(); y = 5; }
+        }
+      }
+      pdf.save(`${contestTitle}_результаты.pdf`);
+    } finally {
+      setExportingPdf(false);
+    }
+  };
 
   const loadData = useCallback(async (contestId: string) => {
     setLoadingData(true);
@@ -374,12 +439,22 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
       ) : (
         /* Вкладка Результаты */
         <Card className="p-4">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <h3 className="text-lg font-semibold">Результаты оценивания</h3>
-            <Button variant="outline" size="sm" onClick={() => loadResults(selectedContest)} disabled={loadingResults}>
-              <Icon name={loadingResults ? 'Loader' : 'RefreshCw'} size={14} className={`mr-2 ${loadingResults ? 'animate-spin' : ''}`} />
-              Обновить
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => loadResults(selectedContest)} disabled={loadingResults}>
+                <Icon name={loadingResults ? 'Loader' : 'RefreshCw'} size={14} className={`mr-2 ${loadingResults ? 'animate-spin' : ''}`} />
+                Обновить
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportExcel} disabled={!results.length}>
+                <Icon name="FileSpreadsheet" size={14} className="mr-2" />
+                Excel
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportPdf} disabled={!results.length || exportingPdf}>
+                <Icon name={exportingPdf ? 'Loader' : 'FileText'} size={14} className={`mr-2 ${exportingPdf ? 'animate-spin' : ''}`} />
+                PDF
+              </Button>
+            </div>
           </div>
           {loadingResults ? (
             <div className="text-center py-8 text-muted-foreground">
@@ -392,7 +467,7 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
               <p>Нет участников в программе</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div ref={tableRef} className="overflow-x-auto">
               <table className="w-full text-sm whitespace-nowrap">
                 <thead>
                   <tr className="border-b bg-muted/30">
