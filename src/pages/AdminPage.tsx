@@ -191,6 +191,7 @@ const AdminPage = () => {
       case 'gallery': return galleryLoading;
       case 'results': return resultsLoading;
       case 'partners': return partnersLoading;
+      case 'program': return false;
       default: return juryLoading;
     }
   }, [activeTab, applicationsLoading, contestsLoading, concertsLoading, scoringLoading, galleryLoading, resultsLoading, partnersLoading, juryLoading]);

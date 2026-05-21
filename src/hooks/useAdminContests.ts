@@ -31,7 +31,7 @@ interface ContestFormData {
 
 export const useAdminContests = () => {
   const [contests, setContests] = useState<Contest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedContest, setSelectedContest] = useState<Contest | null>(null);
