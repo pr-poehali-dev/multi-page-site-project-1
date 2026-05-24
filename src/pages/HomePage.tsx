@@ -257,47 +257,41 @@ const HomePage = () => {
               </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-8 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {contests.map((contest, index) => (
                 <Link key={contest.id} to={`/contests`}>
                   <Card
-                    className="overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 animate-fade-in cursor-pointer"
+                    className="overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 animate-fade-in cursor-pointer h-full"
                     style={{ animationDelay: `${index * 0.15}s` }}
                   >
-                    <div className="flex flex-col md:flex-row">
-                      <div className={`md:w-80 lg:w-96 shrink-0 ${getContestColor(index)} flex items-center justify-center overflow-hidden min-h-64`}>
-                        {contest.poster_url ? (
-                          <img
-                            src={contest.poster_url}
-                            alt={contest.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="text-8xl opacity-20">🎭</div>
-                        )}
+                    <div className={`h-52 ${getContestColor(index)} flex items-center justify-center overflow-hidden`}>
+                      {contest.poster_url ? (
+                        <img
+                          src={contest.poster_url}
+                          alt={contest.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-7xl opacity-20">🎭</div>
+                      )}
+                    </div>
+                    <div className="p-5 flex flex-col gap-2">
+                      <div className="inline-block px-3 py-1 bg-secondary/10 text-secondary text-xs font-semibold rounded-full w-fit">
+                        {contest.status === 'active' ? 'Идет сейчас' : 'Скоро'}
                       </div>
-                      <div className="flex flex-col justify-between p-8 flex-grow">
-                        <div>
-                          <div className="inline-block px-3 py-1 bg-secondary/10 text-secondary text-xs font-semibold rounded-full mb-4">
-                            {contest.status === 'active' ? 'Идет сейчас' : 'Скоро'}
-                          </div>
-                          <h3 className="text-2xl font-heading font-bold mb-3">{contest.title}</h3>
-                          {contest.description && (
-                            <p className="text-muted-foreground mb-4 line-clamp-3 leading-relaxed">
-                              {contest.description}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between flex-wrap gap-4 mt-4">
-                          <p className="text-sm text-muted-foreground flex items-center gap-2">
-                            <Icon name="Calendar" size={16} />
-                            {formatDateRange(contest.start_date, contest.end_date)}
-                          </p>
-                          <Button variant="outline">
-                            Подробнее
-                          </Button>
-                        </div>
-                      </div>
+                      <h3 className="text-lg font-heading font-bold leading-tight">{contest.title}</h3>
+                      {contest.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {contest.description}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+                        <Icon name="Calendar" size={14} />
+                        {formatDateRange(contest.start_date, contest.end_date)}
+                      </p>
+                      <Button variant="outline" className="w-full mt-2">
+                        Подробнее
+                      </Button>
                     </div>
                   </Card>
                 </Link>
