@@ -1,7 +1,6 @@
 import json
 import os
 import base64
-
 import boto3
 from typing import Dict, Any
 from pydantic import BaseModel, Field
