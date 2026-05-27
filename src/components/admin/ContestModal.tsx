@@ -59,19 +59,20 @@ const ContestModal = ({
         try {
           const base64String = (event.target?.result as string).split(',')[1];
 
-          const response = await fetch('https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3', {
+          const response = await fetch('https://functions.poehali.dev/b0d40cbb-41ff-48a1-a800-101845d59a03', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              applicationId: contestId || 0,
-              files: [{ fileName: `${contestId || 0}_${file.name}`, fileType: 'application/pdf', fileSize: file.size, fileData: base64String }]
+              file_name: file.name,
+              contest_id: contestId || 0,
+              file_base64: base64String
             })
           });
 
           const data = await response.json();
 
-          if (data.files && data.files.length > 0) {
-            setFormData({ ...formData, pdf_url: data.files[0].fileUrl });
+          if (data.pdf_url) {
+            setFormData({ ...formData, pdf_url: data.pdf_url });
             toast({ title: 'Успешно', description: 'PDF загружен' });
           } else {
             toast({ title: 'Ошибка', description: 'Не удалось загрузить PDF', variant: 'destructive' });
