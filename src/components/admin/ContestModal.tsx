@@ -40,9 +40,9 @@ const ContestModal = ({
       return;
     }
 
-    const MAX_PDF_SIZE = 6 * 1024 * 1024; // 6 МБ
+    const MAX_PDF_SIZE = 4 * 1024 * 1024; // 4 МБ (base64 увеличивает размер ~33%, лимит запроса ~6 МБ)
     if (file.size > MAX_PDF_SIZE) {
-      toast({ title: 'Файл слишком большой', description: `Максимальный размер PDF — 6 МБ. Ваш файл: ${(file.size / 1024 / 1024).toFixed(1)} МБ`, variant: 'destructive' });
+      toast({ title: 'Файл слишком большой', description: `Максимальный размер PDF — 4 МБ. Ваш файл: ${(file.size / 1024 / 1024).toFixed(1)} МБ`, variant: 'destructive' });
       return;
     }
 
