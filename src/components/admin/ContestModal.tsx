@@ -40,9 +40,9 @@ const ContestModal = ({
       return;
     }
 
-    const MAX_PDF_SIZE = 4 * 1024 * 1024; // 4 МБ (base64 увеличивает размер ~33%, лимит запроса ~6 МБ)
+    const MAX_PDF_SIZE = 50 * 1024 * 1024; // 50 МБ
     if (file.size > MAX_PDF_SIZE) {
-      toast({ title: 'Файл слишком большой', description: `Максимальный размер PDF — 4 МБ. Ваш файл: ${(file.size / 1024 / 1024).toFixed(1)} МБ`, variant: 'destructive' });
+      toast({ title: 'Файл слишком большой', description: `Максимальный размер PDF — 50 МБ. Ваш файл: ${(file.size / 1024 / 1024).toFixed(1)} МБ`, variant: 'destructive' });
       return;
     }
 
@@ -54,24 +54,27 @@ const ContestModal = ({
     setUploadingPdf(true);
 
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64String = (event.target?.result as string).split(',')[1];
+      const response = await fetch('https://functions.poehali.dev/b0d40cbb-41ff-48a1-a800-101845d59a03', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_name: file.name, contest_id: contestId || 0 })
+      });
 
-        const response = await fetch('https://functions.poehali.dev/b0d40cbb-41ff-48a1-a800-101845d59a03', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file_base64: base64String, file_name: file.name, contest_id: contestId || 0 })
-        });
+      const data = await response.json();
 
-        const data = await response.json();
+      if (!data.upload_url) {
+        toast({ title: 'Ошибка', description: 'Не удалось получить URL для загрузки', variant: 'destructive' });
+        return;
+      }
 
-        if (data.pdf_url) {
-          setFormData({ ...formData, pdf_url: data.pdf_url });
-          toast({ title: 'Успешно', description: 'PDF загружен' });
-        }
-      };
-      reader.readAsDataURL(file);
+      await fetch(data.upload_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/pdf' },
+        body: file
+      });
+
+      setFormData({ ...formData, pdf_url: data.pdf_url });
+      toast({ title: 'Успешно', description: 'PDF загружен' });
     } catch (error) {
       console.error('Upload error:', error);
       toast({ title: 'Ошибка', description: 'Не удалось загрузить PDF', variant: 'destructive' });
