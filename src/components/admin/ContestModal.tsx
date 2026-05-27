@@ -54,39 +54,39 @@ const ContestModal = ({
     setUploadingPdf(true);
 
     try {
-      // Шаг 1: получаем presigned URL от бэкенда
-      const response = await fetch('https://functions.poehali.dev/b0d40cbb-41ff-48a1-a800-101845d59a03', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_name: file.name, contest_id: contestId || 0 })
-      });
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const base64String = (event.target?.result as string).split(',')[1];
 
-      const data = await response.json();
+          const response = await fetch('https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              applicationId: contestId || 0,
+              files: [{ fileName: `${contestId || 0}_${file.name}`, fileType: 'application/pdf', fileSize: file.size, fileData: base64String }]
+            })
+          });
 
-      if (!data.upload_url) {
-        toast({ title: 'Ошибка', description: 'Не удалось получить URL для загрузки', variant: 'destructive' });
-        setUploadingPdf(false);
-        return;
-      }
+          const data = await response.json();
 
-      // Шаг 2: загружаем файл напрямую в S3 без лишних заголовков
-      const uploadResponse = await fetch(data.upload_url, {
-        method: 'PUT',
-        body: file
-      });
-
-      if (!uploadResponse.ok && uploadResponse.status !== 0) {
-        toast({ title: 'Ошибка', description: 'Не удалось загрузить файл в хранилище', variant: 'destructive' });
-        setUploadingPdf(false);
-        return;
-      }
-
-      setFormData({ ...formData, pdf_url: data.pdf_url });
-      toast({ title: 'Успешно', description: 'PDF загружен' });
+          if (data.files && data.files.length > 0) {
+            setFormData({ ...formData, pdf_url: data.files[0].fileUrl });
+            toast({ title: 'Успешно', description: 'PDF загружен' });
+          } else {
+            toast({ title: 'Ошибка', description: 'Не удалось загрузить PDF', variant: 'destructive' });
+          }
+        } catch (error) {
+          console.error('Upload error:', error);
+          toast({ title: 'Ошибка', description: 'Не удалось загрузить PDF', variant: 'destructive' });
+        } finally {
+          setUploadingPdf(false);
+        }
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Upload error:', error);
-      toast({ title: 'Ошибка', description: 'Не удалось загрузить PDF', variant: 'destructive' });
-    } finally {
+      console.error('FileReader error:', error);
+      toast({ title: 'Ошибка', description: 'Не удалось прочитать файл', variant: 'destructive' });
       setUploadingPdf(false);
     }
   };
