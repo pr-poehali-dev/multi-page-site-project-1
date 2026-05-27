@@ -40,6 +40,12 @@ const ContestModal = ({
       return;
     }
 
+    const MAX_PDF_SIZE = 4 * 1024 * 1024; // 4 МБ
+    if (file.size > MAX_PDF_SIZE) {
+      toast({ title: 'Файл слишком большой', description: `Максимальный размер PDF — 4 МБ. Ваш файл: ${(file.size / 1024 / 1024).toFixed(1)} МБ`, variant: 'destructive' });
+      return;
+    }
+
     if (!contestId && mode === 'edit') {
       toast({ title: 'Ошибка', description: 'Сначала сохраните конкурс', variant: 'destructive' });
       return;
