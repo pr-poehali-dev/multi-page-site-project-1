@@ -54,40 +54,32 @@ const ContestModal = ({
     setUploadingPdf(true);
 
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const base64String = (event.target?.result as string).split(',')[1];
+      const response = await fetch('https://functions.poehali.dev/b0d40cbb-41ff-48a1-a800-101845d59a03', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_name: file.name, contest_id: contestId || 0 })
+      });
 
-          const response = await fetch('https://functions.poehali.dev/b0d40cbb-41ff-48a1-a800-101845d59a03', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              file_name: file.name,
-              contest_id: contestId || 0,
-              file_base64: base64String
-            })
-          });
+      const data = await response.json();
 
-          const data = await response.json();
+      if (!data.upload_url) {
+        toast({ title: 'Ошибка', description: 'Не удалось получить URL для загрузки', variant: 'destructive' });
+        setUploadingPdf(false);
+        return;
+      }
 
-          if (data.pdf_url) {
-            setFormData({ ...formData, pdf_url: data.pdf_url });
-            toast({ title: 'Успешно', description: 'PDF загружен' });
-          } else {
-            toast({ title: 'Ошибка', description: 'Не удалось загрузить PDF', variant: 'destructive' });
-          }
-        } catch (error) {
-          console.error('Upload error:', error);
-          toast({ title: 'Ошибка', description: 'Не удалось загрузить PDF', variant: 'destructive' });
-        } finally {
-          setUploadingPdf(false);
-        }
-      };
-      reader.readAsDataURL(file);
+      await fetch(data.upload_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/pdf' },
+        body: file
+      });
+
+      setFormData({ ...formData, pdf_url: data.pdf_url });
+      toast({ title: 'Успешно', description: 'PDF загружен' });
     } catch (error) {
-      console.error('FileReader error:', error);
-      toast({ title: 'Ошибка', description: 'Не удалось прочитать файл', variant: 'destructive' });
+      console.error('Upload error:', error);
+      toast({ title: 'Ошибка', description: 'Не удалось загрузить PDF', variant: 'destructive' });
+    } finally {
       setUploadingPdf(false);
     }
   };

@@ -1,16 +1,16 @@
 {
   "tests": [
     {
-      "name": "Upload PDF base64",
+      "name": "Get presigned URL for PDF upload",
       "method": "POST",
       "path": "/",
       "body": {
         "file_name": "test.pdf",
-        "contest_id": 1,
-        "file_base64": "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlIC9DYXRhbG9nIC9QYWdlcyAyIDAgUj4+CmVuZG9iagoyIDAgb2JqCjw8L1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDE+PgplbmRvYmoKMyAwIG9iago8PC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNjEyIDc5Ml0+PgplbmRvYmoKeHJlZgowIDQKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNjIgMDAwMDAgbiAKMDAwMDAwMDExNyAwMDAwMCBuIAp0cmFpbGVyCjw8L1NpemUgNCAvUm9vdCAxIDAgUj4+CnN0YXJ0eHJlZgoyMDQKJSVFT0YK"
+        "contest_id": 1
       },
       "expectedStatus": 200,
       "expectedBody": {
+        "upload_url": "string",
         "pdf_url": "string"
       },
       "bodyMatcher": "partial"
