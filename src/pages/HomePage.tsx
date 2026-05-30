@@ -189,7 +189,7 @@ const HomePage = () => {
               />
             </div>
             
-            <img src="https://cdn.poehali.dev/projects/ecdaf1c5-6d12-4487-8a18-89243ebbcc9e/bucket/d7969e35-7237-45a5-a6f9-1478e611b8d5.png" alt="Здесь рождаются звезды!" className="mx-auto my-[17px] w-auto max-w-2xl" style={{ height: 'clamp(48px, 12vw, 120px)' }} />
+            <img src="https://cdn.poehali.dev/projects/ecdaf1c5-6d12-4487-8a18-89243ebbcc9e/bucket/d7969e35-7237-45a5-a6f9-1478e611b8d5.png" alt="Здесь рождаются звезды!" className="mx-auto my-[17px] w-auto max-w-2xl" style={{ height: 'clamp(80px, 18vw, 180px)', filter: 'contrast(1.3) brightness(0.85)' }} />
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/contests">
                 <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-lg px-8 animate-scale-in">
