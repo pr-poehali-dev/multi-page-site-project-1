@@ -129,6 +129,15 @@ const HomePage = () => {
       <Navigation />
 
       <section className="pt-32 pb-20 px-4 relative overflow-hidden">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover z-0"
+          src="https://cdn.poehali.dev/projects/ecdaf1c5-6d12-4487-8a18-89243ebbcc9e/bucket/2ed1068b-f0ff-4a37-bd51-5148f07c1d8c.mp4"
+        />
+        <div className="absolute inset-0 bg-background/70 z-0" />
         <div className="absolute top-20 right-10 w-72 h-72 bg-secondary/20 rounded-full blur-3xl animate-float" />
         <div className="absolute bottom-10 left-10 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
         
