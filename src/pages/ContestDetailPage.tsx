@@ -44,17 +44,39 @@ const defaultPhotos = [
   { img: 'https://cdn.poehali.dev/projects/YCAJEN8rI13s0AqZ17mRuWyAY-fEaxQ-/bucket/kids_drama_performance.jpg', side: 'right' },
 ];
 
+interface JuryMember {
+  id: number;
+  name: string;
+  role: string;
+  image_url?: string;
+  has_access: boolean;
+}
+
+const SCORING_API = 'https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d';
+
 const ContestDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [contest, setContest] = useState<Contest | null>(null);
   const [loading, setLoading] = useState(true);
   const [photosToShow, setPhotosToShow] = useState<{ img: string; side: string; title?: string }[]>([]);
+  const [juryMembers, setJuryMembers] = useState<JuryMember[]>([]);
 
   useEffect(() => {
     loadContest();
     loadPhotos();
+    if (id) loadJury(id);
   }, [id]);
+
+  const loadJury = async (contestId: string) => {
+    try {
+      const res = await fetch(`${SCORING_API}?action=jury_access&contest_id=${contestId}`);
+      const data = await res.json();
+      setJuryMembers((data.jury || []).filter((j: JuryMember) => j.has_access));
+    } catch {
+      // silent
+    }
+  };
 
   const loadContest = async () => {
     try {
@@ -253,7 +275,7 @@ const ContestDetailPage = () => {
 
             <div className="p-8 md:p-12">
               <Tabs defaultValue="info" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 mb-8">
+                <TabsList className="grid w-full grid-cols-5 mb-8">
                   <TabsTrigger value="info">
                     <Icon name="Info" size={18} className="mr-2" />
                     Информация
@@ -269,6 +291,10 @@ const ContestDetailPage = () => {
                   <TabsTrigger value="prizes">
                     <Icon name="Trophy" size={18} className="mr-2" />
                     Призы
+                  </TabsTrigger>
+                  <TabsTrigger value="jury">
+                    <Icon name="Users" size={18} className="mr-2" />
+                    Жюри
                   </TabsTrigger>
                 </TabsList>
 
@@ -436,6 +462,40 @@ const ContestDetailPage = () => {
                     <p className="text-sm text-muted-foreground mt-6 text-center">
                       Все участники получают сертификаты участия
                     </p>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="jury" className="space-y-4">
+                  <Card className="p-6">
+                    <h3 className="text-xl font-semibold mb-6">Члены жюри</h3>
+                    {juryMembers.length === 0 ? (
+                      <div className="text-center py-10 text-muted-foreground">
+                        <Icon name="Users" size={40} className="mx-auto mb-3" />
+                        <p>Жюри ещё не назначено</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+                        {juryMembers.map(member => (
+                          <div key={member.id} className="flex flex-col items-center text-center gap-3">
+                            {member.image_url ? (
+                              <img
+                                src={member.image_url}
+                                alt={member.name}
+                                className="w-20 h-20 rounded-full object-cover border-2 border-border"
+                              />
+                            ) : (
+                              <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center border-2 border-border">
+                                <Icon name="User" size={32} className="text-muted-foreground" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-semibold text-sm leading-tight">{member.name}</p>
+                              {member.role && <p className="text-xs text-muted-foreground mt-0.5">{member.role}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </Card>
                 </TabsContent>
               </Tabs>
