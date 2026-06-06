@@ -204,8 +204,8 @@ const ContestDetailPage = () => {
             К списку конкурсов
           </Button>
 
-          <Card className="overflow-hidden">
-            <div className="bg-gradient-to-br from-primary/10 to-secondary/10 p-8 md:p-12">
+          <Card className="overflow-hidden bg-[#2d1b5e] text-white">
+            <div className="p-8 md:p-12">
               <div className="flex flex-col md:flex-row items-start gap-6">
                 <img 
                   src={contest.title.toLowerCase().includes('зимняя') 
@@ -230,7 +230,7 @@ const ContestDetailPage = () => {
                       {isPast ? 'Завершён' : isActive ? 'Активен' : 'Скоро'}
                     </Badge>
                   </div>
-                  <p className="text-xl text-muted-foreground mb-6 whitespace-pre-wrap">
+                  <p className="text-xl text-white/75 mb-6 whitespace-pre-wrap">
                     {contest.description}
                   </p>
 
@@ -263,6 +263,7 @@ const ContestDetailPage = () => {
                       <Button 
                         size="lg"
                         variant="outline"
+                        className="border-white/50 text-white hover:bg-white/10"
                         onClick={() => window.open(contest.pdf_url, '_blank')}
                       >
                         <Icon name="FileText" size={20} className="mr-2" />
