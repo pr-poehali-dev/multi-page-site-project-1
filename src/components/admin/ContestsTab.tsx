@@ -9,6 +9,7 @@ interface Contest {
   start_date: string;
   end_date: string;
   status: string;
+  location?: string;
 }
 
 interface ContestsTabProps {
@@ -84,7 +85,13 @@ const ContestsTab = ({
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-medium">{contest.title}</div>
-                      <div className="text-sm text-muted-foreground">
+                      {contest.location && (
+                        <div className="text-xs text-primary font-medium mt-0.5 flex items-center gap-1">
+                          <Icon name="MapPin" size={12} />
+                          {contest.location}
+                        </div>
+                      )}
+                      <div className="text-sm text-muted-foreground mt-0.5">
                         {contest.description}
                       </div>
                     </td>
