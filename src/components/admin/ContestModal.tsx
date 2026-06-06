@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ContestFormData } from './ContestModalTypes';
 import ContestBasicFields from './ContestBasicFields';
 import ContestUploadFields from './ContestUploadFields';
+import ContestEventFields from './ContestEventFields';
 
 interface ContestModalProps {
   isOpen: boolean;
@@ -215,7 +216,7 @@ const ContestModal = ({
             onFormUpload={handleFormUpload}
           />
 
-
+          <ContestEventFields formData={formData} setFormData={setFormData} />
         </div>
 
         <div className="flex gap-3 mt-6">
