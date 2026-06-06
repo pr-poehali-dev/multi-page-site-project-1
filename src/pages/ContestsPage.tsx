@@ -14,6 +14,7 @@ interface Contest {
   poster_url?: string;
   application_form_url?: string;
   pdf_url?: string;
+  location?: string;
 }
 
 const ContestsPage = () => {
@@ -108,6 +109,9 @@ const ContestsPage = () => {
                       <h2 className={`text-lg font-heading font-bold leading-tight ${palette.text}`}>
                         {contest.title}
                       </h2>
+                      {contest.location && (
+                        <p className="text-sm text-white/75 mt-1 font-normal">{contest.location}</p>
+                      )}
                     </div>
 
                     <div className="relative bg-muted" style={{ aspectRatio: '4/3' }}>
