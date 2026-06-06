@@ -27,7 +27,7 @@ const Navigation = () => {
             <img 
               src="https://cdn.poehali.dev/projects/ecdaf1c5-6d12-4487-8a18-89243ebbcc9e/bucket/cbb5a490-057b-4588-af89-0e013dfbf827.png" 
               alt="ИНДИГО" 
-              className="h-16 w-auto"
+              className="h-24 w-auto"
             />
           </Link>
 
