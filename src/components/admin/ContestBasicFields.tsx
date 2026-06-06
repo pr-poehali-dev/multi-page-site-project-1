@@ -26,6 +26,25 @@ const ContestBasicFields = ({ formData, setFormData }: ContestBasicFieldsProps) 
         />
       </div>
 
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-sm font-medium mb-2 block">Город проведения</label>
+          <Input
+            value={formData.location || ''}
+            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+            placeholder="Например: Воронеж"
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium mb-2 block">Дата проведения</label>
+          <Input
+            value={formData.event_date || ''}
+            onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
+            placeholder="Например: 15 марта 2025"
+          />
+        </div>
+      </div>
+
       <div>
         <label className="text-sm font-medium mb-2 block">Описание</label>
         <Textarea
