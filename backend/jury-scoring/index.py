@@ -285,14 +285,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             schema = 't_p73771717_multi_page_site_proj'
             cur = conn.cursor()
             cur.execute(f'''
-                SELECT jm.id, jm.name, jm.role,
+                SELECT jm.id, jm.name, jm.role, jm.image_url,
                        (cja.jury_member_id IS NOT NULL) AS has_access
                 FROM {schema}.jury_members jm
                 LEFT JOIN {schema}.contest_jury_access cja
                   ON cja.jury_member_id = jm.id AND cja.contest_id = %s
                 ORDER BY jm.name
             ''', (contest_id,))
-            rows = [{'id': r[0], 'name': r[1], 'role': r[2], 'has_access': r[3]} for r in cur.fetchall()]
+            rows = [{'id': r[0], 'name': r[1], 'role': r[2], 'image_url': r[3], 'has_access': r[4]} for r in cur.fetchall()]
             cur.close()
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'jury': rows}), 'isBase64Encoded': False}
 
