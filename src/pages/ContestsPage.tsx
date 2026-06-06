@@ -89,11 +89,11 @@ const ContestsPage = () => {
                 const statusLabel = isPast ? 'Завершён' : isActive ? 'Идёт приём заявок' : 'Скоро';
 
                 const palettes = [
-                  { header: 'from-violet-600 to-purple-500', border: 'border-violet-300', text: 'text-white' },
-                  { header: 'from-pink-500 to-rose-500', border: 'border-pink-300', text: 'text-white' },
-                  { header: 'from-indigo-600 to-violet-500', border: 'border-indigo-300', text: 'text-white' },
-                  { header: 'from-fuchsia-500 to-pink-500', border: 'border-fuchsia-300', text: 'text-white' },
-                  { header: 'from-purple-600 to-fuchsia-500', border: 'border-purple-300', text: 'text-white' },
+                  { header: 'from-violet-600 to-purple-500', border: 'border-violet-300', text: 'text-white', badge: 'bg-violet-600' },
+                  { header: 'from-pink-500 to-rose-500', border: 'border-pink-300', text: 'text-white', badge: 'bg-pink-500' },
+                  { header: 'from-indigo-600 to-violet-500', border: 'border-indigo-300', text: 'text-white', badge: 'bg-indigo-600' },
+                  { header: 'from-fuchsia-500 to-pink-500', border: 'border-fuchsia-300', text: 'text-white', badge: 'bg-fuchsia-500' },
+                  { header: 'from-purple-600 to-fuchsia-500', border: 'border-purple-300', text: 'text-white', badge: 'bg-purple-600' },
                 ];
                 const palette = palettes[index % palettes.length];
 
@@ -104,14 +104,10 @@ const ContestsPage = () => {
                     className={`rounded-2xl overflow-hidden shadow-md hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer animate-scale-in border ${palette.border} ${isPast ? 'opacity-60' : ''}`}
                     style={{ animationDelay: `${index * 0.08}s` }}
                   >
-                    <div className={`bg-gradient-to-br ${palette.header} px-5 pt-5 pb-4 flex items-start justify-between gap-3`}>
-                      <h2 className={`text-lg font-heading font-bold leading-tight flex-1 ${palette.text}`}>
+                    <div className={`bg-gradient-to-br ${palette.header} px-5 pt-5 pb-4`}>
+                      <h2 className={`text-lg font-heading font-bold leading-tight ${palette.text}`}>
                         {contest.title}
                       </h2>
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap shrink-0 bg-white/20 text-white border border-white/30`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />
-                        {statusLabel}
-                      </span>
                     </div>
 
                     <div className="relative bg-muted" style={{ aspectRatio: '4/3' }}>
@@ -126,6 +122,10 @@ const ContestsPage = () => {
                           🎭
                         </div>
                       )}
+                      <span className={`absolute bottom-3 right-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white ${palette.badge}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />
+                        {statusLabel}
+                      </span>
                     </div>
                   </div>
                 );
