@@ -1,13 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { useState, useEffect, useCallback } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
-import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import ScoringRulesCard, { ScoringRules } from './ScoringRulesCard';
+import ScoringJuryAccessCard from './ScoringJuryAccessCard';
+import ScoringResultsCard from './ScoringResultsCard';
 
 const API = 'https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d';
 const PROGRAM_API = 'https://functions.poehali.dev/9fcbf70c-fd6d-4489-bc77-1e4bcd6f1cb1';
@@ -19,9 +16,6 @@ const LEVELS = [
   { key: 'laureate_2_min', label: 'Лауреат II' },
   { key: 'laureate_3_min', label: 'Лауреат III' },
 ] as const;
-
-type ScoringKey = `jury_count_${1|2|3|4|5}_${'grand_prix_min'|'laureate_1_min'|'laureate_2_min'|'laureate_3_min'}`;
-type ScoringRules = Record<ScoringKey, number>;
 
 const buildDefault = (): ScoringRules => {
   const d: Partial<ScoringRules> = {};
@@ -86,14 +80,6 @@ interface ScoringTabProps {
   onDeleteParticipant: (id: number) => Promise<void>;
 }
 
-const AWARD_COLORS: Record<string, string> = {
-  'Гран-При': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
-  'Лауреат I': 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
-  'Лауреат II': 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
-  'Лауреат III': 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-  'Диплом': 'bg-muted text-muted-foreground',
-};
-
 const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabProps) => {
   const { toast } = useToast();
   const [programRows, setProgramRows] = useState<ProgramRow[]>([]);
@@ -109,67 +95,8 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'setup' | 'results'>('setup');
   const [exportingPdf, setExportingPdf] = useState(false);
-  const tableRef = useRef<HTMLDivElement>(null);
 
   const contestTitle = contests.find(c => String(c.id) === selectedContest)?.title || 'результаты';
-
-  const exportExcel = () => {
-    if (!results.length) return;
-    const juryCount = Math.max(...results.map(r => r.jury_count), 1);
-    const juryHeaders = Array.from({ length: juryCount }, (_, i) => `Судья ${i + 1}`);
-    const headers = ['№', 'Регион', 'Направляющая сторона', 'ФИО / Коллектив', 'Возраст', 'Номинация', 'Произведение / номер', 'Хронометраж', ...juryHeaders, 'Итог', 'Звание'];
-    const rows = results.map(row => {
-      const juryScores = Array.from({ length: juryCount }, (_, i) => {
-        const entry = row.jury_scores.find(s => s.order === i + 1);
-        return i < row.jury_count ? (entry?.score ?? '') : '';
-      });
-      return [row.order_number, row.region, row.directing_party, row.participant_name, row.age, row.nomination, row.piece_title, row.duration, ...juryScores, row.total ?? '', row.award];
-    });
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    ws['!cols'] = [{ wch: 4 }, { wch: 18 }, { wch: 22 }, { wch: 28 }, { wch: 8 }, { wch: 20 }, { wch: 30 }, { wch: 12 }, ...Array(juryCount).fill({ wch: 10 }), { wch: 8 }, { wch: 14 }];
-    XLSX.utils.book_append_sheet(wb, ws, 'Результаты');
-    XLSX.writeFile(wb, `${contestTitle}_результаты.xlsx`);
-  };
-
-  const exportPdf = async () => {
-    if (!tableRef.current || !results.length) return;
-    setExportingPdf(true);
-    try {
-      const canvas = await html2canvas(tableRef.current, { scale: 1.5, useCORS: true, backgroundColor: '#ffffff' });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const imgW = pageW - 10;
-      const imgH = (canvas.height * imgW) / canvas.width;
-      let y = 5;
-      pdf.setFontSize(12);
-      pdf.text(`Результаты оценивания: ${contestTitle}`, 5, y + 5);
-      y += 10;
-      if (imgH <= pageH - y) {
-        pdf.addImage(imgData, 'PNG', 5, y, imgW, imgH);
-      } else {
-        let srcY = 0;
-        const sliceH = ((pageH - y) / imgH) * canvas.height;
-        while (srcY < canvas.height) {
-          const sliceCanvas = document.createElement('canvas');
-          sliceCanvas.width = canvas.width;
-          sliceCanvas.height = Math.min(sliceH, canvas.height - srcY);
-          const ctx = sliceCanvas.getContext('2d')!;
-          ctx.drawImage(canvas, 0, -srcY);
-          const sliceImg = sliceCanvas.toDataURL('image/png');
-          const sliceImgH = (sliceCanvas.height * imgW) / canvas.width;
-          pdf.addImage(sliceImg, 'PNG', 5, y, imgW, sliceImgH);
-          srcY += sliceH;
-          if (srcY < canvas.height) { pdf.addPage(); y = 5; }
-        }
-      }
-      pdf.save(`${contestTitle}_результаты.pdf`);
-    } finally {
-      setExportingPdf(false);
-    }
-  };
 
   const loadData = useCallback(async (contestId: string) => {
     setLoadingData(true);
@@ -275,9 +202,6 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
     }
   };
 
-  const accessibleJury = juryList.filter(j => j.has_access);
-  const maxJury = results.reduce((m, r) => Math.max(m, r.jury_count), 0);
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4 flex-wrap">
@@ -313,221 +237,34 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
         </div>
       ) : activeTab === 'setup' ? (
         <>
-          {/* Система оценивания */}
-          <Card className="p-4">
-            <h3 className="text-lg font-semibold mb-1">Система оценивания</h3>
-            <p className="text-sm text-muted-foreground mb-4">Задайте пороговые значения сумм баллов для каждого количества судей</p>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2 px-3 font-medium text-muted-foreground w-28">Судей</th>
-                    {LEVELS.map(l => <th key={l.key} className="text-left py-2 px-3 font-medium text-muted-foreground">{l.label}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {JURY_COUNTS.map(n => (
-                    <tr key={n} className="border-b hover:bg-muted/20">
-                      <td className="py-2 px-3">
-                        <span className="font-semibold">{n} {n === 1 ? 'судья' : n < 5 ? 'судьи' : 'судей'}</span>
-                      </td>
-                      {LEVELS.map(lvl => {
-                        const k = `jury_count_${n}_${lvl.key}` as ScoringKey;
-                        return (
-                          <td key={lvl.key} className="py-2 px-3">
-                            <Input
-                              type="number"
-                              className="w-24 h-8 text-sm"
-                              value={(scoring as Record<string, number>)[k] ?? ''}
-                              onChange={e => setScoring(prev => ({ ...prev, [k]: Number(e.target.value) }))}
-                              min={0}
-                            />
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <Button className="mt-4" onClick={handleSaveScoring} disabled={savingScoring}>
-              {savingScoring ? <><Icon name="Loader" size={14} className="mr-2 animate-spin" />Сохраняю...</> : 'Сохранить систему оценивания'}
-            </Button>
-          </Card>
-
-          {/* Доступ жюри */}
-          <Card className="p-4">
-            <h3 className="text-lg font-semibold mb-4">Доступ жюри к конкурсу</h3>
-            {juryList.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Нет членов жюри</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {juryList.map(j => (
-                  <div key={j.id} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${j.has_access ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : 'border-border bg-muted/20'}`}>
-                    <div>
-                      <p className="font-medium text-sm">{j.name}</p>
-                      <p className="text-xs text-muted-foreground">{j.role}</p>
-                    </div>
-                    <Button size="sm" variant={j.has_access ? 'default' : 'outline'} className={j.has_access ? 'bg-green-600 hover:bg-green-700' : ''} disabled={togglingJury === j.id} onClick={() => toggleJuryAccess(j)}>
-                      {togglingJury === j.id ? <Icon name="Loader" size={14} className="animate-spin" /> : j.has_access ? <><Icon name="Check" size={14} className="mr-1" />Доступ</> : <><Icon name="Plus" size={14} className="mr-1" />Дать</>}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          {/* Назначение жюри */}
-          <Card className="p-4">
-            <h3 className="text-lg font-semibold mb-1">Назначение жюри к участникам</h3>
-            <p className="text-sm text-muted-foreground mb-4">Нажмите на участника, чтобы назначить или снять жюри</p>
-            {programRows.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>Программа ещё не заполнена.</p>
-                <p className="text-sm mt-1">Добавьте участников на вкладке «Программа».</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {programRows.map(row => {
-                  const rowAssignments = assignments.filter(a => a.program_row_id === row.id);
-                  const isExpanded = expandedRow === row.id;
-                  return (
-                    <div key={row.id} className="border rounded-lg overflow-hidden">
-                      <button className="w-full flex items-center justify-between p-3 hover:bg-muted/30 transition-colors text-left" onClick={() => setExpandedRow(isExpanded ? null : row.id)}>
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="text-secondary font-bold shrink-0 w-8">#{row.order_number}</span>
-                          <span className="font-medium truncate">{row.participant_name}</span>
-                          {row.nomination && <span className="text-xs text-muted-foreground shrink-0 hidden md:inline">— {row.nomination}</span>}
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0 ml-2">
-                          {rowAssignments.length > 0 ? (
-                            <div className="flex gap-1 flex-wrap justify-end max-w-48">
-                              {rowAssignments.map((a, i) => <span key={a.jury_member_id} className="text-xs bg-secondary/10 text-secondary px-2 py-0.5 rounded-full whitespace-nowrap">Судья {i+1}</span>)}
-                            </div>
-                          ) : <span className="text-xs text-muted-foreground">Нет назначений</span>}
-                          <Icon name={isExpanded ? 'ChevronUp' : 'ChevronDown'} size={16} className="text-muted-foreground shrink-0" />
-                        </div>
-                      </button>
-                      {isExpanded && (
-                        <div className="border-t p-3 bg-muted/10">
-                          {accessibleJury.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Сначала дайте доступ жюри к конкурсу выше</p>
-                          ) : (
-                            <div className="flex flex-wrap gap-2">
-                              {accessibleJury.map((j, idx) => {
-                                const assigned = assignments.some(a => a.program_row_id === row.id && a.jury_member_id === j.id);
-                                const key = `${row.id}-${j.id}`;
-                                return (
-                                  <button key={j.id} disabled={togglingAssign === key} onClick={() => toggleAssignment(row.id, j)}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors cursor-pointer ${assigned ? 'bg-secondary text-secondary-foreground border-secondary' : 'bg-background border-border hover:border-secondary hover:text-secondary'}`}>
-                                    {togglingAssign === key ? <Icon name="Loader" size={12} className="animate-spin" /> : assigned ? <Icon name="UserCheck" size={12} /> : <Icon name="UserPlus" size={12} />}
-                                    Судья {idx+1} — {j.name}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
+          <ScoringRulesCard
+            scoring={scoring}
+            savingScoring={savingScoring}
+            onScoringChange={setScoring}
+            onSave={handleSaveScoring}
+          />
+          <ScoringJuryAccessCard
+            juryList={juryList}
+            programRows={programRows}
+            assignments={assignments}
+            togglingJury={togglingJury}
+            togglingAssign={togglingAssign}
+            expandedRow={expandedRow}
+            onToggleJuryAccess={toggleJuryAccess}
+            onToggleAssignment={toggleAssignment}
+            onSetExpandedRow={setExpandedRow}
+          />
         </>
       ) : (
-        /* Вкладка Результаты */
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-            <h3 className="text-lg font-semibold">Результаты оценивания</h3>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => loadResults(selectedContest)} disabled={loadingResults}>
-                <Icon name={loadingResults ? 'Loader' : 'RefreshCw'} size={14} className={`mr-2 ${loadingResults ? 'animate-spin' : ''}`} />
-                Обновить
-              </Button>
-              <Button variant="outline" size="sm" onClick={exportExcel} disabled={!results.length}>
-                <Icon name="FileSpreadsheet" size={14} className="mr-2" />
-                Excel
-              </Button>
-              <Button variant="outline" size="sm" onClick={exportPdf} disabled={!results.length || exportingPdf}>
-                <Icon name={exportingPdf ? 'Loader' : 'FileText'} size={14} className={`mr-2 ${exportingPdf ? 'animate-spin' : ''}`} />
-                PDF
-              </Button>
-            </div>
-          </div>
-          {loadingResults ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Icon name="Loader" size={32} className="mx-auto mb-3 animate-spin" />
-              <p>Загрузка...</p>
-            </div>
-          ) : results.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Icon name="BarChart3" size={40} className="mx-auto mb-3" />
-              <p>Нет участников в программе</p>
-            </div>
-          ) : (
-            <div ref={tableRef} className="overflow-x-auto">
-              <table className="w-full text-sm whitespace-nowrap">
-                <thead>
-                  <tr className="border-b bg-muted/30">
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">№</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Регион</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Направляющая сторона</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">ФИО / Коллектив</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Возраст</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Номинация</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Произведение / номер</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Хронометраж</th>
-                    {Array.from({ length: Math.max(maxJury, 1) }, (_, i) => (
-                      <th key={i} className="text-center py-2 px-2 font-medium text-muted-foreground">Судья {i+1}</th>
-                    ))}
-                    <th className="text-center py-2 px-2 font-medium text-muted-foreground">Итог</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Звание</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.map(row => (
-                    <tr key={row.id} className="border-b hover:bg-muted/20">
-                      <td className="py-2 px-2 text-secondary font-bold">{row.order_number}</td>
-                      <td className="py-2 px-2 text-muted-foreground">{row.region || '—'}</td>
-                      <td className="py-2 px-2 text-muted-foreground">{row.directing_party || '—'}</td>
-                      <td className="py-2 px-2 font-medium">{row.participant_name}</td>
-                      <td className="py-2 px-2 text-muted-foreground">{row.age || '—'}</td>
-                      <td className="py-2 px-2 text-muted-foreground">{row.nomination || '—'}</td>
-                      <td className="py-2 px-2 text-muted-foreground">{row.piece_title || '—'}</td>
-                      <td className="py-2 px-2 text-muted-foreground">{row.duration || '—'}</td>
-                      {Array.from({ length: Math.max(maxJury, 1) }, (_, i) => {
-                        const entry = row.jury_scores.find(s => s.order === i + 1);
-                        return (
-                          <td key={i} className="py-2 px-2 text-center">
-                            {i < row.jury_count ? (
-                              entry?.score != null
-                                ? <span className="font-semibold text-foreground">{entry.score}</span>
-                                : <span className="text-muted-foreground text-xs">—</span>
-                            ) : (
-                              <span className="text-muted-foreground/30 text-xs">·</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                      <td className="py-2 px-2 text-center">
-                        {row.total != null
-                          ? <span className="font-bold text-secondary">{row.total}</span>
-                          : <span className="text-muted-foreground text-xs">—</span>}
-                      </td>
-                      <td className="py-2 px-2">
-                        {row.award
-                          ? <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${AWARD_COLORS[row.award] || 'bg-muted text-muted-foreground'}`}>{row.award}</span>
-                          : <span className="text-muted-foreground text-xs">—</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
+        <ScoringResultsCard
+          results={results}
+          loadingResults={loadingResults}
+          exportingPdf={exportingPdf}
+          contestTitle={contestTitle}
+          selectedContest={selectedContest}
+          onRefresh={() => loadResults(selectedContest)}
+          onSetExportingPdf={setExportingPdf}
+        />
       )}
     </div>
   );
