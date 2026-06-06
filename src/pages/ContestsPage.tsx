@@ -114,7 +114,7 @@ const ContestsPage = () => {
                         <p className="text-sm text-white/75 mt-1 font-normal">{contest.location}</p>
                       )}
                       {contest.event_date && (
-                        <span className="inline-block mt-2 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-black/30 text-white/90">
+                        <span className="inline-block mt-2 px-4 py-1.5 rounded-md text-sm font-bold bg-black/30 text-white">
                           {contest.event_date}
                         </span>
                       )}
