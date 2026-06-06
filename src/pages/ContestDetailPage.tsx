@@ -20,6 +20,7 @@ interface Contest {
   categories?: string;
   pdf_url?: string;
   application_form_url?: string;
+  event_date?: string;
 }
 
 const GALLERY_URL = 'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?endpoint=gallery';
@@ -281,13 +282,10 @@ const ContestDetailPage = () => {
                       <Card className="p-6">
                         <div className="flex items-center gap-3 mb-2">
                           <Icon name="CalendarDays" size={20} className="text-green-500" />
-                          <h4 className="font-semibold">Начало приёма заявок</h4>
+                          <h4 className="font-semibold">Дата проведения</h4>
                         </div>
                         <p className="text-2xl font-bold">
-                          {startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {startDate.toLocaleDateString('ru-RU', { weekday: 'long' })}
+                          {contest.event_date || '—'}
                         </p>
                       </Card>
 
