@@ -26,40 +26,7 @@ const ContestEventFields = ({ formData, setFormData }: ContestEventFieldsProps) 
           />
         </div>
 
-        <div>
-          <label className="text-sm font-medium mb-2 block">Место проведения</label>
-          <Input
-            value={formData.location || ''}
-            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-            placeholder="Например: ГДК, Воронеж"
-          />
-        </div>
 
-        <div>
-          <label className="text-sm font-medium mb-2 block flex items-center gap-2">
-            <Icon name="Ticket" size={16} />
-            Ссылка на покупку билетов
-          </label>
-          <Input
-            value={formData.ticket_link || ''}
-            onChange={(e) => setFormData({ ...formData, ticket_link: e.target.value })}
-            placeholder="https://example.com/tickets"
-            type="url"
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium mb-2 block flex items-center gap-2">
-            <Icon name="Info" size={16} />
-            Ссылка на подробности
-          </label>
-          <Input
-            value={formData.details_link || ''}
-            onChange={(e) => setFormData({ ...formData, details_link: e.target.value })}
-            placeholder="https://example.com/details"
-            type="url"
-          />
-        </div>
       </div>
     </div>
   );
