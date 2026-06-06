@@ -15,11 +15,14 @@ const LEVELS = [
   { key: 'laureate_1_min', label: 'Лауреат I' },
   { key: 'laureate_2_min', label: 'Лауреат II' },
   { key: 'laureate_3_min', label: 'Лауреат III' },
+  { key: 'diplom_1_min', label: 'Дипломант I' },
+  { key: 'diplom_2_min', label: 'Дипломант II' },
+  { key: 'diplom_3_min', label: 'Дипломант III' },
 ] as const;
 
 const buildDefault = (): ScoringRules => {
   const d: Partial<ScoringRules> = {};
-  const defaults = { grand_prix_min: 95, laureate_1_min: 85, laureate_2_min: 75, laureate_3_min: 65 };
+  const defaults = { grand_prix_min: 95, laureate_1_min: 85, laureate_2_min: 75, laureate_3_min: 65, diplom_1_min: 55, diplom_2_min: 45, diplom_3_min: 35 };
   for (const n of JURY_COUNTS) {
     for (const lvl of LEVELS) {
       (d as Record<string, number>)[`jury_count_${n}_${lvl.key}`] = n * defaults[lvl.key];

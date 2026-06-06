@@ -1,0 +1,16 @@
+ALTER TABLE t_p73771717_multi_page_site_proj.contest_scoring_rules
+  ADD COLUMN IF NOT EXISTS jury_count_1_diplom_1_min integer NOT NULL DEFAULT 55,
+  ADD COLUMN IF NOT EXISTS jury_count_1_diplom_2_min integer NOT NULL DEFAULT 45,
+  ADD COLUMN IF NOT EXISTS jury_count_1_diplom_3_min integer NOT NULL DEFAULT 35,
+  ADD COLUMN IF NOT EXISTS jury_count_2_diplom_1_min integer NOT NULL DEFAULT 110,
+  ADD COLUMN IF NOT EXISTS jury_count_2_diplom_2_min integer NOT NULL DEFAULT 90,
+  ADD COLUMN IF NOT EXISTS jury_count_2_diplom_3_min integer NOT NULL DEFAULT 70,
+  ADD COLUMN IF NOT EXISTS jury_count_3_diplom_1_min integer NOT NULL DEFAULT 165,
+  ADD COLUMN IF NOT EXISTS jury_count_3_diplom_2_min integer NOT NULL DEFAULT 135,
+  ADD COLUMN IF NOT EXISTS jury_count_3_diplom_3_min integer NOT NULL DEFAULT 105,
+  ADD COLUMN IF NOT EXISTS jury_count_4_diplom_1_min integer NOT NULL DEFAULT 220,
+  ADD COLUMN IF NOT EXISTS jury_count_4_diplom_2_min integer NOT NULL DEFAULT 180,
+  ADD COLUMN IF NOT EXISTS jury_count_4_diplom_3_min integer NOT NULL DEFAULT 140,
+  ADD COLUMN IF NOT EXISTS jury_count_5_diplom_1_min integer NOT NULL DEFAULT 275,
+  ADD COLUMN IF NOT EXISTS jury_count_5_diplom_2_min integer NOT NULL DEFAULT 225,
+  ADD COLUMN IF NOT EXISTS jury_count_5_diplom_3_min integer NOT NULL DEFAULT 175;

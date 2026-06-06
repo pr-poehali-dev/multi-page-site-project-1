@@ -7,7 +7,7 @@ from typing import Dict, Any
 SCHEMA = 't_p73771717_multi_page_site_proj'
 
 JURY_COUNTS = [1, 2, 3, 4, 5]
-LEVELS = ['grand_prix_min', 'laureate_1_min', 'laureate_2_min', 'laureate_3_min']
+LEVELS = ['grand_prix_min', 'laureate_1_min', 'laureate_2_min', 'laureate_3_min', 'diplom_1_min', 'diplom_2_min', 'diplom_3_min']
 
 DEFAULT_SCORING = {}
 for n in JURY_COUNTS:
@@ -15,6 +15,9 @@ for n in JURY_COUNTS:
     DEFAULT_SCORING[f'jury_count_{n}_laureate_1_min'] = n * 85
     DEFAULT_SCORING[f'jury_count_{n}_laureate_2_min'] = n * 75
     DEFAULT_SCORING[f'jury_count_{n}_laureate_3_min'] = n * 65
+    DEFAULT_SCORING[f'jury_count_{n}_diplom_1_min'] = n * 55
+    DEFAULT_SCORING[f'jury_count_{n}_diplom_2_min'] = n * 45
+    DEFAULT_SCORING[f'jury_count_{n}_diplom_3_min'] = n * 35
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:

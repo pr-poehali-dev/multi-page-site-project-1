@@ -9,9 +9,12 @@ const LEVELS = [
   { key: 'laureate_1_min', label: 'Лауреат I' },
   { key: 'laureate_2_min', label: 'Лауреат II' },
   { key: 'laureate_3_min', label: 'Лауреат III' },
+  { key: 'diplom_1_min', label: 'Дипломант I' },
+  { key: 'diplom_2_min', label: 'Дипломант II' },
+  { key: 'diplom_3_min', label: 'Дипломант III' },
 ] as const;
 
-type ScoringKey = `jury_count_${1|2|3|4|5}_${'grand_prix_min'|'laureate_1_min'|'laureate_2_min'|'laureate_3_min'}`;
+type ScoringKey = `jury_count_${1|2|3|4|5}_${'grand_prix_min'|'laureate_1_min'|'laureate_2_min'|'laureate_3_min'|'diplom_1_min'|'diplom_2_min'|'diplom_3_min'}`;
 export type ScoringRules = Record<ScoringKey, number>;
 
 interface ScoringRulesCardProps {

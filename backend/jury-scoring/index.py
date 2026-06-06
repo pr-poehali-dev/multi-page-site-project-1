@@ -388,10 +388,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             # Получаем систему оценивания
             cur.execute(f'''
                 SELECT jury_count_1_grand_prix_min, jury_count_1_laureate_1_min, jury_count_1_laureate_2_min, jury_count_1_laureate_3_min,
+                       jury_count_1_diplom_1_min, jury_count_1_diplom_2_min, jury_count_1_diplom_3_min,
                        jury_count_2_grand_prix_min, jury_count_2_laureate_1_min, jury_count_2_laureate_2_min, jury_count_2_laureate_3_min,
+                       jury_count_2_diplom_1_min, jury_count_2_diplom_2_min, jury_count_2_diplom_3_min,
                        jury_count_3_grand_prix_min, jury_count_3_laureate_1_min, jury_count_3_laureate_2_min, jury_count_3_laureate_3_min,
+                       jury_count_3_diplom_1_min, jury_count_3_diplom_2_min, jury_count_3_diplom_3_min,
                        jury_count_4_grand_prix_min, jury_count_4_laureate_1_min, jury_count_4_laureate_2_min, jury_count_4_laureate_3_min,
-                       jury_count_5_grand_prix_min, jury_count_5_laureate_1_min, jury_count_5_laureate_2_min, jury_count_5_laureate_3_min
+                       jury_count_4_diplom_1_min, jury_count_4_diplom_2_min, jury_count_4_diplom_3_min,
+                       jury_count_5_grand_prix_min, jury_count_5_laureate_1_min, jury_count_5_laureate_2_min, jury_count_5_laureate_3_min,
+                       jury_count_5_diplom_1_min, jury_count_5_diplom_2_min, jury_count_5_diplom_3_min
                 FROM {schema}.contest_scoring_rules
                 WHERE contest_id = %s
             ''', (contest_id,))
@@ -399,12 +404,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             cur.close()
 
             # Дефолтные пороги
-            default_thresholds = {n: {'grand_prix': n*95, 'laureate_1': n*85, 'laureate_2': n*75, 'laureate_3': n*65} for n in range(1, 6)}
+            default_thresholds = {n: {'grand_prix': n*95, 'laureate_1': n*85, 'laureate_2': n*75, 'laureate_3': n*65, 'diplom_1': n*55, 'diplom_2': n*45, 'diplom_3': n*35} for n in range(1, 6)}
             if scoring_row:
                 thresholds = {}
-                cols = ['grand_prix', 'laureate_1', 'laureate_2', 'laureate_3']
+                cols = ['grand_prix', 'laureate_1', 'laureate_2', 'laureate_3', 'diplom_1', 'diplom_2', 'diplom_3']
                 for i, n in enumerate(range(1, 6)):
-                    thresholds[n] = {cols[j]: scoring_row[i*4 + j] for j in range(4)}
+                    thresholds[n] = {cols[j]: scoring_row[i*7 + j] for j in range(7)}
             else:
                 thresholds = default_thresholds
 
@@ -429,7 +434,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     return 'Лауреат II'
                 elif total >= t.get('laureate_3', 9999):
                     return 'Лауреат III'
-                return 'Диплом'
+                elif total >= t.get('diplom_1', 9999):
+                    return 'Дипломант I'
+                elif total >= t.get('diplom_2', 9999):
+                    return 'Дипломант II'
+                elif total >= t.get('diplom_3', 9999):
+                    return 'Дипломант III'
+                return 'Участник'
 
             result = []
             for row in program_rows:

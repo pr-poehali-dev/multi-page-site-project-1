@@ -11,7 +11,10 @@ const AWARD_COLORS: Record<string, string> = {
   'Лауреат I': 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
   'Лауреат II': 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
   'Лауреат III': 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-  'Диплом': 'bg-muted text-muted-foreground',
+  'Дипломант I': 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300',
+  'Дипломант II': 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300',
+  'Дипломант III': 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300',
+  'Участник': 'bg-muted text-muted-foreground',
 };
 
 interface ResultRow {
