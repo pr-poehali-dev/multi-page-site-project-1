@@ -278,23 +278,23 @@ const ContestDetailPage = () => {
             <div className="p-8 md:p-12">
               <Tabs defaultValue="info" className="w-full">
                 <TabsList className="grid w-full grid-cols-5 mb-8 bg-white/10">
-                  <TabsTrigger value="info">
+                  <TabsTrigger value="info" className="text-white data-[state=active]:text-primary data-[state=inactive]:text-white">
                     <Icon name="Info" size={18} className="mr-2" />
                     Информация
                   </TabsTrigger>
-                  <TabsTrigger value="rules">
+                  <TabsTrigger value="rules" className="text-white data-[state=active]:text-primary data-[state=inactive]:text-white">
                     <Icon name="FileText" size={18} className="mr-2" />
                     Правила
                   </TabsTrigger>
-                  <TabsTrigger value="categories">
+                  <TabsTrigger value="categories" className="text-white data-[state=active]:text-primary data-[state=inactive]:text-white">
                     <Icon name="List" size={18} className="mr-2" />
                     Категории
                   </TabsTrigger>
-                  <TabsTrigger value="prizes">
+                  <TabsTrigger value="prizes" className="text-white data-[state=active]:text-primary data-[state=inactive]:text-white">
                     <Icon name="Trophy" size={18} className="mr-2" />
                     Призы
                   </TabsTrigger>
-                  <TabsTrigger value="jury">
+                  <TabsTrigger value="jury" className="text-white data-[state=active]:text-primary data-[state=inactive]:text-white">
                     <Icon name="Users" size={18} className="mr-2" />
                     Жюри
                   </TabsTrigger>
