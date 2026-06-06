@@ -204,7 +204,7 @@ const ContestDetailPage = () => {
             К списку конкурсов
           </Button>
 
-          <Card className="overflow-hidden bg-[#2d1b5e] text-white">
+          <Card className="overflow-hidden bg-primary text-primary-foreground">
             <div className="p-8 md:p-12">
               <div className="flex flex-col md:flex-row items-start gap-6">
                 <img 
