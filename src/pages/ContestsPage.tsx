@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 
 interface Contest {
@@ -47,18 +46,12 @@ const ContestsPage = () => {
     }
   };
 
-  const formatDate = (date: Date) =>
-    date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-
-  const pluralDays = (n: number) =>
-    n === 1 ? 'день' : n < 5 ? 'дня' : 'дней';
-
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
 
       <section className="pt-32 pb-20 px-4 md:px-8">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <h1 className="text-5xl md:text-6xl font-heading font-bold mb-3 text-center animate-fade-in">
             Календарь конкурсов
           </h1>
@@ -78,117 +71,52 @@ const ContestsPage = () => {
               <p className="text-muted-foreground">Следите за обновлениями — скоро здесь появятся новые конкурсы!</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {contests.map((contest, index) => {
-                const startDate = new Date(contest.start_date);
                 const endDate = new Date(contest.end_date);
+                const startDate = new Date(contest.start_date);
                 const now = new Date();
                 const isActive = contest.status === 'active';
                 const isPast = endDate < now;
                 const isFuture = startDate > now;
-                const daysUntilStart = Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                const daysUntilEnd = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
                 const statusColor = isPast
                   ? 'bg-gray-100 text-gray-500 border-gray-200'
                   : isActive
                   ? 'bg-green-50 text-green-700 border-green-200'
                   : 'bg-orange-50 text-orange-600 border-orange-200';
-
                 const statusDot = isPast ? 'bg-gray-400' : isActive ? 'bg-green-500' : 'bg-orange-400';
                 const statusLabel = isPast ? 'Завершён' : isActive ? 'Идёт приём заявок' : 'Скоро';
 
                 return (
                   <div
                     key={contest.id}
-                    className={`rounded-2xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 animate-scale-in ${isPast ? 'opacity-60' : ''}`}
+                    onClick={() => navigate(`/contests/${contest.id}`)}
+                    className={`rounded-2xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer animate-scale-in ${isPast ? 'opacity-60' : ''}`}
                     style={{ animationDelay: `${index * 0.08}s` }}
                   >
-                    {/* Шапка карточки */}
-                    <div className="relative bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/5 px-6 pt-6 pb-5 border-b border-border">
-                      <div className="flex items-start justify-between gap-4 flex-wrap">
-                        <h2 className="text-2xl md:text-3xl font-heading font-bold leading-tight flex-1">
-                          {contest.title}
-                        </h2>
-                        <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium whitespace-nowrap ${statusColor}`}>
-                          <span className={`w-2 h-2 rounded-full ${statusDot}`} />
-                          {statusLabel}
-                        </span>
-                      </div>
-
-                      {/* Даты */}
-                      <div className="flex flex-wrap gap-6 mt-4">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Icon name="CalendarDays" size={16} className="text-primary shrink-0" />
-                          <span className="text-muted-foreground">Начало:</span>
-                          <span className="font-semibold">{formatDate(startDate)}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Icon name="CalendarX" size={16} className="text-secondary shrink-0" />
-                          <span className="text-muted-foreground">Окончание:</span>
-                          <span className="font-semibold">{formatDate(endDate)}</span>
-                        </div>
-                        {!isPast && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Icon name="Clock" size={16} className="text-amber-500 shrink-0" />
-                            <span className="font-semibold text-amber-600">
-                              {isFuture
-                                ? `Старт через ${daysUntilStart} ${pluralDays(daysUntilStart)}`
-                                : daysUntilEnd > 0
-                                ? `Осталось ${daysUntilEnd} ${pluralDays(daysUntilEnd)}`
-                                : 'Последний день приёма!'}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                    <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-3">
+                      <h2 className="text-lg font-heading font-bold leading-tight flex-1">
+                        {contest.title}
+                      </h2>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium whitespace-nowrap shrink-0 ${statusColor}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />
+                        {statusLabel}
+                      </span>
                     </div>
 
-                    {/* Тело карточки */}
-                    <div className="flex flex-col md:flex-row">
-                      {contest.poster_url && (
-                        <div className="md:w-56 shrink-0 border-r border-border overflow-hidden">
-                          <img
-                            src={contest.poster_url}
-                            alt={contest.title}
-                            className="w-full h-48 md:h-full object-contain p-3"
-                          />
+                    <div className="relative bg-muted" style={{ aspectRatio: '4/3' }}>
+                      {contest.poster_url ? (
+                        <img
+                          src={contest.poster_url}
+                          alt={contest.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10 text-6xl">
+                          🎭
                         </div>
                       )}
-
-                      <div className="flex-1 p-6 flex flex-col justify-between gap-4">
-                        {contest.description && (
-                          <p className="text-muted-foreground text-sm leading-relaxed line-clamp-3">
-                            {contest.description}
-                          </p>
-                        )}
-
-                        <div className="flex flex-wrap gap-3">
-                          <Button
-                            className="bg-secondary hover:bg-secondary/90 text-white"
-                            disabled={isPast || isFuture || !contest.application_form_url}
-                            onClick={() => contest.application_form_url && window.open(contest.application_form_url, '_blank')}
-                          >
-                            <Icon name="Send" size={16} className="mr-2" />
-                            {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется' : 'Подать заявку'}
-                          </Button>
-                          {contest.pdf_url && (
-                            <Button variant="outline" onClick={() => window.open(contest.pdf_url, '_blank')}>
-                              <Icon name="FileText" size={16} className="mr-2" />
-                              Положение
-                            </Button>
-                          )}
-                          {contest.application_form_url && (
-                            <Button variant="outline" onClick={() => window.open(contest.application_form_url, '_blank')}>
-                              <Icon name="FileDown" size={16} className="mr-2" />
-                              Бланк заявки
-                            </Button>
-                          )}
-                          <Button variant="ghost" onClick={() => navigate(`/contests/${contest.id}`)}>
-                            <Icon name="Info" size={16} className="mr-2" />
-                            Подробнее
-                          </Button>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 );
