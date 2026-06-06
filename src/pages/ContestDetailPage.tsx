@@ -263,7 +263,7 @@ const ContestDetailPage = () => {
                       <Button 
                         size="lg"
                         variant="outline"
-                        className="border-white/50 text-white hover:bg-white/10"
+                        className="bg-secondary border-secondary text-white hover:bg-secondary/90"
                         onClick={() => window.open(contest.pdf_url, '_blank')}
                       >
                         <Icon name="FileText" size={20} className="mr-2" />
