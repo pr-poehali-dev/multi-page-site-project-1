@@ -267,7 +267,7 @@ const ContestDetailPage = () => {
                       {isPast ? 'Завершён' : isActive ? 'Активен' : 'Скоро'}
                     </Badge>
                   </div>
-                  <p className="text-xl text-white/75 mb-6 whitespace-pre-wrap">
+                  <p className="text-xl text-white/75 mb-6 whitespace-pre-wrap px-0">
                     {contest.description}
                   </p>
 
