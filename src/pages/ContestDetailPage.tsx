@@ -277,7 +277,7 @@ const ContestDetailPage = () => {
 
             <div className="p-8 md:p-12">
               <Tabs defaultValue="info" className="w-full">
-                <TabsList className="grid w-full grid-cols-5 mb-8 bg-orange-500">
+                <TabsList className="grid w-full grid-cols-5 mb-8 bg-white/10">
                   <TabsTrigger value="info">
                     <Icon name="Info" size={18} className="mr-2" />
                     Информация
