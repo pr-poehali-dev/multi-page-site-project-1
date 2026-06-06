@@ -216,7 +216,7 @@ const ContestModal = ({
             onFormUpload={handleFormUpload}
           />
 
-          <ContestEventFields formData={formData} setFormData={setFormData} />
+
         </div>
 
         <div className="flex gap-3 mt-6">
