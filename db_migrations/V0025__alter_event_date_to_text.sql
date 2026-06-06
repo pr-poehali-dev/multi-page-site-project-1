@@ -1,0 +1,1 @@
+ALTER TABLE t_p73771717_multi_page_site_proj.contests ALTER COLUMN event_date TYPE text USING event_date::text;
