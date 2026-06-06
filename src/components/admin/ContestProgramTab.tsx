@@ -24,6 +24,8 @@ interface ProgramRow {
 interface Contest {
   id: number;
   title: string;
+  location?: string;
+  event_date?: string;
 }
 
 interface ContestProgramTabProps {
@@ -217,6 +219,15 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
             </SelectContent>
           </Select>
         </div>
+        {selectedContestId && (() => {
+          const c = contests.find(c => String(c.id) === selectedContestId);
+          return (c?.location || c?.event_date) ? (
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              {c?.location && <span className="flex items-center gap-1"><Icon name="MapPin" size={14} />{c.location}</span>}
+              {c?.event_date && <span className="flex items-center gap-1"><Icon name="Calendar" size={14} />{c.event_date}</span>}
+            </div>
+          ) : null;
+        })()}
         {selectedContestId && (
           <>
             <Button onClick={() => setShowAddForm(true)} disabled={showAddForm}>

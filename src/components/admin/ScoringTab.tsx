@@ -71,7 +71,7 @@ interface ResultRow {
 }
 
 interface ScoringTabProps {
-  contests: Array<{ id: number; title: string }>;
+  contests: Array<{ id: number; title: string; location?: string; event_date?: string }>;
   selectedContest: string;
   participants: unknown[];
   loading: boolean;
@@ -213,6 +213,15 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
             </SelectContent>
           </Select>
         </div>
+        {selectedContest && (() => {
+          const c = contests.find(c => String(c.id) === selectedContest);
+          return (c?.location || c?.event_date) ? (
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              {c?.location && <span className="flex items-center gap-1"><Icon name="MapPin" size={14} />{c.location}</span>}
+              {c?.event_date && <span className="flex items-center gap-1"><Icon name="Calendar" size={14} />{c.event_date}</span>}
+            </div>
+          ) : null;
+        })()}
         {selectedContest && (
           <div className="flex gap-1 border rounded-lg p-1">
             <button onClick={() => setActiveTab('setup')} className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${activeTab === 'setup' ? 'bg-secondary text-secondary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
