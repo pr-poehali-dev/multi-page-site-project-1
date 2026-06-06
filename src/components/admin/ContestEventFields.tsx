@@ -19,9 +19,10 @@ const ContestEventFields = ({ formData, setFormData }: ContestEventFieldsProps) 
         <div>
           <label className="text-sm font-medium mb-2 block">Дата и время мероприятия</label>
           <Input
-            type="datetime-local"
+            type="text"
             value={formData.event_date || ''}
             onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
+            placeholder="Например: 15 марта 2025, 18:00"
           />
         </div>
 
