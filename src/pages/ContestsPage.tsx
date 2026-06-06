@@ -15,6 +15,7 @@ interface Contest {
   application_form_url?: string;
   pdf_url?: string;
   location?: string;
+  event_date?: string;
 }
 
 const ContestsPage = () => {
@@ -111,6 +112,11 @@ const ContestsPage = () => {
                       </h2>
                       {contest.location && (
                         <p className="text-sm text-white/75 mt-1 font-normal">{contest.location}</p>
+                      )}
+                      {contest.event_date && (
+                        <span className="inline-block mt-2 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-black/30 text-white/90">
+                          {contest.event_date}
+                        </span>
                       )}
                     </div>
 
