@@ -482,10 +482,10 @@ const ContestDetailPage = () => {
                               <img
                                 src={member.image_url}
                                 alt={member.name}
-                                className="w-20 h-20 rounded-full object-cover border-2 border-border"
+                                className="w-40 h-40 rounded-full object-cover border-2 border-border"
                               />
                             ) : (
-                              <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center border-2 border-border">
+                              <div className="w-40 h-40 rounded-full bg-muted flex items-center justify-center border-2 border-border">
                                 <Icon name="User" size={32} className="text-muted-foreground" />
                               </div>
                             )}
