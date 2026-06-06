@@ -242,7 +242,7 @@ const ContestDetailPage = () => {
           </Button>
 
           <Card className="overflow-hidden bg-primary text-primary-foreground">
-            <div className="px-4 pt-8 pb-8 md:px-4 md:pt-12 md:pb-12">
+            <div className="px-12 pt-8 pb-8 md:px-12 md:pt-12 md:pb-12">
               <div className="flex items-center gap-6 mb-6">
                 <img 
                   src={contest.title.toLowerCase().includes('зимняя') 
