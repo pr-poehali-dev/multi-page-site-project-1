@@ -101,7 +101,7 @@ def get_contests(conn) -> Dict[str, Any]:
                 contest['start_date'] = contest['start_date'].isoformat()
             if contest.get('end_date'):
                 contest['end_date'] = contest['end_date'].isoformat()
-            if contest.get('event_date'):
+            if contest.get('event_date') and not isinstance(contest['event_date'], str):
                 contest['event_date'] = contest['event_date'].isoformat()
         
         return {
