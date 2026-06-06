@@ -48,6 +48,7 @@ interface JuryMember {
   id: number;
   name: string;
   role: string;
+  specialty?: string;
   image_url?: string;
   has_access: boolean;
 }
@@ -490,7 +491,7 @@ const ContestDetailPage = () => {
                             )}
                             <div>
                               <p className="font-semibold text-sm leading-tight">{member.name}</p>
-                              {member.role && <p className="text-xs text-muted-foreground mt-0.5">{member.role}</p>}
+                              {member.specialty && <p className="text-xs text-muted-foreground mt-0.5">{member.specialty}</p>}
                             </div>
                           </div>
                         ))}
