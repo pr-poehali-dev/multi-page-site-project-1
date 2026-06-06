@@ -113,6 +113,43 @@ const ContestDetailPage = () => {
     }
   };
 
+  const renderFormattedText = (text: string) => {
+    const lines = text.split('\n');
+    const elements: React.ReactNode[] = [];
+    let listItems: string[] = [];
+
+    const flushList = (key: string) => {
+      if (listItems.length > 0) {
+        elements.push(
+          <ul key={key} className="space-y-1.5 mb-3">
+            {listItems.map((item, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-current shrink-0" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        );
+        listItems = [];
+      }
+    };
+
+    lines.forEach((line, idx) => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        flushList(`list-${idx}`);
+        elements.push(<br key={`br-${idx}`} />);
+      } else if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
+        listItems.push(trimmed.replace(/^[-•]\s+/, ''));
+      } else {
+        flushList(`list-${idx}`);
+        elements.push(<p key={`p-${idx}`} className="mb-1.5">{trimmed}</p>);
+      }
+    });
+    flushList('list-end');
+    return <div className="text-sm leading-relaxed">{elements}</div>;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -366,9 +403,7 @@ const ContestDetailPage = () => {
                   <Card className="p-6">
                     <h3 className="text-xl font-semibold mb-4">Общие правила</h3>
                     {contest.rules ? (
-                      <div className="prose prose-slate max-w-none">
-                        <p className="whitespace-pre-wrap">{contest.rules}</p>
-                      </div>
+                      <div>{renderFormattedText(contest.rules)}</div>
                     ) : (
                       <ul className="space-y-2 text-muted-foreground">
                         <li className="flex items-start gap-2">
@@ -400,9 +435,7 @@ const ContestDetailPage = () => {
                   <Card className="p-6">
                     <h3 className="text-xl font-semibold mb-4">Категории участия</h3>
                     {contest.categories ? (
-                      <div className="prose prose-slate max-w-none">
-                        <p className="whitespace-pre-wrap">{contest.categories}</p>
-                      </div>
+                      <div>{renderFormattedText(contest.categories)}</div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="p-4 border rounded-lg">
@@ -430,9 +463,7 @@ const ContestDetailPage = () => {
                   <Card className="p-6">
                     <h3 className="text-xl font-semibold mb-4">Призовой фонд</h3>
                     {contest.prizes ? (
-                      <div className="prose prose-slate max-w-none">
-                        <p className="whitespace-pre-wrap">{contest.prizes}</p>
-                      </div>
+                      <div>{renderFormattedText(contest.prizes)}</div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Card className="p-6 border-2 border-yellow-500/50 bg-yellow-500/5">
