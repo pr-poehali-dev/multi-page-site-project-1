@@ -250,7 +250,7 @@ const ContestDetailPage = () => {
                     : 'https://cdn.poehali.dev/files/лого таланты.png'
                   }
                   alt="Логотип" 
-                  className="w-32 h-32 object-contain"
+                  className="w-56 h-56 object-contain"
                 />
                 <div className="flex-1">
                   <div className="flex items-start justify-between mb-4">
