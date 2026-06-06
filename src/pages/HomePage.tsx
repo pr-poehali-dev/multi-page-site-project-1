@@ -27,6 +27,8 @@ interface Contest {
   poster_url?: string;
   application_form_url?: string;
   pdf_url?: string;
+  location?: string;
+  event_date?: string;
 }
 
 const HomePage = () => {
@@ -108,21 +110,6 @@ const HomePage = () => {
     },
   ];
 
-  const getContestColor = (index: number) => {
-    const colors = ['bg-secondary/10', 'bg-primary/10', 'bg-muted'];
-    return colors[index % colors.length];
-  };
-
-  const formatDateRange = (startDate: string, endDate: string) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
-    
-    if (start.getMonth() === end.getMonth()) {
-      return `${start.getDate()}-${end.toLocaleDateString('ru-RU', options)} ${start.getFullYear()}`;
-    }
-    return `${start.toLocaleDateString('ru-RU', options)} — ${end.toLocaleDateString('ru-RU', options)} ${start.getFullYear()}`;
-  };
 
   return (
     <div className="min-h-screen">
@@ -267,44 +254,62 @@ const HomePage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              {contests.map((contest, index) => (
-                <Link key={contest.id} to={`/contests`}>
-                  <Card
-                    className="overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 animate-fade-in cursor-pointer h-full"
-                    style={{ animationDelay: `${index * 0.15}s` }}
-                  >
-                    <div className={`h-52 ${getContestColor(index)} flex items-center justify-center overflow-hidden`}>
-                      {contest.poster_url ? (
-                        <img
-                          src={contest.poster_url}
-                          alt={contest.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="text-7xl opacity-20">🎭</div>
-                      )}
-                    </div>
-                    <div className="p-5 flex flex-col gap-2">
-                      <div className="inline-block px-3 py-1 bg-secondary/10 text-secondary text-xs font-semibold rounded-full w-fit">
-                        {contest.status === 'active' ? 'Идет сейчас' : 'Скоро'}
+              {contests.map((contest, index) => {
+                const now = new Date();
+                const end = new Date(contest.end_date);
+                const start = new Date(contest.start_date);
+                const isPast = end < now;
+                const isActive = start <= now && end >= now;
+                const statusDot = isPast ? 'bg-gray-400' : isActive ? 'bg-green-500' : 'bg-orange-400';
+                const statusLabel = isPast ? 'Завершён' : isActive ? 'Идёт приём заявок' : 'Скоро';
+                const palettes = [
+                  { header: 'from-violet-600 to-purple-500', border: 'border-violet-300', badge: 'bg-violet-600' },
+                  { header: 'from-pink-500 to-rose-500', border: 'border-pink-300', badge: 'bg-pink-500' },
+                  { header: 'from-indigo-600 to-violet-500', border: 'border-indigo-300', badge: 'bg-indigo-600' },
+                  { header: 'from-fuchsia-500 to-pink-500', border: 'border-fuchsia-300', badge: 'bg-fuchsia-500' },
+                  { header: 'from-purple-600 to-fuchsia-500', border: 'border-purple-300', badge: 'bg-purple-600' },
+                ];
+                const palette = palettes[index % palettes.length];
+                return (
+                  <Link key={contest.id} to={`/contests/${contest.id}`}>
+                    <div
+                      className={`rounded-2xl overflow-hidden shadow-md hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer animate-scale-in border ${palette.border} ${isPast ? 'opacity-60' : ''}`}
+                      style={{ animationDelay: `${index * 0.08}s` }}
+                    >
+                      <div className={`bg-gradient-to-br ${palette.header} px-5 pt-5 pb-4`}>
+                        <h2 className="text-lg font-heading font-bold leading-tight text-white">
+                          {contest.title}
+                        </h2>
+                        {contest.location && (
+                          <p className="text-sm text-white/75 mt-1 font-normal">{contest.location}</p>
+                        )}
+                        {contest.event_date && (
+                          <span className="inline-block mt-2 px-4 py-1.5 rounded-md text-sm font-bold bg-black/30 text-white">
+                            {contest.event_date}
+                          </span>
+                        )}
                       </div>
-                      <h3 className="text-lg font-heading font-bold leading-tight">{contest.title}</h3>
-                      {contest.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {contest.description}
-                        </p>
-                      )}
-                      <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
-                        <Icon name="Calendar" size={14} />
-                        {formatDateRange(contest.start_date, contest.end_date)}
-                      </p>
-                      <Button variant="outline" className="w-full mt-2">
-                        Подробнее
-                      </Button>
+                      <div className="relative bg-muted" style={{ aspectRatio: '4/3' }}>
+                        {contest.poster_url ? (
+                          <img
+                            src={contest.poster_url}
+                            alt={contest.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10 text-6xl">
+                            🎭
+                          </div>
+                        )}
+                        <span className={`absolute bottom-3 right-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white ${palette.badge}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />
+                          {statusLabel}
+                        </span>
+                      </div>
                     </div>
-                  </Card>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>
