@@ -356,7 +356,7 @@ const ContestDetailPage = () => {
                       <Card className="p-6">
                         <div className="flex items-center gap-3 mb-2">
                           <Icon name="CalendarX" size={20} className="text-red-500" />
-                          <h4 className="font-semibold">Окончание приёма</h4>
+                          <h4 className="font-semibold">Окончание приёма заявок</h4>
                         </div>
                         <p className="text-2xl font-bold">
                           {endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
