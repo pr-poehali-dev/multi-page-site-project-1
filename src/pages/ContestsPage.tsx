@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 
 interface Contest {
@@ -49,34 +47,38 @@ const ContestsPage = () => {
     }
   };
 
+  const formatDate = (date: Date) =>
+    date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 
+  const pluralDays = (n: number) =>
+    n === 1 ? 'день' : n < 5 ? 'дня' : 'дней';
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <Navigation />
 
-      <section className="pt-32 pb-20 px-6">
-        <div className="max-w-screen-2xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-heading font-bold mb-6 text-center animate-fade-in">
+      <section className="pt-32 pb-20 px-4 md:px-8">
+        <div className="max-w-5xl mx-auto">
+          <h1 className="text-5xl md:text-6xl font-heading font-bold mb-3 text-center animate-fade-in">
             Календарь конкурсов
           </h1>
-          <p className="text-xl text-muted-foreground text-center mb-12 animate-fade-in">
+          <p className="text-lg text-muted-foreground text-center mb-14 animate-fade-in">
             Выберите направление и начните свой путь к победе
           </p>
 
           {loading ? (
-            <div className="text-center py-12">
+            <div className="text-center py-20">
               <Icon name="Loader" size={48} className="mx-auto mb-4 animate-spin text-primary" />
               <p className="text-muted-foreground">Загрузка конкурсов...</p>
             </div>
           ) : contests.length === 0 ? (
-            <Card className="p-12 text-center max-w-2xl mx-auto">
+            <div className="text-center py-20">
               <Icon name="Calendar" size={64} className="mx-auto mb-4 text-muted-foreground opacity-30" />
               <h3 className="text-2xl font-semibold mb-2">Конкурсы пока не запланированы</h3>
-              <p className="text-muted-foreground">Следите за обновлениями - скоро здесь появятся новые конкурсы!</p>
-            </Card>
+              <p className="text-muted-foreground">Следите за обновлениями — скоро здесь появятся новые конкурсы!</p>
+            </div>
           ) : (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-8">
               {contests.map((contest, index) => {
                 const startDate = new Date(contest.start_date);
                 const endDate = new Date(contest.end_date);
@@ -84,119 +86,111 @@ const ContestsPage = () => {
                 const isActive = contest.status === 'active';
                 const isPast = endDate < now;
                 const isFuture = startDate > now;
-                
                 const daysUntilStart = Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
                 const daysUntilEnd = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
+                const statusColor = isPast
+                  ? 'bg-gray-100 text-gray-500 border-gray-200'
+                  : isActive
+                  ? 'bg-green-50 text-green-700 border-green-200'
+                  : 'bg-orange-50 text-orange-600 border-orange-200';
+
+                const statusDot = isPast ? 'bg-gray-400' : isActive ? 'bg-green-500' : 'bg-orange-400';
+                const statusLabel = isPast ? 'Завершён' : isActive ? 'Идёт приём заявок' : 'Скоро';
+
                 return (
-                  <Card
+                  <div
                     key={contest.id}
-                    className={`overflow-hidden hover:shadow-xl transition-all duration-300 animate-scale-in ${
-                      isPast ? 'opacity-60' : ''
-                    }`}
-                    style={{ animationDelay: `${index * 0.1}s` }}
+                    className={`rounded-2xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 animate-scale-in ${isPast ? 'opacity-60' : ''}`}
+                    style={{ animationDelay: `${index * 0.08}s` }}
                   >
-                    <div className="flex flex-col md:flex-row">
-                      <div className="md:w-72 relative flex flex-col items-center justify-center border-r shrink-0 overflow-hidden min-h-[280px]">
-                        {contest.poster_url ? (
-                          <img 
-                            src={contest.poster_url}
-                            alt={contest.title} 
-                            className="absolute inset-0 w-full h-full object-contain p-4"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center text-8xl">🎭</div>
-                        )}
-                        <div className="absolute bottom-3 left-0 right-0 flex justify-center">
-                          <Badge 
-                            className={`${
-                              isPast ? 'bg-gray-500' :
-                              isActive ? 'bg-green-500' : 
-                              'bg-orange-500'
-                            }`}
-                          >
-                            {isPast ? 'Завершён' : isActive ? 'Активен' : 'Скоро'}
-                          </Badge>
-                        </div>
+                    {/* Шапка карточки */}
+                    <div className="relative bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/5 px-6 pt-6 pb-5 border-b border-border">
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <h2 className="text-2xl md:text-3xl font-heading font-bold leading-tight flex-1">
+                          {contest.title}
+                        </h2>
+                        <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium whitespace-nowrap ${statusColor}`}>
+                          <span className={`w-2 h-2 rounded-full ${statusDot}`} />
+                          {statusLabel}
+                        </span>
                       </div>
 
-                      <div className="flex-1 p-8 flex flex-col justify-between">
-                        <div>
-                          <h3 className="text-3xl font-heading font-bold mb-6">{contest.title}</h3>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-                            <div className="flex items-center gap-3 text-sm">
-                              <Icon name="CalendarDays" size={20} className="text-primary shrink-0" />
-                              <div>
-                                <div className="font-medium">Начало приёма заявок</div>
-                                <div className="text-muted-foreground">
-                                  {startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 text-sm">
-                              <Icon name="CalendarX" size={20} className="text-destructive shrink-0" />
-                              <div>
-                                <div className="font-medium">Окончание приёма</div>
-                                <div className="text-muted-foreground">
-                                  {endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {!isPast && (
-                            <div className="flex items-center gap-2 p-3 bg-secondary/10 rounded-lg mb-5 w-fit">
-                              <Icon name="Clock" size={18} className="text-secondary shrink-0" />
-                              <span className="text-sm font-medium">
-                                {isFuture ? (
-                                  `Старт через ${daysUntilStart} ${daysUntilStart === 1 ? 'день' : daysUntilStart < 5 ? 'дня' : 'дней'}`
-                                ) : isActive ? (
-                                  daysUntilEnd > 0 
-                                    ? `Осталось ${daysUntilEnd} ${daysUntilEnd === 1 ? 'день' : daysUntilEnd < 5 ? 'дня' : 'дней'}`
-                                    : 'Последний день приёма заявок!'
-                                ) : ''}
-                              </span>
-                            </div>
-                          )}
+                      {/* Даты */}
+                      <div className="flex flex-wrap gap-6 mt-4">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Icon name="CalendarDays" size={16} className="text-primary shrink-0" />
+                          <span className="text-muted-foreground">Начало:</span>
+                          <span className="font-semibold">{formatDate(startDate)}</span>
                         </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Icon name="CalendarX" size={16} className="text-secondary shrink-0" />
+                          <span className="text-muted-foreground">Окончание:</span>
+                          <span className="font-semibold">{formatDate(endDate)}</span>
+                        </div>
+                        {!isPast && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Icon name="Clock" size={16} className="text-amber-500 shrink-0" />
+                            <span className="font-semibold text-amber-600">
+                              {isFuture
+                                ? `Старт через ${daysUntilStart} ${pluralDays(daysUntilStart)}`
+                                : daysUntilEnd > 0
+                                ? `Осталось ${daysUntilEnd} ${pluralDays(daysUntilEnd)}`
+                                : 'Последний день приёма!'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Тело карточки */}
+                    <div className="flex flex-col md:flex-row">
+                      {contest.poster_url && (
+                        <div className="md:w-56 shrink-0 border-r border-border overflow-hidden">
+                          <img
+                            src={contest.poster_url}
+                            alt={contest.title}
+                            className="w-full h-48 md:h-full object-contain p-3"
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex-1 p-6 flex flex-col justify-between gap-4">
+                        {contest.description && (
+                          <p className="text-muted-foreground text-sm leading-relaxed line-clamp-3">
+                            {contest.description}
+                          </p>
+                        )}
 
                         <div className="flex flex-wrap gap-3">
-                          <Button 
-                            className="bg-secondary hover:bg-secondary/90"
+                          <Button
+                            className="bg-secondary hover:bg-secondary/90 text-white"
                             disabled={isPast || isFuture || !contest.application_form_url}
                             onClick={() => contest.application_form_url && window.open(contest.application_form_url, '_blank')}
                           >
-                            <Icon name="Send" size={18} className="mr-2" />
+                            <Icon name="Send" size={16} className="mr-2" />
                             {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется' : 'Подать заявку'}
                           </Button>
                           {contest.pdf_url && (
-                            <Button
-                              variant="outline"
-                              onClick={() => window.open(contest.pdf_url, '_blank')}
-                            >
-                              <Icon name="FileText" size={18} className="mr-2" />
-                              Скачать положение
+                            <Button variant="outline" onClick={() => window.open(contest.pdf_url, '_blank')}>
+                              <Icon name="FileText" size={16} className="mr-2" />
+                              Положение
                             </Button>
                           )}
                           {contest.application_form_url && (
-                            <Button
-                              variant="outline"
-                              onClick={() => window.open(contest.application_form_url, '_blank')}
-                            >
-                              <Icon name="FileDown" size={18} className="mr-2" />
-                              Скачать бланк заявки
+                            <Button variant="outline" onClick={() => window.open(contest.application_form_url, '_blank')}>
+                              <Icon name="FileDown" size={16} className="mr-2" />
+                              Бланк заявки
                             </Button>
                           )}
-                          <Button variant="outline" onClick={() => navigate(`/contests/${contest.id}`)}>
-                            <Icon name="Info" size={18} className="mr-2" />
+                          <Button variant="ghost" onClick={() => navigate(`/contests/${contest.id}`)}>
+                            <Icon name="Info" size={16} className="mr-2" />
                             Подробнее
                           </Button>
                         </div>
                       </div>
                     </div>
-                  </Card>
+                  </div>
                 );
               })}
             </div>
