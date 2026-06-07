@@ -30,7 +30,7 @@ const ContestDetailHero = ({ contest, isPast, isActive, isFuture, daysUntilStart
         <img
           src={contest.title.toLowerCase().includes('зимняя')
             ? 'https://cdn.poehali.dev/files/3D_логотип_фестиваля__Зимняя_мелодия__с_зимними_мо-no-bg-preview (carve.photos).png'
-            : 'https://cdn.poehali.dev/files/лого таланты.png'
+            : 'https://cdn.poehali.dev/projects/ecdaf1c5-6d12-4487-8a18-89243ebbcc9e/bucket/97b4dd42-10ac-4b13-b325-e62615308a7d.png'
           }
           alt="Логотип"
           className="w-56 h-56 object-contain shrink-0"
