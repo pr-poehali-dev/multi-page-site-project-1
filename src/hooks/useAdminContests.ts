@@ -17,6 +17,7 @@ interface Contest {
   event_date?: string;
   ticket_link?: string;
   details_link?: string;
+  logo_url?: string;
 }
 
 interface ContestFormData {
@@ -35,6 +36,7 @@ interface ContestFormData {
   event_date?: string;
   ticket_link?: string;
   details_link?: string;
+  logo_url?: string;
 }
 
 export const useAdminContests = () => {
@@ -142,7 +144,8 @@ export const useAdminContests = () => {
       location: contest.location || '',
       event_date: contest.event_date || '',
       ticket_link: contest.ticket_link || '',
-      details_link: contest.details_link || ''
+      details_link: contest.details_link || '',
+      logo_url: contest.logo_url || ''
     });
     setShowEditModal(true);
   };

@@ -12,7 +12,7 @@ interface Contest {
   pdf_url?: string;
   application_form_url?: string;
   event_date?: string;
-  poster_url?: string;
+  logo_url?: string;
 }
 
 interface ContestDetailHeroProps {
@@ -28,9 +28,9 @@ const ContestDetailHero = ({ contest, isPast, isActive, isFuture, daysUntilStart
   return (
     <div className="px-12 pt-8 pb-8 md:px-12 md:pt-12 md:pb-12">
       <div className="flex items-center gap-6 mb-6">
-        {contest.poster_url && (
+        {contest.logo_url && (
           <img
-            src={contest.poster_url}
+            src={contest.logo_url}
             alt="Логотип"
             className="w-56 h-56 object-contain shrink-0"
           />

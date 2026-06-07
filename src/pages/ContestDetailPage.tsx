@@ -23,6 +23,7 @@ interface Contest {
   application_form_url?: string;
   event_date?: string;
   poster_url?: string;
+  logo_url?: string;
 }
 
 interface GalleryItem {

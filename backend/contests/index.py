@@ -87,7 +87,8 @@ def get_contests(conn) -> Dict[str, Any]:
                 details_link,
                 location,
                 event_date,
-                application_form_url
+                application_form_url,
+                logo_url
             FROM contests
             WHERE status IS NOT NULL
             ORDER BY start_date
@@ -137,6 +138,7 @@ def create_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
     location = body.get('location')
     event_date = body.get('event_date')
     application_form_url = body.get('application_form_url')
+    logo_url = body.get('logo_url')
     
     if not title or not start_date or not end_date:
         return {
@@ -156,10 +158,10 @@ def create_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
         contest_key = hashlib.md5(f"{title}{time.time()}".encode()).hexdigest()[:16]
         
         cur.execute('''
-            INSERT INTO contests (contest_key, title, description, start_date, end_date, status, pdf_url, rules, prizes, categories, poster_url, ticket_link, details_link, location, event_date, application_form_url)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO contests (contest_key, title, description, start_date, end_date, status, pdf_url, rules, prizes, categories, poster_url, ticket_link, details_link, location, event_date, application_form_url, logo_url)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
-        ''', (contest_key, title, description, start_date, end_date, status, pdf_url, rules, prizes, categories, poster_url, ticket_link, details_link, location, event_date, application_form_url))
+        ''', (contest_key, title, description, start_date, end_date, status, pdf_url, rules, prizes, categories, poster_url, ticket_link, details_link, location, event_date, application_form_url, logo_url))
         
         result = cur.fetchone()
         
@@ -239,6 +241,9 @@ def update_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
         if 'application_form_url' in body:
             updates.append('application_form_url = %s')
             values.append(body['application_form_url'])
+        if 'logo_url' in body:
+            updates.append('logo_url = %s')
+            values.append(body['logo_url'])
         
         if not updates:
             return {

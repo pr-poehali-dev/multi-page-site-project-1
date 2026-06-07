@@ -12,9 +12,11 @@ interface ContestUploadFieldsProps {
   uploadingPdf: boolean;
   uploadingPoster: boolean;
   uploadingForm: boolean;
+  uploadingLogo: boolean;
   onPdfUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onPosterUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onFormUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const ContestUploadFields = ({
@@ -24,13 +26,16 @@ const ContestUploadFields = ({
   uploadingPdf,
   uploadingPoster,
   uploadingForm,
+  uploadingLogo,
   onPdfUpload,
   onPosterUpload,
   onFormUpload,
+  onLogoUpload,
 }: ContestUploadFieldsProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const posterInputRef = useRef<HTMLInputElement>(null);
   const formFileInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <>
@@ -167,6 +172,51 @@ const ContestUploadFields = ({
             <img
               src={formData.poster_url}
               alt="Логотип"
+              className="w-24 h-24 object-contain border rounded p-2"
+            />
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+          <Icon name="Star" size={16} />
+          Логотип на странице конкурса
+        </label>
+        <p className="text-xs text-muted-foreground mb-2">Отображается рядом с названием на странице «Подробнее»</p>
+        <div className="flex gap-2">
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            onChange={onLogoUpload}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => logoInputRef.current?.click()}
+            disabled={uploadingLogo}
+            className="flex-1"
+          >
+            <Icon name="Upload" size={16} className="mr-2" />
+            {uploadingLogo ? 'Загрузка...' : formData.logo_url ? 'Заменить логотип страницы' : 'Загрузить логотип страницы'}
+          </Button>
+          {formData.logo_url && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => window.open(formData.logo_url, '_blank')}
+            >
+              <Icon name="ExternalLink" size={16} />
+            </Button>
+          )}
+        </div>
+        {formData.logo_url && (
+          <div className="mt-2">
+            <img
+              src={formData.logo_url}
+              alt="Логотип страницы"
               className="w-24 h-24 object-contain border rounded p-2"
             />
           </div>

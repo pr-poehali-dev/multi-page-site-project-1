@@ -31,6 +31,7 @@ const ContestModal = ({
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [uploadingPoster, setUploadingPoster] = useState(false);
   const [uploadingForm, setUploadingForm] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -142,6 +143,55 @@ const ContestModal = ({
     }
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Ошибка', description: 'Можно загружать только изображения', variant: 'destructive' });
+      return;
+    }
+
+    setUploadingLogo(true);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const base64String = (event.target?.result as string).split(',')[1];
+
+          const response = await fetch('https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              applicationId: 0,
+              files: [{ fileName: `contest_logo_${file.name}`, fileType: file.type, fileSize: file.size, fileData: base64String }]
+            })
+          });
+
+          const data = await response.json();
+
+          if (data.files && data.files.length > 0) {
+            setFormData({ ...formData, logo_url: data.files[0].fileUrl });
+            toast({ title: 'Успешно', description: 'Логотип загружен' });
+          } else {
+            toast({ title: 'Ошибка', description: 'Не удалось получить URL файла', variant: 'destructive' });
+          }
+        } catch (error) {
+          console.error('Upload error:', error);
+          toast({ title: 'Ошибка', description: 'Не удалось загрузить логотип', variant: 'destructive' });
+        } finally {
+          setUploadingLogo(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('FileReader error:', error);
+      toast({ title: 'Ошибка', description: 'Не удалось прочитать файл', variant: 'destructive' });
+      setUploadingLogo(false);
+    }
+  };
+
   const handleFormUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -211,9 +261,11 @@ const ContestModal = ({
             uploadingPdf={uploadingPdf}
             uploadingPoster={uploadingPoster}
             uploadingForm={uploadingForm}
+            uploadingLogo={uploadingLogo}
             onPdfUpload={handlePdfUpload}
             onPosterUpload={handlePosterUpload}
             onFormUpload={handleFormUpload}
+            onLogoUpload={handleLogoUpload}
           />
 
 
