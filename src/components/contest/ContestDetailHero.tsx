@@ -12,6 +12,7 @@ interface Contest {
   pdf_url?: string;
   application_form_url?: string;
   event_date?: string;
+  poster_url?: string;
 }
 
 interface ContestDetailHeroProps {
@@ -27,14 +28,13 @@ const ContestDetailHero = ({ contest, isPast, isActive, isFuture, daysUntilStart
   return (
     <div className="px-12 pt-8 pb-8 md:px-12 md:pt-12 md:pb-12">
       <div className="flex items-center gap-6 mb-6">
-        <img
-          src={contest.title.toLowerCase().includes('зимняя')
-            ? 'https://cdn.poehali.dev/files/3D_логотип_фестиваля__Зимняя_мелодия__с_зимними_мо-no-bg-preview (carve.photos).png'
-            : 'https://cdn.poehali.dev/projects/ecdaf1c5-6d12-4487-8a18-89243ebbcc9e/bucket/97b4dd42-10ac-4b13-b325-e62615308a7d.png'
-          }
-          alt="Логотип"
-          className="w-56 h-56 object-contain shrink-0"
-        />
+        {contest.poster_url && (
+          <img
+            src={contest.poster_url}
+            alt="Логотип"
+            className="w-56 h-56 object-contain shrink-0"
+          />
+        )}
         <div className="flex items-start justify-between w-full">
           <h1 className="text-4xl md:text-5xl font-heading font-bold">
             {contest.title}

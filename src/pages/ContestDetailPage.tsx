@@ -22,6 +22,7 @@ interface Contest {
   pdf_url?: string;
   application_form_url?: string;
   event_date?: string;
+  poster_url?: string;
 }
 
 interface GalleryItem {
