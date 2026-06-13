@@ -358,17 +358,17 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
       }}
       onClick={onClick}
     >
-      <div style={{ padding: 16, display: 'flex', gap: 16, alignItems: 'center' }}>
+      <div style={{ padding: 24, display: 'flex', gap: 20, alignItems: 'center' }}>
         {/* Round poster */}
         <div style={{ flexShrink: 0 }}>
           {event.poster_url ? (
             <img
               src={event.poster_url}
               alt={event.title}
-              style={{ width: 86, height: 86, borderRadius: '50%', objectFit: 'cover', border: '3px solid', borderColor: past ? '#ddd' : '#6c3fa0', boxShadow: past ? 'none' : '0 0 0 3px rgba(108,63,160,0.15)' }}
+              style={{ width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', border: '4px solid', borderColor: past ? '#ddd' : '#6c3fa0', boxShadow: past ? 'none' : '0 0 0 4px rgba(108,63,160,0.15)' }}
             />
           ) : (
-            <div style={{ width: 86, height: 86, borderRadius: '50%', background: past ? '#f0f0f0' : 'linear-gradient(135deg,#6c3fa0,#c44b93)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>
+            <div style={{ width: 120, height: 120, borderRadius: '50%', background: past ? '#f0f0f0' : 'linear-gradient(135deg,#6c3fa0,#c44b93)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>
               🎭
             </div>
           )}
@@ -377,15 +377,15 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
         {/* Info */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {!event.is_published && (
-            <span style={{ fontSize: 11, background: '#fff3cd', color: '#856404', padding: '2px 6px', borderRadius: 4, marginBottom: 6, display: 'inline-block' }}>Черновик</span>
+            <span style={{ fontSize: 12, background: '#fff3cd', color: '#856404', padding: '3px 8px', borderRadius: 4, marginBottom: 8, display: 'inline-block' }}>Черновик</span>
           )}
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#1a1a1a', marginBottom: 6, lineHeight: 1.3 }}>{event.title}</div>
-          <div style={{ fontSize: 13, color: past ? '#aaa' : '#6c3fa0', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+          <div style={{ fontWeight: 700, fontSize: 18, color: '#1a1a1a', marginBottom: 8, lineHeight: 1.3 }}>{event.title}</div>
+          <div style={{ fontSize: 15, color: past ? '#aaa' : '#6c3fa0', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
             <span>🗓</span>
             <span>{day} {month} {year}</span>
           </div>
           {event.location && (
-            <div style={{ fontSize: 13, color: '#888', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ fontSize: 15, color: '#888', display: 'flex', alignItems: 'center', gap: 5 }}>
               <span>📍</span>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.location}</span>
             </div>
@@ -395,16 +395,16 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
 
       {/* Action buttons */}
       {!past && (event.ticket_url || event.page_url) && (
-        <div style={{ display: 'flex', gap: 8, padding: '0 16px 14px' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: 10, padding: '0 24px 20px' }} onClick={e => e.stopPropagation()}>
           {event.ticket_url && (
             <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
-              style={{ flex: 1, background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '9px 8px', borderRadius: 10, fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+              style={{ flex: 1, background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '13px 8px', borderRadius: 12, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
               Подать заявку
             </a>
           )}
           {event.page_url && (
             <a href={event.page_url} target="_blank" rel="noopener noreferrer"
-              style={{ flex: 1, background: '#f0eef8', color: '#6c3fa0', textAlign: 'center', padding: '9px 8px', borderRadius: 10, fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+              style={{ flex: 1, background: '#f0eef8', color: '#6c3fa0', textAlign: 'center', padding: '13px 8px', borderRadius: 12, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
               Положение
             </a>
           )}
@@ -413,10 +413,10 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
 
       {isAdmin && (
         <div style={{ borderTop: '1px solid #f0f0f0', display: 'flex' }} onClick={e => e.stopPropagation()}>
-          <button onClick={() => onEdit(event)} style={{ flex: 1, padding: '10px', border: 'none', background: 'none', color: '#6c3fa0', fontWeight: 500, fontSize: 13, cursor: 'pointer' }}>
+          <button onClick={() => onEdit(event)} style={{ flex: 1, padding: '14px', border: 'none', background: 'none', color: '#6c3fa0', fontWeight: 500, fontSize: 15, cursor: 'pointer' }}>
             ✏️ Редактировать
           </button>
-          <button onClick={() => onDelete(event.id)} style={{ flex: 1, padding: '10px', border: 'none', background: 'none', color: '#e53e3e', fontWeight: 500, fontSize: 13, cursor: 'pointer', borderLeft: '1px solid #f0f0f0' }}>
+          <button onClick={() => onDelete(event.id)} style={{ flex: 1, padding: '14px', border: 'none', background: 'none', color: '#e53e3e', fontWeight: 500, fontSize: 15, cursor: 'pointer', borderLeft: '1px solid #f0f0f0' }}>
             🗑 Удалить
           </button>
         </div>
