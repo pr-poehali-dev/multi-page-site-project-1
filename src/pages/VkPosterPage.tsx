@@ -359,41 +359,41 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
       }}
       onClick={onClick}
     >
-      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', padding: '24px 24px 20px' }}>
+      <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start', padding: '32px 28px 24px' }}>
         {/* Round poster */}
         <div style={{ flexShrink: 0, position: 'relative' }}>
           {event.poster_url ? (
             <img
               src={event.poster_url}
               alt={event.title}
-              style={{ width: 130, height: 130, borderRadius: '50%', objectFit: 'cover', border: '4px solid', borderColor: past ? '#ddd' : '#6c3fa0', boxShadow: past ? 'none' : '0 4px 16px rgba(108,63,160,0.3)' }}
+              style={{ width: 200, height: 200, borderRadius: '50%', objectFit: 'cover', border: '5px solid', borderColor: past ? '#ddd' : '#6c3fa0', boxShadow: past ? 'none' : '0 6px 24px rgba(108,63,160,0.35)' }}
             />
           ) : (
-            <div style={{ width: 130, height: 130, borderRadius: '50%', background: past ? '#f0f0f0' : 'linear-gradient(135deg,#6c3fa0,#c44b93)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 52 }}>
+            <div style={{ width: 200, height: 200, borderRadius: '50%', background: past ? '#f0f0f0' : 'linear-gradient(135deg,#6c3fa0,#c44b93)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 72 }}>
               🎭
             </div>
           )}
           {!past && (
-            <div style={{ position: 'absolute', bottom: 4, right: 4, width: 18, height: 18, background: '#22c55e', borderRadius: '50%', border: '2px solid #fff' }} />
+            <div style={{ position: 'absolute', bottom: 8, right: 8, width: 24, height: 24, background: '#22c55e', borderRadius: '50%', border: '3px solid #fff' }} />
           )}
         </div>
 
         {/* Info */}
-        <div style={{ flex: 1, minWidth: 0, paddingTop: 4 }}>
+        <div style={{ flex: 1, minWidth: 0, paddingTop: 6 }}>
           {!event.is_published && (
-            <span style={{ fontSize: 11, background: '#fff3cd', color: '#856404', padding: '3px 8px', borderRadius: 20, marginBottom: 8, display: 'inline-block', fontWeight: 600 }}>Черновик</span>
+            <span style={{ fontSize: 13, background: '#fff3cd', color: '#856404', padding: '4px 10px', borderRadius: 20, marginBottom: 12, display: 'inline-block', fontWeight: 600 }}>Черновик</span>
           )}
-          <div style={{ fontWeight: 800, fontSize: 22, color: '#1a1a1a', marginBottom: 12, lineHeight: 1.25 }}>{event.title}</div>
+          <div style={{ fontWeight: 800, fontSize: 30, color: '#1a1a1a', marginBottom: 18, lineHeight: 1.2 }}>{event.title}</div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: past ? '#f0f0f0' : 'rgba(108,63,160,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>🗓</div>
-              <span style={{ fontSize: 15, color: past ? '#aaa' : '#6c3fa0', fontWeight: 600 }}>{day} {month} {year}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 12, background: past ? '#f0f0f0' : 'rgba(108,63,160,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🗓</div>
+              <span style={{ fontSize: 20, color: past ? '#aaa' : '#6c3fa0', fontWeight: 700 }}>{day} {month} {year}</span>
             </div>
             {event.location && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: past ? '#f0f0f0' : 'rgba(196,75,147,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>📍</div>
-                <span style={{ fontSize: 15, color: '#666', fontWeight: 500 }}>{event.location}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 12, background: past ? '#f0f0f0' : 'rgba(196,75,147,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>📍</div>
+                <span style={{ fontSize: 20, color: '#555', fontWeight: 600 }}>{event.location}</span>
               </div>
             )}
           </div>
@@ -402,16 +402,16 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
 
       {/* Action buttons */}
       {!past && (event.ticket_url || event.page_url) && (
-        <div style={{ display: 'flex', gap: 10, padding: '0 24px 24px' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: 12, padding: '0 28px 28px' }} onClick={e => e.stopPropagation()}>
           {event.ticket_url && (
             <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
-              style={{ flex: 1, background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '14px 8px', borderRadius: 14, fontWeight: 700, fontSize: 15, textDecoration: 'none', letterSpacing: 0.3 }}>
+              style={{ flex: 1, background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '18px 8px', borderRadius: 16, fontWeight: 700, fontSize: 20, textDecoration: 'none' }}>
               Подать заявку
             </a>
           )}
           {event.page_url && (
             <a href={event.page_url} target="_blank" rel="noopener noreferrer"
-              style={{ flex: 1, background: 'rgba(108,63,160,0.08)', color: '#6c3fa0', textAlign: 'center', padding: '14px 8px', borderRadius: 14, fontWeight: 700, fontSize: 15, textDecoration: 'none', letterSpacing: 0.3 }}>
+              style={{ flex: 1, background: 'rgba(108,63,160,0.08)', color: '#6c3fa0', textAlign: 'center', padding: '18px 8px', borderRadius: 16, fontWeight: 700, fontSize: 20, textDecoration: 'none' }}>
               Положение
             </a>
           )}
