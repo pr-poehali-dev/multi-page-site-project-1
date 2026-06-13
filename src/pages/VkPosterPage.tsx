@@ -17,7 +17,6 @@ interface VkUser {
 
 const API_URL = 'https://functions.poehali.dev/be285661-455d-4c13-b45f-897f4395817d';
 const UPLOAD_URL = 'https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3';
-const ADMIN_PASSWORD = 'Stron1986';
 
 interface Event {
   id: number;
@@ -80,8 +79,6 @@ export default function VkPosterPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [form, setForm] = useState<EventForm>(emptyForm);
@@ -103,15 +100,24 @@ export default function VkPosterPage() {
     bridge.send('VKWebAppGetConfig').then((data: Record<string, unknown>) => {
       const scheme = data.scheme as string | undefined;
       setIsDark(scheme === 'space_gray' || scheme === 'vkcom_dark');
-      // group_id также приходит через VKWebAppGetLaunchParams
-      const gid = (data.group_id as number | undefined);
-      if (gid) setGroupId(String(gid));
     }).catch(() => {});
 
+    // Получаем параметры запуска: group_id и роль пользователя
     bridge.send('VKWebAppGetLaunchParams').then((data: Record<string, unknown>) => {
       const gid = data.vk_group_id as number | undefined;
       if (gid) setGroupId(String(gid));
-    }).catch(() => {});
+
+      // vk_viewer_group_role: 'admin' | 'editor' | 'moder' | 'member' | 'none'
+      const role = data.vk_viewer_group_role as string | undefined;
+      if (role === 'admin' || role === 'editor') {
+        setIsAdmin(true);
+      }
+    }).catch(() => {
+      // Fallback: читаем роль из URL (при открытии через браузер)
+      const params = new URLSearchParams(window.location.search);
+      const role = params.get('vk_viewer_group_role');
+      if (role === 'admin' || role === 'editor') setIsAdmin(true);
+    });
   }, []);
 
   useEffect(() => {
@@ -134,17 +140,6 @@ export default function VkPosterPage() {
       toast({ title: 'Ошибка', description: 'Не удалось загрузить афишу', variant: 'destructive' });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleAdminLogin = () => {
-    if (passwordInput === ADMIN_PASSWORD) {
-      setIsAdmin(true);
-      setShowAdminLogin(false);
-      setPasswordInput('');
-      toast({ title: 'Добро пожаловать', description: 'Режим администратора включён' });
-    } else {
-      toast({ title: 'Неверный пароль', variant: 'destructive' });
     }
   };
 
@@ -261,13 +256,11 @@ export default function VkPosterPage() {
               <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 700, margin: 0 }}>Афиша мероприятий</h1>
             </div>
           </div>
-          <button
-            onClick={() => isAdmin ? setIsAdmin(false) : setShowAdminLogin(true)}
-            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 20, padding: '6px 14px', color: '#fff', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <span style={{ fontSize: 16 }}>{isAdmin ? '🔓' : '🔐'}</span>
-            {isAdmin ? 'Выйти' : 'Войти'}
-          </button>
+          {isAdmin && (
+            <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 20, padding: '6px 14px', color: '#fff', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 16 }}>🔓</span> Администратор
+            </div>
+          )}
         </div>
 
         {isAdmin && (
@@ -318,25 +311,6 @@ export default function VkPosterPage() {
           </>
         )}
       </div>
-
-      {/* Admin login modal */}
-      {showAdminLogin && (
-        <Modal onClose={() => setShowAdminLogin(false)} title="Вход для администратора">
-          <div style={{ padding: '0 16px 16px' }}>
-            <Input
-              type="password"
-              placeholder="Пароль"
-              value={passwordInput}
-              onChange={e => setPasswordInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleAdminLogin()}
-              style={{ marginBottom: 12 }}
-            />
-            <Button onClick={handleAdminLogin} className="w-full bg-purple-600 hover:bg-purple-700">
-              Войти
-            </Button>
-          </div>
-        </Modal>
-      )}
 
       {/* Event detail modal */}
       {selectedEvent && (
