@@ -70,6 +70,11 @@ function formatDateShort(iso: string) {
   return { day: d.getDate(), month: months[d.getMonth()], year: d.getFullYear() };
 }
 
+function getGroupId(): string | null {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('vk_group_id') || params.get('group_id') || null;
+}
+
 export default function VkPosterPage() {
   const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);
@@ -85,34 +90,43 @@ export default function VkPosterPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [vkUser, setVkUser] = useState<VkUser | null>(null);
   const [isDark, setIsDark] = useState(false);
+  const [groupId, setGroupId] = useState<string | null>(getGroupId());
   const posterInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Инициализация VK Bridge
     bridge.send('VKWebAppInit').catch(() => {});
 
-    // Получаем данные пользователя
     bridge.send('VKWebAppGetUserInfo').then(data => {
       setVkUser(data as unknown as VkUser);
     }).catch(() => {});
 
-    // Получаем тему оформления
     bridge.send('VKWebAppGetConfig').then((data: Record<string, unknown>) => {
       const scheme = data.scheme as string | undefined;
       setIsDark(scheme === 'space_gray' || scheme === 'vkcom_dark');
+      // group_id также приходит через VKWebAppGetLaunchParams
+      const gid = (data.group_id as number | undefined);
+      if (gid) setGroupId(String(gid));
     }).catch(() => {});
 
-    loadEvents();
+    bridge.send('VKWebAppGetLaunchParams').then((data: Record<string, unknown>) => {
+      const gid = data.vk_group_id as number | undefined;
+      if (gid) setGroupId(String(gid));
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
     loadEvents();
-  }, [isAdmin]);
+  }, [isAdmin, groupId]);
 
   const loadEvents = async () => {
+    if (!groupId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const url = isAdmin ? `${API_URL}?published=false` : API_URL;
+      const published = isAdmin ? 'false' : 'true';
+      const url = `${API_URL}?group_id=${groupId}&published=${published}`;
       const res = await fetch(url);
       const data = await res.json();
       setEvents(data.events || []);
@@ -168,7 +182,7 @@ export default function VkPosterPage() {
     setSaving(true);
     try {
       const method = editingEvent ? 'PUT' : 'POST';
-      const body = editingEvent ? { id: editingEvent.id, ...form } : form;
+      const body = editingEvent ? { id: editingEvent.id, ...form, group_id: groupId } : { ...form, group_id: groupId };
       const res = await fetch(API_URL, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -267,7 +281,12 @@ export default function VkPosterPage() {
       </div>
 
       <div style={{ padding: '12px', maxWidth: '60%', margin: '0 auto' }}>
-        {loading ? (
+        {!groupId ? (
+          <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
+            <div>Приложение должно быть открыто из сообщества ВКонтакте</div>
+          </div>
+        ) : loading ? (
           <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>Загрузка...</div>
         ) : events.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>

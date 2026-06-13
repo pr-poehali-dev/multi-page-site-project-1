@@ -3,7 +3,7 @@
     {
       "name": "Get published events",
       "method": "GET",
-      "path": "/",
+      "path": "/?group_id=1",
       "expectedStatus": 200,
       "expectedBody": {"events": []},
       "bodyMatcher": "partial"

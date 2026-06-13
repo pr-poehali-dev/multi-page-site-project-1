@@ -56,24 +56,29 @@ def _resp(status: int, data: dict) -> dict:
 
 
 def get_events(conn, event: dict) -> dict:
-    '''Получить список мероприятий'''
+    '''Получить список мероприятий группы'''
     params = event.get('queryStringParameters') or {}
     only_published = params.get('published', 'true') == 'true'
+    group_id = params.get('group_id')
+
+    if not group_id:
+        return _resp(400, {'error': 'group_id обязателен'})
 
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         if only_published:
             cur.execute('''
                 SELECT id, title, description, event_date, deadline, location, poster_url, ticket_url, page_url, is_published, created_at
                 FROM events
-                WHERE is_published = true
+                WHERE is_published = true AND group_id = %s
                 ORDER BY event_date ASC
-            ''')
+            ''', (group_id,))
         else:
             cur.execute('''
                 SELECT id, title, description, event_date, deadline, location, poster_url, ticket_url, page_url, is_published, created_at
                 FROM events
+                WHERE group_id = %s
                 ORDER BY event_date ASC
-            ''')
+            ''', (group_id,))
         rows = cur.fetchall()
     return _resp(200, {'events': rows, 'total': len(rows)})
 
@@ -90,10 +95,14 @@ def create_event(conn, event: dict) -> dict:
     if not event_date:
         return _resp(400, {'error': 'Дата обязательна'})
 
+    group_id = body.get('group_id')
+    if not group_id:
+        return _resp(400, {'error': 'group_id обязателен'})
+
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute('''
-            INSERT INTO events (title, description, event_date, deadline, location, poster_url, ticket_url, page_url, is_published)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO events (title, description, event_date, deadline, location, poster_url, ticket_url, page_url, is_published, group_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         ''', (
             title,
@@ -104,7 +113,8 @@ def create_event(conn, event: dict) -> dict:
             body.get('poster_url'),
             body.get('ticket_url'),
             body.get('page_url'),
-            body.get('is_published', True)
+            body.get('is_published', True),
+            group_id
         ))
         result = cur.fetchone()
     return _resp(201, {'success': True, 'id': result['id']})
