@@ -7,7 +7,7 @@ import Icon from '@/components/ui/icon';
 
 const API_URL = 'https://functions.poehali.dev/be285661-455d-4c13-b45f-897f4395817d';
 const UPLOAD_URL = 'https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3';
-const ADMIN_PASSWORD = 'admin2025';
+const ADMIN_PASSWORD = 'Stron1986';
 
 interface Event {
   id: number;
