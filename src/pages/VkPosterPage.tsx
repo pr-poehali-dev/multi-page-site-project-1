@@ -348,63 +348,70 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
   return (
     <div
       style={{
-        background: '#fff',
-        borderRadius: 16,
-        marginBottom: 12,
+        background: past ? '#fff' : 'linear-gradient(135deg, #f8f4ff 0%, #fff0f8 100%)',
+        borderRadius: 24,
+        marginBottom: 16,
         overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-        opacity: past ? 0.7 : 1,
+        boxShadow: past ? '0 2px 8px rgba(0,0,0,0.06)' : '0 6px 24px rgba(108,63,160,0.14)',
+        border: past ? '1px solid #f0f0f0' : '1px solid rgba(108,63,160,0.12)',
+        opacity: past ? 0.65 : 1,
         cursor: 'pointer',
       }}
       onClick={onClick}
     >
-      <div style={{ display: 'flex', gap: 20, alignItems: 'center', padding: '24px 24px 16px' }}>
+      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', padding: '24px 24px 20px' }}>
         {/* Round poster */}
-        <div style={{ flexShrink: 0 }}>
+        <div style={{ flexShrink: 0, position: 'relative' }}>
           {event.poster_url ? (
             <img
               src={event.poster_url}
               alt={event.title}
-              style={{ width: 220, height: 220, borderRadius: '50%', objectFit: 'cover', border: '5px solid', borderColor: past ? '#ddd' : '#6c3fa0', boxShadow: past ? 'none' : '0 0 0 6px rgba(108,63,160,0.15)' }}
+              style={{ width: 130, height: 130, borderRadius: '50%', objectFit: 'cover', border: '4px solid', borderColor: past ? '#ddd' : '#6c3fa0', boxShadow: past ? 'none' : '0 4px 16px rgba(108,63,160,0.3)' }}
             />
           ) : (
-            <div style={{ width: 220, height: 220, borderRadius: '50%', background: past ? '#f0f0f0' : 'linear-gradient(135deg,#6c3fa0,#c44b93)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 80 }}>
+            <div style={{ width: 130, height: 130, borderRadius: '50%', background: past ? '#f0f0f0' : 'linear-gradient(135deg,#6c3fa0,#c44b93)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 52 }}>
               🎭
             </div>
+          )}
+          {!past && (
+            <div style={{ position: 'absolute', bottom: 4, right: 4, width: 18, height: 18, background: '#22c55e', borderRadius: '50%', border: '2px solid #fff' }} />
           )}
         </div>
 
         {/* Info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, paddingTop: 4 }}>
           {!event.is_published && (
-            <span style={{ fontSize: 13, background: '#fff3cd', color: '#856404', padding: '4px 10px', borderRadius: 4, marginBottom: 12, display: 'inline-block' }}>Черновик</span>
+            <span style={{ fontSize: 11, background: '#fff3cd', color: '#856404', padding: '3px 8px', borderRadius: 20, marginBottom: 8, display: 'inline-block', fontWeight: 600 }}>Черновик</span>
           )}
-          <div style={{ fontWeight: 700, fontSize: 110, color: '#1a1a1a', marginBottom: 14, lineHeight: 1.2 }}>{event.title}</div>
-          <div style={{ fontSize: 85, color: past ? '#aaa' : '#6c3fa0', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <span>🗓</span>
-            <span>{day} {month} {year}</span>
-          </div>
-          {event.location && (
-            <div style={{ fontSize: 85, color: '#888', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span>📍</span>
-              <span>{event.location}</span>
+          <div style={{ fontWeight: 800, fontSize: 22, color: '#1a1a1a', marginBottom: 12, lineHeight: 1.25 }}>{event.title}</div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: past ? '#f0f0f0' : 'rgba(108,63,160,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>🗓</div>
+              <span style={{ fontSize: 15, color: past ? '#aaa' : '#6c3fa0', fontWeight: 600 }}>{day} {month} {year}</span>
             </div>
-          )}
+            {event.location && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: past ? '#f0f0f0' : 'rgba(196,75,147,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>📍</div>
+                <span style={{ fontSize: 15, color: '#666', fontWeight: 500 }}>{event.location}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Action buttons */}
       {!past && (event.ticket_url || event.page_url) && (
-        <div style={{ display: 'flex', gap: 12, padding: '0 24px 24px' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: 10, padding: '0 24px 24px' }} onClick={e => e.stopPropagation()}>
           {event.ticket_url && (
             <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
-              style={{ flex: 1, background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '24px 8px', borderRadius: 20, fontWeight: 600, fontSize: 85, textDecoration: 'none' }}>
+              style={{ flex: 1, background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '14px 8px', borderRadius: 14, fontWeight: 700, fontSize: 15, textDecoration: 'none', letterSpacing: 0.3 }}>
               Подать заявку
             </a>
           )}
           {event.page_url && (
             <a href={event.page_url} target="_blank" rel="noopener noreferrer"
-              style={{ flex: 1, background: '#f0eef8', color: '#6c3fa0', textAlign: 'center', padding: '24px 8px', borderRadius: 20, fontWeight: 600, fontSize: 85, textDecoration: 'none' }}>
+              style={{ flex: 1, background: 'rgba(108,63,160,0.08)', color: '#6c3fa0', textAlign: 'center', padding: '14px 8px', borderRadius: 14, fontWeight: 700, fontSize: 15, textDecoration: 'none', letterSpacing: 0.3 }}>
               Положение
             </a>
           )}
@@ -412,11 +419,11 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
       )}
 
       {isAdmin && (
-        <div style={{ borderTop: '1px solid #f0f0f0', display: 'flex' }} onClick={e => e.stopPropagation()}>
-          <button onClick={() => onEdit(event)} style={{ flex: 1, padding: '16px', border: 'none', background: 'none', color: '#6c3fa0', fontWeight: 500, fontSize: 16, cursor: 'pointer' }}>
+        <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', display: 'flex' }} onClick={e => e.stopPropagation()}>
+          <button onClick={() => onEdit(event)} style={{ flex: 1, padding: '14px', border: 'none', background: 'none', color: '#6c3fa0', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
             ✏️ Редактировать
           </button>
-          <button onClick={() => onDelete(event.id)} style={{ flex: 1, padding: '16px', border: 'none', background: 'none', color: '#e53e3e', fontWeight: 500, fontSize: 16, cursor: 'pointer', borderLeft: '1px solid #f0f0f0' }}>
+          <button onClick={() => onDelete(event.id)} style={{ flex: 1, padding: '14px', border: 'none', background: 'none', color: '#e53e3e', fontWeight: 600, fontSize: 14, cursor: 'pointer', borderLeft: '1px solid rgba(0,0,0,0.06)' }}>
             🗑 Удалить
           </button>
         </div>
