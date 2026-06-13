@@ -379,13 +379,13 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
           {!event.is_published && (
             <span style={{ fontSize: 13, background: '#fff3cd', color: '#856404', padding: '4px 10px', borderRadius: 4, marginBottom: 12, display: 'inline-block' }}>Черновик</span>
           )}
-          <div style={{ fontWeight: 700, fontSize: 22, color: '#1a1a1a', marginBottom: 14, lineHeight: 1.3 }}>{event.title}</div>
-          <div style={{ fontSize: 17, color: past ? '#aaa' : '#6c3fa0', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+          <div style={{ fontWeight: 700, fontSize: 110, color: '#1a1a1a', marginBottom: 14, lineHeight: 1.2 }}>{event.title}</div>
+          <div style={{ fontSize: 85, color: past ? '#aaa' : '#6c3fa0', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <span>🗓</span>
             <span>{day} {month} {year}</span>
           </div>
           {event.location && (
-            <div style={{ fontSize: 17, color: '#888', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ fontSize: 85, color: '#888', display: 'flex', alignItems: 'center', gap: 12 }}>
               <span>📍</span>
               <span>{event.location}</span>
             </div>
@@ -398,13 +398,13 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
         <div style={{ display: 'flex', gap: 12, padding: '0 24px 24px' }} onClick={e => e.stopPropagation()}>
           {event.ticket_url && (
             <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
-              style={{ flex: 1, background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '16px 8px', borderRadius: 14, fontWeight: 600, fontSize: 17, textDecoration: 'none' }}>
+              style={{ flex: 1, background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '24px 8px', borderRadius: 20, fontWeight: 600, fontSize: 85, textDecoration: 'none' }}>
               Подать заявку
             </a>
           )}
           {event.page_url && (
             <a href={event.page_url} target="_blank" rel="noopener noreferrer"
-              style={{ flex: 1, background: '#f0eef8', color: '#6c3fa0', textAlign: 'center', padding: '16px 8px', borderRadius: 14, fontWeight: 600, fontSize: 17, textDecoration: 'none' }}>
+              style={{ flex: 1, background: '#f0eef8', color: '#6c3fa0', textAlign: 'center', padding: '24px 8px', borderRadius: 20, fontWeight: 600, fontSize: 85, textDecoration: 'none' }}>
               Положение
             </a>
           )}
