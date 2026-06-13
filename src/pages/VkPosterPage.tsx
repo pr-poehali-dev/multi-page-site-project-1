@@ -4,6 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
+import bridge from '@vkontakte/vk-bridge';
+
+interface VkUser {
+  id: number;
+  first_name: string;
+  last_name: string;
+  photo_100: string;
+}
 
 const API_URL = 'https://functions.poehali.dev/be285661-455d-4c13-b45f-897f4395817d';
 const UPLOAD_URL = 'https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3';
@@ -73,7 +81,27 @@ export default function VkPosterPage() {
   const [saving, setSaving] = useState(false);
   const [uploadingPoster, setUploadingPoster] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [vkUser, setVkUser] = useState<VkUser | null>(null);
+  const [isDark, setIsDark] = useState(false);
   const posterInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Инициализация VK Bridge
+    bridge.send('VKWebAppInit').catch(() => {});
+
+    // Получаем данные пользователя
+    bridge.send('VKWebAppGetUserInfo').then(data => {
+      setVkUser(data as unknown as VkUser);
+    }).catch(() => {});
+
+    // Получаем тему оформления
+    bridge.send('VKWebAppGetConfig').then((data: Record<string, unknown>) => {
+      const scheme = data.scheme as string | undefined;
+      setIsDark(scheme === 'space_gray' || scheme === 'vkcom_dark');
+    }).catch(() => {});
+
+    loadEvents();
+  }, []);
 
   useEffect(() => {
     loadEvents();
@@ -196,14 +224,26 @@ export default function VkPosterPage() {
   const upcoming = events.filter(e => new Date(e.event_date) >= new Date());
   const past = events.filter(e => new Date(e.event_date) < new Date());
 
+  const bg = isDark ? '#19191a' : '#f0f2f5';
+  const cardBg = isDark ? '#2a2a2b' : '#fff';
+  const cardGradient = isDark ? 'linear-gradient(135deg,#2a1f3d 0%,#2d1a2e 100%)' : 'linear-gradient(135deg, #f8f4ff 0%, #fff0f8 100%)';
+
   return (
-    <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', background: '#f0f2f5', minHeight: '100vh' }}>
+    <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', background: bg, minHeight: '100vh' }}>
       {/* Header */}
       <div style={{ background: 'linear-gradient(135deg, #6c3fa0 0%, #c44b93 100%)', padding: '20px 16px 24px', position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, marginBottom: 4 }}>Культурный центр</div>
-            <h1 style={{ color: '#fff', fontSize: 24, fontWeight: 700, margin: 0 }}>Афиша мероприятий</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {vkUser?.photo_100 && (
+              <img src={vkUser.photo_100} alt={vkUser.first_name}
+                style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.4)' }} />
+            )}
+            <div>
+              <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, marginBottom: 2 }}>
+                {vkUser ? `Привет, ${vkUser.first_name}!` : 'Культурный центр'}
+              </div>
+              <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 700, margin: 0 }}>Афиша мероприятий</h1>
+            </div>
           </div>
           <button
             onClick={() => isAdmin ? setIsAdmin(false) : setShowAdminLogin(true)}
@@ -240,7 +280,7 @@ export default function VkPosterPage() {
                   Предстоящие
                 </div>
                 {upcoming.map(ev => (
-                  <EventCard key={ev.id} event={ev} isAdmin={isAdmin} onEdit={openEdit} onDelete={handleDelete} onClick={() => setSelectedEvent(ev)} />
+                  <EventCard key={ev.id} event={ev} isAdmin={isAdmin} onEdit={openEdit} onDelete={handleDelete} onClick={() => setSelectedEvent(ev)} isDark={isDark} cardBg={cardBg} cardGradient={cardGradient} />
                 ))}
               </>
             )}
@@ -250,7 +290,7 @@ export default function VkPosterPage() {
                   Прошедшие
                 </div>
                 {past.map(ev => (
-                  <EventCard key={ev.id} event={ev} isAdmin={isAdmin} onEdit={openEdit} onDelete={handleDelete} onClick={() => setSelectedEvent(ev)} past />
+                  <EventCard key={ev.id} event={ev} isAdmin={isAdmin} onEdit={openEdit} onDelete={handleDelete} onClick={() => setSelectedEvent(ev)} isDark={isDark} cardBg={cardBg} cardGradient={cardGradient} past />
                 ))}
               </>
             )}
@@ -345,23 +385,35 @@ const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555',
 };
 
-function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
+function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past, isDark, cardBg, cardGradient }: {
   event: Event; isAdmin: boolean;
   onEdit: (e: Event) => void;
   onDelete: (id: number) => void;
   onClick: () => void;
   past?: boolean;
+  isDark?: boolean;
+  cardBg?: string;
+  cardGradient?: string;
 }) {
   const { day, month, year } = formatDateShort(event.event_date);
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const text = `${event.title}\n🗓 ${day} ${month} ${year}${event.location ? `\n📍 ${event.location}` : ''}`;
+    bridge.send('VKWebAppShare', { link: event.page_url || window.location.href }).catch(() => {
+      bridge.send('VKWebAppCopyText', { text }).catch(() => {});
+    });
+  };
+
   return (
     <div
       style={{
-        background: past ? '#fff' : 'linear-gradient(135deg, #f8f4ff 0%, #fff0f8 100%)',
+        background: past ? (cardBg || '#fff') : (cardGradient || 'linear-gradient(135deg, #f8f4ff 0%, #fff0f8 100%)'),
         borderRadius: 24,
         marginBottom: 16,
         overflow: 'hidden',
         boxShadow: past ? '0 2px 8px rgba(0,0,0,0.06)' : '0 6px 24px rgba(108,63,160,0.14)',
-        border: past ? '1px solid #f0f0f0' : '1px solid rgba(108,63,160,0.12)',
+        border: past ? `1px solid ${isDark ? '#333' : '#f0f0f0'}` : '1px solid rgba(108,63,160,0.12)',
         opacity: past ? 0.65 : 1,
         cursor: 'pointer',
       }}
@@ -418,20 +470,24 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
       </div>
 
       {/* Action buttons */}
-      {!past && (event.ticket_url || event.page_url) && (
-        <div style={{ display: 'flex', gap: 12, padding: '0 28px 28px' }} onClick={e => e.stopPropagation()}>
+      {!past && (
+        <div style={{ display: 'flex', gap: 12, padding: '0 28px 28px', flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
           {event.ticket_url && (
             <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
-              style={{ flex: 1, background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '18px 8px', borderRadius: 16, fontWeight: 700, fontSize: 20, textDecoration: 'none' }}>
+              style={{ flex: 1, minWidth: 140, background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '18px 8px', borderRadius: 16, fontWeight: 700, fontSize: 20, textDecoration: 'none' }}>
               Подать заявку
             </a>
           )}
           {event.page_url && (
             <a href={event.page_url} target="_blank" rel="noopener noreferrer"
-              style={{ flex: 1, background: 'rgba(108,63,160,0.08)', color: '#6c3fa0', textAlign: 'center', padding: '18px 8px', borderRadius: 16, fontWeight: 700, fontSize: 20, textDecoration: 'none' }}>
+              style={{ flex: 1, minWidth: 140, background: 'rgba(108,63,160,0.08)', color: '#6c3fa0', textAlign: 'center', padding: '18px 8px', borderRadius: 16, fontWeight: 700, fontSize: 20, textDecoration: 'none' }}>
               Положение
             </a>
           )}
+          <button onClick={handleShare}
+            style={{ width: 60, height: 60, borderRadius: 16, border: 'none', background: 'rgba(108,63,160,0.08)', color: '#6c3fa0', cursor: 'pointer', fontSize: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            ↗
+          </button>
         </div>
       )}
 
