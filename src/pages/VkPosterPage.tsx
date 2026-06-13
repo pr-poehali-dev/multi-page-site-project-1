@@ -358,42 +358,44 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
       }}
       onClick={onClick}
     >
-      {/* Round poster centered */}
-      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 32 }}>
-        {event.poster_url ? (
-          <img
-            src={event.poster_url}
-            alt={event.title}
-            style={{ width: 220, height: 220, borderRadius: '50%', objectFit: 'cover', border: '5px solid', borderColor: past ? '#ddd' : '#6c3fa0', boxShadow: past ? 'none' : '0 0 0 6px rgba(108,63,160,0.15)' }}
-          />
-        ) : (
-          <div style={{ width: 220, height: 220, borderRadius: '50%', background: past ? '#f0f0f0' : 'linear-gradient(135deg,#6c3fa0,#c44b93)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 80 }}>
-            🎭
-          </div>
-        )}
-      </div>
-
-      {/* Info */}
-      <div style={{ padding: '20px 28px 8px', textAlign: 'center' }}>
-        {!event.is_published && (
-          <span style={{ fontSize: 13, background: '#fff3cd', color: '#856404', padding: '4px 10px', borderRadius: 4, marginBottom: 12, display: 'inline-block' }}>Черновик</span>
-        )}
-        <div style={{ fontWeight: 700, fontSize: 22, color: '#1a1a1a', marginBottom: 14, lineHeight: 1.3 }}>{event.title}</div>
-        <div style={{ fontSize: 17, color: past ? '#aaa' : '#6c3fa0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
-          <span>🗓</span>
-          <span>{day} {month} {year}</span>
+      <div style={{ display: 'flex', gap: 20, alignItems: 'center', padding: '24px 24px 16px' }}>
+        {/* Round poster */}
+        <div style={{ flexShrink: 0 }}>
+          {event.poster_url ? (
+            <img
+              src={event.poster_url}
+              alt={event.title}
+              style={{ width: 220, height: 220, borderRadius: '50%', objectFit: 'cover', border: '5px solid', borderColor: past ? '#ddd' : '#6c3fa0', boxShadow: past ? 'none' : '0 0 0 6px rgba(108,63,160,0.15)' }}
+            />
+          ) : (
+            <div style={{ width: 220, height: 220, borderRadius: '50%', background: past ? '#f0f0f0' : 'linear-gradient(135deg,#6c3fa0,#c44b93)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 80 }}>
+              🎭
+            </div>
+          )}
         </div>
-        {event.location && (
-          <div style={{ fontSize: 17, color: '#888', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-            <span>📍</span>
-            <span>{event.location}</span>
+
+        {/* Info */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {!event.is_published && (
+            <span style={{ fontSize: 13, background: '#fff3cd', color: '#856404', padding: '4px 10px', borderRadius: 4, marginBottom: 12, display: 'inline-block' }}>Черновик</span>
+          )}
+          <div style={{ fontWeight: 700, fontSize: 22, color: '#1a1a1a', marginBottom: 14, lineHeight: 1.3 }}>{event.title}</div>
+          <div style={{ fontSize: 17, color: past ? '#aaa' : '#6c3fa0', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <span>🗓</span>
+            <span>{day} {month} {year}</span>
           </div>
-        )}
+          {event.location && (
+            <div style={{ fontSize: 17, color: '#888', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>📍</span>
+              <span>{event.location}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Action buttons */}
       {!past && (event.ticket_url || event.page_url) && (
-        <div style={{ display: 'flex', gap: 12, padding: '16px 28px 28px' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: 12, padding: '0 24px 24px' }} onClick={e => e.stopPropagation()}>
           {event.ticket_url && (
             <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
               style={{ flex: 1, background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '16px 8px', borderRadius: 14, fontWeight: 600, fontSize: 17, textDecoration: 'none' }}>
