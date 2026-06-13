@@ -358,35 +358,61 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
       }}
       onClick={onClick}
     >
-      {event.poster_url && (
-        <img src={event.poster_url} alt={event.title} style={{ width: '100%', height: 180, objectFit: 'cover' }} />
-      )}
-      <div style={{ padding: 16, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-        {/* Date badge */}
-        <div style={{ minWidth: 48, textAlign: 'center', background: past ? '#f0f0f0' : 'linear-gradient(135deg,#6c3fa0,#c44b93)', borderRadius: 10, padding: '8px 4px' }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: past ? '#999' : '#fff', lineHeight: 1 }}>{day}</div>
-          <div style={{ fontSize: 11, color: past ? '#aaa' : 'rgba(255,255,255,0.85)', textTransform: 'uppercase', marginTop: 2 }}>{month}</div>
-          <div style={{ fontSize: 10, color: past ? '#bbb' : 'rgba(255,255,255,0.7)' }}>{year}</div>
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {!event.is_published && (
-            <span style={{ fontSize: 11, background: '#fff3cd', color: '#856404', padding: '2px 6px', borderRadius: 4, marginBottom: 4, display: 'inline-block' }}>Черновик</span>
-          )}
-          <div style={{ fontWeight: 600, fontSize: 15, color: '#1a1a1a', marginBottom: 4, lineHeight: 1.3 }}>{event.title}</div>
-          {event.location && (
-            <div style={{ fontSize: 13, color: '#888', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span>📍</span> {event.location}
+      <div style={{ padding: 16, display: 'flex', gap: 16, alignItems: 'center' }}>
+        {/* Round poster */}
+        <div style={{ flexShrink: 0 }}>
+          {event.poster_url ? (
+            <img
+              src={event.poster_url}
+              alt={event.title}
+              style={{ width: 86, height: 86, borderRadius: '50%', objectFit: 'cover', border: '3px solid', borderColor: past ? '#ddd' : '#6c3fa0', boxShadow: past ? 'none' : '0 0 0 3px rgba(108,63,160,0.15)' }}
+            />
+          ) : (
+            <div style={{ width: 86, height: 86, borderRadius: '50%', background: past ? '#f0f0f0' : 'linear-gradient(135deg,#6c3fa0,#c44b93)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>
+              🎭
             </div>
           )}
-          {event.description && (
-            <div style={{ fontSize: 13, color: '#666', marginTop: 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-              {event.description}
+        </div>
+
+        {/* Info */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {!event.is_published && (
+            <span style={{ fontSize: 11, background: '#fff3cd', color: '#856404', padding: '2px 6px', borderRadius: 4, marginBottom: 6, display: 'inline-block' }}>Черновик</span>
+          )}
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#1a1a1a', marginBottom: 6, lineHeight: 1.3 }}>{event.title}</div>
+          <div style={{ fontSize: 13, color: past ? '#aaa' : '#6c3fa0', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+            <span>🗓</span>
+            <span>{day} {month} {year}</span>
+          </div>
+          {event.location && (
+            <div style={{ fontSize: 13, color: '#888', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span>📍</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.location}</span>
             </div>
           )}
         </div>
       </div>
+
+      {/* Action buttons */}
+      {!past && (event.ticket_url || event.page_url) && (
+        <div style={{ display: 'flex', gap: 8, padding: '0 16px 14px' }} onClick={e => e.stopPropagation()}>
+          {event.ticket_url && (
+            <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
+              style={{ flex: 1, background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '9px 8px', borderRadius: 10, fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+              Подать заявку
+            </a>
+          )}
+          {event.page_url && (
+            <a href={event.page_url} target="_blank" rel="noopener noreferrer"
+              style={{ flex: 1, background: '#f0eef8', color: '#6c3fa0', textAlign: 'center', padding: '9px 8px', borderRadius: 10, fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+              Положение
+            </a>
+          )}
+        </div>
+      )}
+
       {isAdmin && (
-        <div style={{ borderTop: '1px solid #f0f0f0', display: 'flex', gap: 0 }} onClick={e => e.stopPropagation()}>
+        <div style={{ borderTop: '1px solid #f0f0f0', display: 'flex' }} onClick={e => e.stopPropagation()}>
           <button onClick={() => onEdit(event)} style={{ flex: 1, padding: '10px', border: 'none', background: 'none', color: '#6c3fa0', fontWeight: 500, fontSize: 13, cursor: 'pointer' }}>
             ✏️ Редактировать
           </button>
@@ -401,39 +427,36 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
 
 function EventDetail({ event, onClose }: { event: Event; onClose: () => void }) {
   return (
-    <div>
-      {event.poster_url && (
-        <img src={event.poster_url} alt={event.title} style={{ width: '100%', height: 220, objectFit: 'cover' }} />
-      )}
-      <div style={{ padding: 16 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 8px', color: '#1a1a1a' }}>{event.title}</h2>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 12 }}>
-          <div style={{ fontSize: 14, color: '#6c3fa0', display: 'flex', alignItems: 'center', gap: 4 }}>
-            🗓 {formatDate(event.event_date)}
-          </div>
-          {event.location && (
-            <div style={{ fontSize: 14, color: '#888', display: 'flex', alignItems: 'center', gap: 4 }}>
-              📍 {event.location}
-            </div>
-          )}
-        </div>
-        {event.description && (
-          <p style={{ fontSize: 14, color: '#444', lineHeight: 1.6, marginBottom: 16 }}>{event.description}</p>
+    <div style={{ padding: 16 }}>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
+        {event.poster_url ? (
+          <img src={event.poster_url} alt={event.title}
+            style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', border: '3px solid #6c3fa0', flexShrink: 0 }} />
+        ) : (
+          <div style={{ width: 96, height: 96, borderRadius: '50%', background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, flexShrink: 0 }}>🎭</div>
         )}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {event.ticket_url && (
-            <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'block', background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '12px', borderRadius: 12, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
-              🎟 Купить билет
-            </a>
-          )}
-          {event.page_url && (
-            <a href={event.page_url} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'block', background: '#f0f0f0', color: '#333', textAlign: 'center', padding: '12px', borderRadius: 12, fontWeight: 500, fontSize: 14, textDecoration: 'none' }}>
-              Подробнее о мероприятии
-            </a>
-          )}
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: '#1a1a1a', lineHeight: 1.3 }}>{event.title}</h2>
+          <div style={{ fontSize: 13, color: '#6c3fa0', marginBottom: 4 }}>🗓 {formatDate(event.event_date)}</div>
+          {event.location && <div style={{ fontSize: 13, color: '#888' }}>📍 {event.location}</div>}
         </div>
+      </div>
+      {event.description && (
+        <p style={{ fontSize: 14, color: '#444', lineHeight: 1.6, marginBottom: 16, borderTop: '1px solid #f0f0f0', paddingTop: 12 }}>{event.description}</p>
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {event.ticket_url && (
+          <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
+            style={{ display: 'block', background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '13px', borderRadius: 12, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
+            Подать заявку
+          </a>
+        )}
+        {event.page_url && (
+          <a href={event.page_url} target="_blank" rel="noopener noreferrer"
+            style={{ display: 'block', background: '#f0eef8', color: '#6c3fa0', textAlign: 'center', padding: '13px', borderRadius: 12, fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>
+            Положение
+          </a>
+        )}
       </div>
     </div>
   );
