@@ -69,9 +69,12 @@ function formatDateShort(iso: string) {
   return { day: d.getDate(), month: months[d.getMonth()], year: d.getFullYear() };
 }
 
-function getGroupId(): string | null {
+function getLaunchParams() {
   const params = new URLSearchParams(window.location.search);
-  return params.get('vk_group_id') || params.get('group_id') || null;
+  return {
+    groupId: params.get('vk_group_id') || params.get('group_id') || null,
+    role: params.get('vk_viewer_group_role') || null,
+  };
 }
 
 export default function VkPosterPage() {
@@ -87,11 +90,17 @@ export default function VkPosterPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [vkUser, setVkUser] = useState<VkUser | null>(null);
   const [isDark, setIsDark] = useState(false);
-  const [groupId, setGroupId] = useState<string | null>(getGroupId());
+  const launchParams = getLaunchParams();
+  const [groupId, setGroupId] = useState<string | null>(launchParams.groupId);
+  const [isAdminByRole] = useState<boolean>(launchParams.role === 'admin' || launchParams.role === 'editor');
   const posterInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // В VK Bridge v3 параметры запуска (vk_group_id, vk_viewer_group_role)
+    // всегда доступны в URL — читаем их при инициализации
     bridge.send('VKWebAppInit').catch(() => {});
+
+    if (isAdminByRole) setIsAdmin(true);
 
     bridge.send('VKWebAppGetUserInfo').then(data => {
       setVkUser(data as unknown as VkUser);
@@ -101,23 +110,6 @@ export default function VkPosterPage() {
       const scheme = data.scheme as string | undefined;
       setIsDark(scheme === 'space_gray' || scheme === 'vkcom_dark');
     }).catch(() => {});
-
-    // Получаем параметры запуска: group_id и роль пользователя
-    bridge.send('VKWebAppGetLaunchParams').then((data: Record<string, unknown>) => {
-      const gid = data.vk_group_id as number | undefined;
-      if (gid) setGroupId(String(gid));
-
-      // vk_viewer_group_role: 'admin' | 'editor' | 'moder' | 'member' | 'none'
-      const role = data.vk_viewer_group_role as string | undefined;
-      if (role === 'admin' || role === 'editor') {
-        setIsAdmin(true);
-      }
-    }).catch(() => {
-      // Fallback: читаем роль из URL (при открытии через браузер)
-      const params = new URLSearchParams(window.location.search);
-      const role = params.get('vk_viewer_group_role');
-      if (role === 'admin' || role === 'editor') setIsAdmin(true);
-    });
   }, []);
 
   useEffect(() => {
