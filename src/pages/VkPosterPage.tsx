@@ -220,7 +220,7 @@ export default function VkPosterPage() {
         )}
       </div>
 
-      <div style={{ padding: '12px 4px' }}>
+      <div style={{ padding: '12px', maxWidth: '60%', margin: '0 auto' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>Загрузка...</div>
         ) : events.length === 0 ? (
