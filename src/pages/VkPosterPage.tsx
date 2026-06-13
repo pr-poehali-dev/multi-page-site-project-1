@@ -4,9 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
-import * as vkBridgeModule from '@vkontakte/vk-bridge';
- 
-const bridge = ((vkBridgeModule as Record<string, unknown>).default ?? vkBridgeModule) as typeof vkBridgeModule.default;
+import type { VKBridge } from '@vkontakte/vk-bridge';
+
+// VK Bridge подключён через <script> в index.html — используем глобальный объект
+const bridge = (window as unknown as { vkBridge: VKBridge }).vkBridge;
 
 interface VkUser {
   id: number;
@@ -99,7 +100,9 @@ export default function VkPosterPage() {
   const posterInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // VKWebAppInit — первый обязательный вызов, без него не работает на iOS/Android
+    if (!bridge) return;
+
+    // VKWebAppInit — первый обязательный вызов
     bridge.send('VKWebAppInit');
 
     if (isAdminByRole) setIsAdmin(true);
@@ -109,7 +112,7 @@ export default function VkPosterPage() {
       setVkUser(data as unknown as VkUser);
     }).catch(() => {});
 
-    // Тема — VKWebAppUpdateConfig приходит как событие, подписываемся
+    // Тема — VKWebAppUpdateConfig приходит как событие
     const unsubscribe = bridge.subscribe((e) => {
       if (e.detail.type === 'VKWebAppUpdateConfig') {
         const scheme = (e.detail.data as Record<string, unknown>).scheme as string | undefined;
@@ -412,6 +415,7 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past, isDark, ca
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!bridge) return;
     const link = event.page_url || event.ticket_url;
     const text = `${event.title}\n🗓 ${day} ${month} ${year}${event.location ? `\n📍 ${event.location}` : ''}`;
     if (link) {
