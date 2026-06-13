@@ -4,7 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
-import bridge from '@vkontakte/vk-bridge';
+import * as vkBridgeModule from '@vkontakte/vk-bridge';
+ 
+const bridge = ((vkBridgeModule as Record<string, unknown>).default ?? vkBridgeModule) as typeof vkBridgeModule.default;
 
 interface VkUser {
   id: number;
