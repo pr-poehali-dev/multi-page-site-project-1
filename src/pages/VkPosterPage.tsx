@@ -90,9 +90,12 @@ export default function VkPosterPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [vkUser, setVkUser] = useState<VkUser | null>(null);
   const [isDark, setIsDark] = useState(false);
-  const launchParams = getLaunchParams();
-  const [groupId, setGroupId] = useState<string | null>(launchParams.groupId);
-  const [isAdminByRole] = useState<boolean>(launchParams.role === 'admin' || launchParams.role === 'editor');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [groupId, setGroupId] = useState<string | null>(() => getLaunchParams().groupId);
+  const [isAdminByRole] = useState<boolean>(() => {
+    const role = getLaunchParams().role;
+    return role === 'admin' || role === 'editor';
+  });
   const posterInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -195,8 +198,13 @@ export default function VkPosterPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить мероприятие?')) return;
-    await fetch(`${API_URL}?id=${id}`, { method: 'DELETE' });
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmDeleteId) return;
+    await fetch(`${API_URL}?id=${confirmDeleteId}&group_id=${groupId}`, { method: 'DELETE' });
+    setConfirmDeleteId(null);
     loadEvents();
     toast({ title: 'Удалено' });
   };
@@ -311,6 +319,17 @@ export default function VkPosterPage() {
         )}
       </div>
 
+      {/* Confirm delete dialog */}
+      {confirmDeleteId !== null && (
+        <Modal onClose={() => setConfirmDeleteId(null)} title="Удалить мероприятие?">
+          <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <p style={{ margin: 0, fontSize: 14, color: '#555' }}>Это действие нельзя отменить.</p>
+            <Button onClick={confirmDelete} className="w-full" style={{ background: '#e53e3e', color: '#fff' }}>Удалить</Button>
+            <Button onClick={() => setConfirmDeleteId(null)} variant="outline" className="w-full">Отмена</Button>
+          </div>
+        </Modal>
+      )}
+
       {/* Event detail modal */}
       {selectedEvent && (
         <Modal onClose={() => setSelectedEvent(null)} title="">
@@ -393,10 +412,15 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past, isDark, ca
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
+    const link = event.page_url || event.ticket_url;
     const text = `${event.title}\n🗓 ${day} ${month} ${year}${event.location ? `\n📍 ${event.location}` : ''}`;
-    bridge.send('VKWebAppShare', { link: event.page_url || window.location.href }).catch(() => {
+    if (link) {
+      bridge.send('VKWebAppShare', { link }).catch(() => {
+        bridge.send('VKWebAppCopyText', { text }).catch(() => {});
+      });
+    } else {
       bridge.send('VKWebAppCopyText', { text }).catch(() => {});
-    });
+    }
   };
 
   return (

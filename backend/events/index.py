@@ -127,6 +127,10 @@ def update_event(conn, event: dict) -> dict:
     if not event_id:
         return _resp(400, {'error': 'ID обязателен'})
 
+    group_id = body.get('group_id')
+    if not group_id:
+        return _resp(400, {'error': 'group_id обязателен'})
+
     fields = ['title', 'description', 'event_date', 'deadline', 'location', 'poster_url', 'ticket_url', 'page_url', 'is_published']
     updates = []
     values = []
@@ -139,10 +143,10 @@ def update_event(conn, event: dict) -> dict:
         return _resp(400, {'error': 'Нет данных для обновления'})
 
     updates.append('updated_at = NOW()')
-    values.append(event_id)
+    values.extend([event_id, group_id])
 
     with conn.cursor() as cur:
-        cur.execute(f"UPDATE events SET {', '.join(updates)} WHERE id = %s", values)
+        cur.execute(f"UPDATE events SET {', '.join(updates)} WHERE id = %s AND group_id = %s", values)
 
     return _resp(200, {'success': True})
 
@@ -154,7 +158,11 @@ def delete_event(conn, event: dict) -> dict:
     if not event_id:
         return _resp(400, {'error': 'ID обязателен'})
 
+    group_id = params.get('group_id')
+    if not group_id:
+        return _resp(400, {'error': 'group_id обязателен'})
+
     with conn.cursor() as cur:
-        cur.execute('DELETE FROM events WHERE id = %s', (event_id,))
+        cur.execute('DELETE FROM events WHERE id = %s AND group_id = %s', (event_id, group_id))
 
     return _resp(200, {'success': True})
