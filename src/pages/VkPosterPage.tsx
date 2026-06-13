@@ -96,20 +96,27 @@ export default function VkPosterPage() {
   const posterInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // В VK Bridge v3 параметры запуска (vk_group_id, vk_viewer_group_role)
-    // всегда доступны в URL — читаем их при инициализации
-    bridge.send('VKWebAppInit').catch(() => {});
+    // VKWebAppInit — первый обязательный вызов, без него не работает на iOS/Android
+    bridge.send('VKWebAppInit');
 
     if (isAdminByRole) setIsAdmin(true);
 
+    // Данные пользователя
     bridge.send('VKWebAppGetUserInfo').then(data => {
       setVkUser(data as unknown as VkUser);
     }).catch(() => {});
 
-    bridge.send('VKWebAppGetConfig').then((data: Record<string, unknown>) => {
-      const scheme = data.scheme as string | undefined;
-      setIsDark(scheme === 'space_gray' || scheme === 'vkcom_dark');
-    }).catch(() => {});
+    // Тема — VKWebAppUpdateConfig приходит как событие, подписываемся
+    const unsubscribe = bridge.subscribe((e) => {
+      if (e.detail.type === 'VKWebAppUpdateConfig') {
+        const scheme = (e.detail.data as Record<string, unknown>).scheme as string | undefined;
+        setIsDark(scheme === 'space_gray' || scheme === 'vkcom_dark');
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
