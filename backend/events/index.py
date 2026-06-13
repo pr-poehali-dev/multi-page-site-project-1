@@ -63,14 +63,14 @@ def get_events(conn, event: dict) -> dict:
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         if only_published:
             cur.execute('''
-                SELECT id, title, description, event_date, location, poster_url, ticket_url, page_url, is_published, created_at
+                SELECT id, title, description, event_date, deadline, location, poster_url, ticket_url, page_url, is_published, created_at
                 FROM events
                 WHERE is_published = true
                 ORDER BY event_date ASC
             ''')
         else:
             cur.execute('''
-                SELECT id, title, description, event_date, location, poster_url, ticket_url, page_url, is_published, created_at
+                SELECT id, title, description, event_date, deadline, location, poster_url, ticket_url, page_url, is_published, created_at
                 FROM events
                 ORDER BY event_date ASC
             ''')
@@ -92,13 +92,14 @@ def create_event(conn, event: dict) -> dict:
 
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute('''
-            INSERT INTO events (title, description, event_date, location, poster_url, ticket_url, page_url, is_published)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO events (title, description, event_date, deadline, location, poster_url, ticket_url, page_url, is_published)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         ''', (
             title,
             body.get('description', ''),
             event_date,
+            body.get('deadline') or None,
             body.get('location', ''),
             body.get('poster_url'),
             body.get('ticket_url'),
@@ -116,7 +117,7 @@ def update_event(conn, event: dict) -> dict:
     if not event_id:
         return _resp(400, {'error': 'ID обязателен'})
 
-    fields = ['title', 'description', 'event_date', 'location', 'poster_url', 'ticket_url', 'page_url', 'is_published']
+    fields = ['title', 'description', 'event_date', 'deadline', 'location', 'poster_url', 'ticket_url', 'page_url', 'is_published']
     updates = []
     values = []
     for f in fields:

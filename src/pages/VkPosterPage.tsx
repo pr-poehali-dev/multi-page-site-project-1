@@ -14,6 +14,7 @@ interface Event {
   title: string;
   description: string;
   event_date: string;
+  deadline: string | null;
   location: string;
   poster_url: string | null;
   ticket_url: string | null;
@@ -25,6 +26,7 @@ interface EventForm {
   title: string;
   description: string;
   event_date: string;
+  deadline: string;
   location: string;
   poster_url: string;
   ticket_url: string;
@@ -36,6 +38,7 @@ const emptyForm: EventForm = {
   title: '',
   description: '',
   event_date: '',
+  deadline: '',
   location: '',
   poster_url: '',
   ticket_url: '',
@@ -113,6 +116,7 @@ export default function VkPosterPage() {
       title: e.title,
       description: e.description || '',
       event_date: e.event_date ? e.event_date.slice(0, 16) : '',
+      deadline: e.deadline ? e.deadline.slice(0, 16) : '',
       location: e.location || '',
       poster_url: e.poster_url || '',
       ticket_url: e.ticket_url || '',
@@ -297,6 +301,10 @@ export default function VkPosterPage() {
               <Input type="datetime-local" value={form.event_date} onChange={e => setForm(f => ({ ...f, event_date: e.target.value }))} />
             </div>
             <div>
+              <label style={labelStyle}>Подача заявок до</label>
+              <Input type="datetime-local" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
+            </div>
+            <div>
               <label style={labelStyle}>Место проведения</label>
               <Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder="Адрес или площадка" />
             </div>
@@ -394,6 +402,15 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past }: {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 42, height: 42, borderRadius: 12, background: past ? '#f0f0f0' : 'rgba(196,75,147,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>📍</div>
                 <span style={{ fontSize: 20, color: '#555', fontWeight: 600 }}>{event.location}</span>
+              </div>
+            )}
+            {event.deadline && !past && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(234,88,12,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>⏰</div>
+                <div>
+                  <div style={{ fontSize: 13, color: '#aaa', fontWeight: 500, lineHeight: 1 }}>Подача заявок до</div>
+                  <span style={{ fontSize: 20, color: '#ea580c', fontWeight: 700 }}>{formatDateShort(event.deadline).day} {formatDateShort(event.deadline).month} {formatDateShort(event.deadline).year}</span>
+                </div>
               </div>
             )}
           </div>
