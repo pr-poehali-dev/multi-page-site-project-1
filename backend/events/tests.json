@@ -1,0 +1,12 @@
+{
+  "tests": [
+    {
+      "name": "Get published events",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {"events": []},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

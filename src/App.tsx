@@ -22,6 +22,7 @@ import JuryPanelPage from "./pages/JuryPanelPage";
 import ParticipantLoginPage from "./pages/ParticipantLoginPage";
 import ParticipantCabinetPage from "./pages/ParticipantCabinetPage";
 import NotFound from "./pages/NotFound";
+import VkPosterPage from "./pages/VkPosterPage";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
           <Route path="/jury-panel" element={<JuryPanelPage />} />
           <Route path="/participant-login" element={<ParticipantLoginPage />} />
           <Route path="/participant-cabinet" element={<ParticipantCabinetPage />} />
+          <Route path="/vk-poster" element={<VkPosterPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
