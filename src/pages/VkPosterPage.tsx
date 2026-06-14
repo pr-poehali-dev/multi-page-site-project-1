@@ -484,37 +484,105 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past, isDark, ca
 }
 
 function EventDetail({ event, onClose }: { event: Event; onClose: () => void }) {
+  const d = new Date(event.event_date);
+  const weekdays = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+  const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  const shortMonths = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  const weekday = weekdays[d.getDay()];
+  const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  const dateShort = `${d.getDate()} ${months[d.getMonth()]}, ${['вс','пн','вт','ср','чт','пт','сб'][d.getDay()]}, ${time}`;
+
+  // "через N месяцев/дней"
+  const now = new Date();
+  const diffMs = d.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  let timeLeft = '';
+  if (diffDays > 0) {
+    if (diffDays >= 30) {
+      const m = Math.round(diffDays / 30);
+      timeLeft = `через ${m} ${m === 1 ? 'месяц' : m < 5 ? 'месяца' : 'месяцев'}`;
+    } else {
+      timeLeft = `через ${diffDays} ${diffDays === 1 ? 'день' : diffDays < 5 ? 'дня' : 'дней'}`;
+    }
+  }
+
+  const handleShare = () => {
+    if (!bridge) return;
+    const link = event.page_url || event.ticket_url;
+    const text = `${event.title}\n🗓 ${dateShort}${event.location ? `\n📍 ${event.location}` : ''}`;
+    if (link) {
+      bridge.send('VKWebAppShare', { link }).catch(() => {
+        bridge.send('VKWebAppCopyText', { text }).catch(() => {});
+      });
+    } else {
+      bridge.send('VKWebAppCopyText', { text }).catch(() => {});
+    }
+  };
+
   return (
-    <div style={{ padding: 16 }}>
-      <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
+    <div style={{ padding: '0 16px 20px' }}>
+      {/* Top: poster + info */}
+      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 14 }}>
         {event.poster_url ? (
           <img src={event.poster_url} alt={event.title}
-            style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', border: '3px solid #6c3fa0', flexShrink: 0 }} />
+            style={{ width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
         ) : (
-          <div style={{ width: 96, height: 96, borderRadius: '50%', background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, flexShrink: 0 }}>🎭</div>
+          <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg,#3d6fa0,#5a8fc0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, flexShrink: 0 }}>🎭</div>
         )}
-        <div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: '#1a1a1a', lineHeight: 1.3 }}>{event.title}</h2>
-          <div style={{ fontSize: 13, color: '#6c3fa0', marginBottom: 4 }}>🗓 {formatDate(event.event_date)}</div>
-          {event.location && <div style={{ fontSize: 13, color: '#888' }}>📍 {event.location}</div>}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#111', lineHeight: 1.35, marginBottom: 8 }}>{event.title}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#555' }}>
+              <span>🕐</span><span>{dateShort}</span>
+            </div>
+            {event.location && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#3d6fa0' }}>
+                <span>📍</span><span>{event.location}</span>
+              </div>
+            )}
+            {event.deadline && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#e07b00' }}>
+                <span>⏰</span>
+                <span>Заявки до: {new Date(event.deadline).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-      {event.description && (
-        <p style={{ fontSize: 14, color: '#444', lineHeight: 1.6, marginBottom: 16, borderTop: '1px solid #f0f0f0', paddingTop: 12 }}>{event.description}</p>
-      )}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+      {/* Action buttons */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
         {event.ticket_url && (
           <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
-            style={{ display: 'block', background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '13px', borderRadius: 12, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
+            style={{ fontSize: 14, fontWeight: 600, color: '#fff', background: '#3d6fa0', padding: '8px 16px', borderRadius: 8, textDecoration: 'none' }}>
             Подать заявку
           </a>
         )}
         {event.page_url && (
           <a href={event.page_url} target="_blank" rel="noopener noreferrer"
-            style={{ display: 'block', background: '#f0eef8', color: '#6c3fa0', textAlign: 'center', padding: '13px', borderRadius: 12, fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>
+            style={{ fontSize: 14, fontWeight: 600, color: '#3d6fa0', background: 'rgba(61,111,160,0.1)', padding: '8px 16px', borderRadius: 8, textDecoration: 'none', border: '1px solid rgba(61,111,160,0.25)' }}>
             Положение
           </a>
         )}
+        <button onClick={handleShare}
+          style={{ fontSize: 14, fontWeight: 600, color: '#555', background: '#f2f2f2', padding: '8px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+          ↗ Поделиться
+        </button>
+      </div>
+
+      {/* Description */}
+      {event.description && (
+        <div style={{ fontSize: 14, color: '#3d6fa0', marginBottom: 16, lineHeight: 1.5 }}>{event.description}</div>
+      )}
+
+      {/* Schedule block */}
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 10 }}>Расписание</div>
+      <div style={{ display: 'inline-block', border: '1px solid #e0e0e0', borderRadius: 12, padding: '16px 24px', textAlign: 'center', minWidth: 120 }}>
+        <div style={{ fontSize: 42, fontWeight: 700, color: '#111', lineHeight: 1 }}>{d.getDate()}</div>
+        <div style={{ fontSize: 14, color: '#555', marginTop: 2 }}>{shortMonths[d.getMonth()]}</div>
+        <div style={{ fontSize: 13, color: '#555', marginTop: 2 }}>{weekday}</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: '#111', marginTop: 4 }}>{time}</div>
+        {timeLeft && <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{timeLeft}</div>}
       </div>
     </div>
   );
