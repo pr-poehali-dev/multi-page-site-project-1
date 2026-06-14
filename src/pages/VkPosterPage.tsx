@@ -572,7 +572,7 @@ function EventDetail({ event, onClose }: { event: Event; onClose: () => void }) 
 
       {/* Description */}
       {event.description && (
-        <div style={{ fontSize: 14, color: '#3d6fa0', marginBottom: 16, lineHeight: 1.5 }}>{event.description}</div>
+        <div style={{ fontSize: 14, color: '#333', marginBottom: 16, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{event.description}</div>
       )}
 
       {/* Schedule block */}
