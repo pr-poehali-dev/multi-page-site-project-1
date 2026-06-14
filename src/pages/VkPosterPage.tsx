@@ -416,9 +416,9 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past, isDark, ca
         <div style={{ flexShrink: 0 }}>
           {event.poster_url ? (
             <img src={event.poster_url} alt={event.title}
-              style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', opacity: past ? 0.6 : 1 }} />
+              style={{ width: 192, height: 192, borderRadius: 16, objectFit: 'cover', opacity: past ? 0.6 : 1 }} />
           ) : (
-            <div style={{ width: 64, height: 64, borderRadius: 12, background: past ? '#e0e0e0' : 'linear-gradient(135deg,#3d6fa0,#5a8fc0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+            <div style={{ width: 192, height: 192, borderRadius: 16, background: past ? '#e0e0e0' : 'linear-gradient(135deg,#3d6fa0,#5a8fc0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 72 }}>
               🎭
             </div>
           )}
