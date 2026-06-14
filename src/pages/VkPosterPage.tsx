@@ -385,11 +385,11 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past, isDark, ca
   isDark?: boolean;
   cardBg?: string;
 }) {
-  const { day, month, year } = formatDateShort(event.event_date);
   const weekdays = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
   const d = new Date(event.event_date);
   const weekday = weekdays[d.getDay()];
   const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -416,9 +416,9 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past, isDark, ca
         <div style={{ flexShrink: 0 }}>
           {event.poster_url ? (
             <img src={event.poster_url} alt={event.title}
-              style={{ width: 192, height: 192, borderRadius: 16, objectFit: 'cover', opacity: past ? 0.6 : 1 }} />
+              style={{ width: 173, height: 173, borderRadius: 16, objectFit: 'cover', opacity: past ? 0.6 : 1 }} />
           ) : (
-            <div style={{ width: 192, height: 192, borderRadius: 16, background: past ? '#e0e0e0' : 'linear-gradient(135deg,#3d6fa0,#5a8fc0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 72 }}>
+            <div style={{ width: 173, height: 173, borderRadius: 16, background: past ? '#e0e0e0' : 'linear-gradient(135deg,#3d6fa0,#5a8fc0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64 }}>
               🎭
             </div>
           )}
@@ -431,14 +431,14 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past, isDark, ca
           )}
           <div style={{ fontWeight: 600, fontSize: 14, color: titleColor, lineHeight: 1.35, marginBottom: 4 }}>{event.title}</div>
           <div style={{ fontSize: 13, color: '#3d6fa0', fontWeight: 500, marginBottom: 2 }}>
-            {day} {month}, {weekday}, {time}
+            {dateStr}, {weekday}, {time}
           </div>
           {event.location && (
             <div style={{ fontSize: 12, color: subColor, marginBottom: 2 }}>{event.location}</div>
           )}
           {!past && event.deadline && (
             <div style={{ fontSize: 12, color: '#e07b00', fontWeight: 500, marginBottom: 2 }}>
-              Заявки до: {formatDateShort(event.deadline).day} {formatDateShort(event.deadline).month} {formatDateShort(event.deadline).year}
+              Заявки до: {new Date(event.deadline).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
             </div>
           )}
           {!past && (event.ticket_url || event.page_url) && (
