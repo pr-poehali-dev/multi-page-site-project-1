@@ -242,48 +242,40 @@ export default function VkPosterPage() {
     }
   };
 
-  const upcoming = events.filter(e => new Date(e.event_date) >= new Date());
-  const past = events.filter(e => new Date(e.event_date) < new Date());
+  const upcomingEvents = events.filter(e => new Date(e.event_date) >= new Date());
+  const pastEvents = events.filter(e => new Date(e.event_date) < new Date());
+  const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
 
-  const bg = isDark ? '#19191a' : '#f0f2f5';
+  const bg = isDark ? '#19191a' : '#f5f5f5';
   const cardBg = isDark ? '#2a2a2b' : '#fff';
-  const cardGradient = isDark ? 'linear-gradient(135deg,#2a1f3d 0%,#2d1a2e 100%)' : 'linear-gradient(135deg, #f8f4ff 0%, #fff0f8 100%)';
 
   return (
     <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', background: bg, minHeight: '100vh', paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, #6c3fa0 0%, #c44b93 100%)', padding: 'calc(20px + env(safe-area-inset-top)) 16px 24px', position: 'relative' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {vkUser?.photo_100 && (
-              <img src={vkUser.photo_100} alt={vkUser.first_name}
-                style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.4)' }} />
-            )}
-            <div>
-              <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, marginBottom: 2 }}>
-                {vkUser ? `Привет, ${vkUser.first_name}!` : 'Культурный центр'}
-              </div>
-              <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 700, margin: 0 }}>Афиша мероприятий</h1>
-            </div>
-          </div>
+      <div style={{ background: isDark ? '#1a3a5c' : '#3d6fa0', padding: 'calc(12px + env(safe-area-inset-top)) 16px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <h1 style={{ color: '#fff', fontSize: 20, fontWeight: 700, margin: 0 }}>Афиша</h1>
           {isAdmin && (
-            <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 20, padding: '6px 14px', color: '#fff', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 16 }}>🔓</span> Администратор
-            </div>
+            <button onClick={openCreate}
+              style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, padding: '6px 14px', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+              + Добавить
+            </button>
           )}
         </div>
-
-        {isAdmin && (
-          <button
-            onClick={openCreate}
-            style={{ marginTop: 16, background: '#fff', border: 'none', borderRadius: 12, padding: '10px 20px', color: '#6c3fa0', fontWeight: 600, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, width: '100%', justifyContent: 'center' }}
-          >
-            <span style={{ fontSize: 18 }}>+</span> Добавить мероприятие
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button onClick={() => setTab('upcoming')}
+            style={{ padding: '8px 18px', borderRadius: '8px 8px 0 0', border: 'none', fontWeight: 600, fontSize: 14, cursor: 'pointer', background: tab === 'upcoming' ? '#fff' : 'transparent', color: tab === 'upcoming' ? '#222' : 'rgba(255,255,255,0.8)' }}>
+            Актуальные
           </button>
-        )}
+          <button onClick={() => setTab('past')}
+            style={{ padding: '8px 18px', borderRadius: '8px 8px 0 0', border: 'none', fontWeight: 600, fontSize: 14, cursor: 'pointer', background: tab === 'past' ? '#fff' : 'transparent', color: tab === 'past' ? '#222' : 'rgba(255,255,255,0.8)' }}>
+            Прошедшие
+          </button>
+        </div>
       </div>
 
-      <div style={{ padding: '12px 16px', maxWidth: 600, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ padding: '0', maxWidth: 700, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         {!groupId ? (
           <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
@@ -291,34 +283,17 @@ export default function VkPosterPage() {
           </div>
         ) : loading ? (
           <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>Загрузка...</div>
-        ) : events.length === 0 ? (
+        ) : (tab === 'upcoming' ? upcomingEvents : pastEvents).length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🎭</div>
             <div>Мероприятий пока нет</div>
           </div>
         ) : (
-          <>
-            {upcoming.length > 0 && (
-              <>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#6c3fa0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
-                  Предстоящие
-                </div>
-                {upcoming.map(ev => (
-                  <EventCard key={ev.id} event={ev} isAdmin={isAdmin} onEdit={openEdit} onDelete={handleDelete} onClick={() => setSelectedEvent(ev)} isDark={isDark} cardBg={cardBg} cardGradient={cardGradient} />
-                ))}
-              </>
-            )}
-            {past.length > 0 && (
-              <>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: 1, margin: '20px 0 12px' }}>
-                  Прошедшие
-                </div>
-                {past.map(ev => (
-                  <EventCard key={ev.id} event={ev} isAdmin={isAdmin} onEdit={openEdit} onDelete={handleDelete} onClick={() => setSelectedEvent(ev)} isDark={isDark} cardBg={cardBg} cardGradient={cardGradient} past />
-                ))}
-              </>
-            )}
-          </>
+          <div>
+            {(tab === 'upcoming' ? upcomingEvents : pastEvents).map(ev => (
+              <EventCard key={ev.id} event={ev} isAdmin={isAdmin} onEdit={openEdit} onDelete={handleDelete} onClick={() => setSelectedEvent(ev)} isDark={isDark} cardBg={cardBg} past={tab === 'past'} />
+            ))}
+          </div>
         )}
       </div>
 
@@ -401,7 +376,7 @@ const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555',
 };
 
-function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past, isDark, cardBg, cardGradient }: {
+function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past, isDark, cardBg }: {
   event: Event; isAdmin: boolean;
   onEdit: (e: Event) => void;
   onDelete: (id: number) => void;
@@ -409,9 +384,12 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past, isDark, ca
   past?: boolean;
   isDark?: boolean;
   cardBg?: string;
-  cardGradient?: string;
 }) {
   const { day, month, year } = formatDateShort(event.event_date);
+  const weekdays = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+  const d = new Date(event.event_date);
+  const weekday = weekdays[d.getDay()];
+  const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -427,99 +405,75 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past, isDark, ca
     }
   };
 
+  const border = isDark ? '1px solid #333' : '1px solid #e8e8e8';
+  const titleColor = isDark ? '#f0f0f0' : '#222';
+  const subColor = isDark ? '#aaa' : '#555';
+
   return (
-    <div
-      style={{
-        background: past ? (cardBg || '#fff') : (cardGradient || 'linear-gradient(135deg, #f8f4ff 0%, #fff0f8 100%)'),
-        borderRadius: 24,
-        marginBottom: 16,
-        overflow: 'hidden',
-        boxShadow: past ? '0 2px 8px rgba(0,0,0,0.06)' : '0 6px 24px rgba(108,63,160,0.14)',
-        border: past ? `1px solid ${isDark ? '#333' : '#f0f0f0'}` : '1px solid rgba(108,63,160,0.12)',
-        opacity: past ? 0.65 : 1,
-        cursor: 'pointer',
-      }}
-      onClick={onClick}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 16px 16px', gap: 16 }}>
-        {/* Round poster */}
-        <div style={{ flexShrink: 0, position: 'relative' }}>
+    <div style={{ background: cardBg || '#fff', borderBottom: border, cursor: 'pointer' }} onClick={onClick}>
+      <div style={{ display: 'flex', gap: 12, padding: '14px 16px', alignItems: 'flex-start' }}>
+        {/* Poster */}
+        <div style={{ flexShrink: 0 }}>
           {event.poster_url ? (
-            <img
-              src={event.poster_url}
-              alt={event.title}
-              style={{ width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', border: '4px solid', borderColor: past ? '#ddd' : '#6c3fa0', boxShadow: past ? 'none' : '0 6px 24px rgba(108,63,160,0.35)' }}
-            />
+            <img src={event.poster_url} alt={event.title}
+              style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', opacity: past ? 0.6 : 1 }} />
           ) : (
-            <div style={{ width: 120, height: 120, borderRadius: '50%', background: past ? '#f0f0f0' : 'linear-gradient(135deg,#6c3fa0,#c44b93)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>
+            <div style={{ width: 64, height: 64, borderRadius: 12, background: past ? '#e0e0e0' : 'linear-gradient(135deg,#3d6fa0,#5a8fc0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
               🎭
             </div>
-          )}
-          {!past && (
-            <div style={{ position: 'absolute', bottom: 8, right: 8, width: 24, height: 24, background: '#22c55e', borderRadius: '50%', border: '3px solid #fff' }} />
           )}
         </div>
 
         {/* Info */}
-        <div style={{ width: '100%', textAlign: 'center' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           {!event.is_published && (
-            <span style={{ fontSize: 13, background: '#fff3cd', color: '#856404', padding: '4px 10px', borderRadius: 20, marginBottom: 10, display: 'inline-block', fontWeight: 600 }}>Черновик</span>
+            <span style={{ fontSize: 11, background: '#fff3cd', color: '#856404', padding: '2px 8px', borderRadius: 10, marginBottom: 4, display: 'inline-block', fontWeight: 600 }}>Черновик</span>
           )}
-          <div style={{ fontWeight: 800, fontSize: 20, color: '#1a1a1a', marginBottom: 12, lineHeight: 1.3 }}>{event.title}</div>
-
-          <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start', textAlign: 'left' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>🗓</span>
-              <span style={{ fontSize: 15, color: past ? '#aaa' : '#6c3fa0', fontWeight: 700 }}>{day} {month} {year}</span>
-            </div>
-            {event.location && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>📍</span>
-                <span style={{ fontSize: 15, color: '#555', fontWeight: 600 }}>{event.location}</span>
-              </div>
-            )}
-            {event.deadline && !past && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>⏰</span>
-                <span style={{ fontSize: 14, color: '#ea580c', fontWeight: 600 }}>до {formatDateShort(event.deadline).day} {formatDateShort(event.deadline).month}</span>
-              </div>
-            )}
+          <div style={{ fontWeight: 600, fontSize: 14, color: titleColor, lineHeight: 1.35, marginBottom: 4 }}>{event.title}</div>
+          <div style={{ fontSize: 13, color: '#3d6fa0', fontWeight: 500, marginBottom: 2 }}>
+            {day} {month}, {weekday}, {time}
           </div>
+          {event.location && (
+            <div style={{ fontSize: 12, color: subColor, marginBottom: past ? 0 : 8 }}>{event.location}</div>
+          )}
+          {!past && (event.ticket_url || event.page_url) && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }} onClick={e => e.stopPropagation()}>
+              {event.ticket_url && (
+                <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: '#3d6fa0', padding: '5px 14px', borderRadius: 20, textDecoration: 'none' }}>
+                  Подать заявку
+                </a>
+              )}
+              {event.page_url && (
+                <a href={event.page_url} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: 13, fontWeight: 600, color: '#3d6fa0', background: 'rgba(61,111,160,0.1)', padding: '5px 14px', borderRadius: 20, textDecoration: 'none' }}>
+                  Положение
+                </a>
+              )}
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* Action buttons */}
-      {!past && (
-        <div style={{ display: 'flex', gap: 10, padding: '0 16px 16px', flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
-          {event.ticket_url && (
-            <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
-              style={{ flex: 1, minWidth: 120, background: 'linear-gradient(135deg,#6c3fa0,#c44b93)', color: '#fff', textAlign: 'center', padding: '12px 8px', borderRadius: 14, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
-              Подать заявку
-            </a>
-          )}
-          {event.page_url && (
-            <a href={event.page_url} target="_blank" rel="noopener noreferrer"
-              style={{ flex: 1, minWidth: 120, background: 'rgba(108,63,160,0.08)', color: '#6c3fa0', textAlign: 'center', padding: '12px 8px', borderRadius: 14, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
-              Положение
-            </a>
-          )}
+        {/* Right actions */}
+        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }} onClick={e => e.stopPropagation()}>
           <button onClick={handleShare}
-            style={{ width: 46, height: 46, borderRadius: 14, border: 'none', background: 'rgba(108,63,160,0.08)', color: '#6c3fa0', cursor: 'pointer', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${isDark ? '#444' : '#ddd'}`, background: 'none', color: subColor, cursor: 'pointer', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             ↗
           </button>
+          {isAdmin && (
+            <>
+              <button onClick={() => onEdit(event)}
+                style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${isDark ? '#444' : '#ddd'}`, background: 'none', color: '#3d6fa0', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                ✏️
+              </button>
+              <button onClick={() => onDelete(event.id)}
+                style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${isDark ? '#444' : '#ddd'}`, background: 'none', color: '#e53e3e', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                🗑
+              </button>
+            </>
+          )}
         </div>
-      )}
-
-      {isAdmin && (
-        <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', display: 'flex' }} onClick={e => e.stopPropagation()}>
-          <button onClick={() => onEdit(event)} style={{ flex: 1, padding: '14px', border: 'none', background: 'none', color: '#6c3fa0', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
-            ✏️ Редактировать
-          </button>
-          <button onClick={() => onDelete(event.id)} style={{ flex: 1, padding: '14px', border: 'none', background: 'none', color: '#e53e3e', fontWeight: 600, fontSize: 14, cursor: 'pointer', borderLeft: '1px solid rgba(0,0,0,0.06)' }}>
-            🗑 Удалить
-          </button>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
