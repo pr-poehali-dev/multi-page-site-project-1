@@ -434,7 +434,12 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past, isDark, ca
             {day} {month}, {weekday}, {time}
           </div>
           {event.location && (
-            <div style={{ fontSize: 12, color: subColor, marginBottom: past ? 0 : 8 }}>{event.location}</div>
+            <div style={{ fontSize: 12, color: subColor, marginBottom: 2 }}>{event.location}</div>
+          )}
+          {!past && event.deadline && (
+            <div style={{ fontSize: 12, color: '#e07b00', fontWeight: 500, marginBottom: 2 }}>
+              Заявки до: {formatDateShort(event.deadline).day} {formatDateShort(event.deadline).month} {formatDateShort(event.deadline).year}
+            </div>
           )}
           {!past && (event.ticket_url || event.page_url) && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }} onClick={e => e.stopPropagation()}>
