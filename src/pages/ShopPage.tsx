@@ -73,12 +73,12 @@ const ShopPage = () => {
           {/* Category selector */}
           {categories.length > 0 && (
             <div className="mb-8 max-w-xs">
-              <Select value={selectedCatId} onValueChange={setSelectedCatId}>
+              <Select value={selectedCatId || 'all'} onValueChange={v => setSelectedCatId(v === 'all' ? '' : v)}>
                 <SelectTrigger className="h-11">
                   <SelectValue placeholder="Все товары" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Все товары</SelectItem>
+                  <SelectItem value="all">Все товары</SelectItem>
                   {categories.map(c => (
                     <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                   ))}

@@ -120,7 +120,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     return {'statusCode': 404, 'headers': CORS,
                             'body': json.dumps({'error': 'not found'})}
                 return {'statusCode': 200, 'headers': CORS,
-                        'body': json.dumps({'order': dict(order)})}
+                        'body': json.dumps({'order': dict(order)}, default=json_serial)}
 
         return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({'error': 'Unknown action'})}
 

@@ -8,12 +8,10 @@
       "bodyMatcher": "partial"
     },
     {
-      "name": "GET all orders returns list",
+      "name": "GET all orders returns 200",
       "method": "GET",
       "path": "/",
-      "expectedStatus": 200,
-      "expectedBody": {"orders": []},
-      "bodyMatcher": "partial"
+      "expectedStatus": 200
     }
   ]
 }

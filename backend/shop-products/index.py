@@ -183,10 +183,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                             'body': json.dumps({'error': 'name required'})}
                 cur.execute(f'''
                     INSERT INTO {SCHEMA}.shop_products
-                      (category_id, name, description, price, photo_url, payment_url, is_active, sort_order)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                      (contest_id, category_id, name, description, price, photo_url, payment_url, is_active, sort_order)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     RETURNING *
                 ''', (
+                    0,
                     body.get('category_id') or None,
                     name,
                     body.get('description', ''),
