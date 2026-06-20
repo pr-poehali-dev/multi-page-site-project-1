@@ -4,79 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
-import type { VKBridge } from '@vkontakte/vk-bridge';
 
-// VK Bridge подключён через <script> в index.html — используем глобальный объект
-const bridge = (window as unknown as { vkBridge: VKBridge }).vkBridge;
-
-interface VkUser {
-  id: number;
-  first_name: string;
-  last_name: string;
-  photo_100: string;
-}
-
-const API_URL = 'https://functions.poehali.dev/be285661-455d-4c13-b45f-897f4395817d';
-const UPLOAD_URL = 'https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3';
-
-interface Event {
-  id: number;
-  title: string;
-  description: string;
-  event_date: string;
-  deadline: string | null;
-  location: string;
-  poster_url: string | null;
-  ticket_url: string | null;
-  page_url: string | null;
-  is_published: boolean;
-}
-
-interface EventForm {
-  title: string;
-  description: string;
-  event_date: string;
-  deadline: string;
-  location: string;
-  poster_url: string;
-  ticket_url: string;
-  page_url: string;
-  is_published: boolean;
-}
-
-const emptyForm: EventForm = {
-  title: '',
-  description: '',
-  event_date: '',
-  deadline: '',
-  location: '',
-  poster_url: '',
-  ticket_url: '',
-  page_url: '',
-  is_published: true,
-};
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleString('ru-RU', {
-    day: 'numeric', month: 'long', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
-}
-
-function formatDateShort(iso: string) {
-  const d = new Date(iso);
-  const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
-  return { day: d.getDate(), month: months[d.getMonth()], year: d.getFullYear() };
-}
-
-function getLaunchParams() {
-  const params = new URLSearchParams(window.location.search);
-  return {
-    groupId: params.get('vk_group_id') || params.get('group_id') || null,
-    role: params.get('vk_viewer_group_role') || null,
-  };
-}
+import {
+  bridge, API_URL, UPLOAD_URL,
+  emptyForm, getLaunchParams, labelStyle,
+} from './vk-poster/VkPosterTypes';
+import type { Event, EventForm, VkUser } from './vk-poster/VkPosterTypes';
+import { EventCard } from './vk-poster/VkPosterEventCard';
+import { Modal, EventDetail } from './vk-poster/VkPosterModal';
 
 export default function VkPosterPage() {
   const { toast } = useToast();
@@ -102,17 +37,14 @@ export default function VkPosterPage() {
   useEffect(() => {
     if (!bridge) return;
 
-    // VKWebAppInit — первый обязательный вызов
     bridge.send('VKWebAppInit');
 
     if (isAdminByRole) setIsAdmin(true);
 
-    // Данные пользователя
     bridge.send('VKWebAppGetUserInfo').then(data => {
       setVkUser(data as unknown as VkUser);
     }).catch(() => {});
 
-    // Тема — VKWebAppUpdateConfig приходит как событие
     const unsubscribe = bridge.subscribe((e) => {
       if (e.detail.type === 'VKWebAppUpdateConfig') {
         const scheme = (e.detail.data as Record<string, unknown>).scheme as string | undefined;
@@ -368,238 +300,6 @@ export default function VkPosterPage() {
           </div>
         </Modal>
       )}
-    </div>
-  );
-}
-
-const labelStyle: React.CSSProperties = {
-  display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555',
-};
-
-function EventCard({ event, isAdmin, onEdit, onDelete, onClick, past, isDark, cardBg }: {
-  event: Event; isAdmin: boolean;
-  onEdit: (e: Event) => void;
-  onDelete: (id: number) => void;
-  onClick: () => void;
-  past?: boolean;
-  isDark?: boolean;
-  cardBg?: string;
-}) {
-  const weekdays = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
-  const d = new Date(event.event_date);
-  const weekday = weekdays[d.getDay()];
-  const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  const dateStr = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-
-  const handleShare = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!bridge) return;
-    const link = event.page_url || event.ticket_url;
-    const text = `${event.title}\n🗓 ${day} ${month} ${year}${event.location ? `\n📍 ${event.location}` : ''}`;
-    if (link) {
-      bridge.send('VKWebAppShare', { link }).catch(() => {
-        bridge.send('VKWebAppCopyText', { text }).catch(() => {});
-      });
-    } else {
-      bridge.send('VKWebAppCopyText', { text }).catch(() => {});
-    }
-  };
-
-  const border = isDark ? '1px solid #333' : '1px solid #e8e8e8';
-  const titleColor = isDark ? '#f0f0f0' : '#222';
-  const subColor = isDark ? '#aaa' : '#555';
-
-  return (
-    <div style={{ background: cardBg || '#fff', borderBottom: border, cursor: 'pointer' }} onClick={onClick}>
-      <div style={{ display: 'flex', gap: 12, padding: '14px 16px', alignItems: 'flex-start' }}>
-        {/* Poster */}
-        <div style={{ flexShrink: 0 }}>
-          {event.poster_url ? (
-            <img src={event.poster_url} alt={event.title}
-              style={{ width: 173, height: 173, borderRadius: 16, objectFit: 'cover', opacity: past ? 0.6 : 1 }} />
-          ) : (
-            <div style={{ width: 173, height: 173, borderRadius: 16, background: past ? '#e0e0e0' : 'linear-gradient(135deg,#3d6fa0,#5a8fc0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64 }}>
-              🎭
-            </div>
-          )}
-        </div>
-
-        {/* Info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {!event.is_published && (
-            <span style={{ fontSize: 11, background: '#fff3cd', color: '#856404', padding: '2px 8px', borderRadius: 10, marginBottom: 4, display: 'inline-block', fontWeight: 600 }}>Черновик</span>
-          )}
-          <div style={{ fontWeight: 600, fontSize: 14, color: titleColor, lineHeight: 1.35, marginBottom: 4 }}>{event.title}</div>
-          <div style={{ fontSize: 13, color: '#3d6fa0', fontWeight: 500, marginBottom: 2 }}>
-            {dateStr}, {weekday}, {time}
-          </div>
-          {event.location && (
-            <div style={{ fontSize: 12, color: subColor, marginBottom: 2 }}>{event.location}</div>
-          )}
-          {!past && event.deadline && (
-            <div style={{ fontSize: 12, color: '#e07b00', fontWeight: 500, marginBottom: 2 }}>
-              Заявки до: {new Date(event.deadline).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
-            </div>
-          )}
-          {!past && (event.ticket_url || event.page_url) && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }} onClick={e => e.stopPropagation()}>
-              {event.ticket_url && (
-                <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: '#3d6fa0', padding: '5px 14px', borderRadius: 20, textDecoration: 'none' }}>
-                  Подать заявку
-                </a>
-              )}
-              {event.page_url && (
-                <a href={event.page_url} target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: 13, fontWeight: 600, color: '#3d6fa0', background: 'rgba(61,111,160,0.1)', padding: '5px 14px', borderRadius: 20, textDecoration: 'none' }}>
-                  Положение
-                </a>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Right actions */}
-        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }} onClick={e => e.stopPropagation()}>
-          <button onClick={handleShare}
-            style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${isDark ? '#444' : '#ddd'}`, background: 'none', color: subColor, cursor: 'pointer', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            ↗
-          </button>
-          {isAdmin && (
-            <>
-              <button onClick={() => onEdit(event)}
-                style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${isDark ? '#444' : '#ddd'}`, background: 'none', color: '#3d6fa0', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                ✏️
-              </button>
-              <button onClick={() => onDelete(event.id)}
-                style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${isDark ? '#444' : '#ddd'}`, background: 'none', color: '#e53e3e', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                🗑
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EventDetail({ event, onClose }: { event: Event; onClose: () => void }) {
-  const d = new Date(event.event_date);
-  const weekdays = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
-  const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-  const shortMonths = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
-  const weekday = weekdays[d.getDay()];
-  const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  const dateShort = `${d.getDate()} ${months[d.getMonth()]}, ${['вс','пн','вт','ср','чт','пт','сб'][d.getDay()]}, ${time}`;
-
-  // "через N месяцев/дней"
-  const now = new Date();
-  const diffMs = d.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  let timeLeft = '';
-  if (diffDays > 0) {
-    if (diffDays >= 30) {
-      const m = Math.round(diffDays / 30);
-      timeLeft = `через ${m} ${m === 1 ? 'месяц' : m < 5 ? 'месяца' : 'месяцев'}`;
-    } else {
-      timeLeft = `через ${diffDays} ${diffDays === 1 ? 'день' : diffDays < 5 ? 'дня' : 'дней'}`;
-    }
-  }
-
-  const handleShare = () => {
-    if (!bridge) return;
-    const link = event.page_url || event.ticket_url;
-    const text = `${event.title}\n🗓 ${dateShort}${event.location ? `\n📍 ${event.location}` : ''}`;
-    if (link) {
-      bridge.send('VKWebAppShare', { link }).catch(() => {
-        bridge.send('VKWebAppCopyText', { text }).catch(() => {});
-      });
-    } else {
-      bridge.send('VKWebAppCopyText', { text }).catch(() => {});
-    }
-  };
-
-  return (
-    <div style={{ padding: '0 16px 20px' }}>
-      {/* Top: poster + info */}
-      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 14 }}>
-        {event.poster_url ? (
-          <img src={event.poster_url} alt={event.title}
-            style={{ width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-        ) : (
-          <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg,#3d6fa0,#5a8fc0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, flexShrink: 0 }}>🎭</div>
-        )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#111', lineHeight: 1.35, marginBottom: 8 }}>{event.title}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#555' }}>
-              <span>🕐</span><span>{dateShort}</span>
-            </div>
-            {event.location && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#3d6fa0' }}>
-                <span>📍</span><span>{event.location}</span>
-              </div>
-            )}
-            {event.deadline && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#e07b00' }}>
-                <span>⏰</span>
-                <span>Заявки до: {new Date(event.deadline).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Action buttons */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-        {event.ticket_url && (
-          <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 14, fontWeight: 600, color: '#fff', background: '#3d6fa0', padding: '8px 16px', borderRadius: 8, textDecoration: 'none' }}>
-            Подать заявку
-          </a>
-        )}
-        {event.page_url && (
-          <a href={event.page_url} target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 14, fontWeight: 600, color: '#3d6fa0', background: 'rgba(61,111,160,0.1)', padding: '8px 16px', borderRadius: 8, textDecoration: 'none', border: '1px solid rgba(61,111,160,0.25)' }}>
-            Положение
-          </a>
-        )}
-        <button onClick={handleShare}
-          style={{ fontSize: 14, fontWeight: 600, color: '#555', background: '#f2f2f2', padding: '8px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-          ↗ Поделиться
-        </button>
-      </div>
-
-      {/* Description */}
-      {event.description && (
-        <div style={{ fontSize: 14, color: '#333', marginBottom: 16, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{event.description}</div>
-      )}
-
-      {/* Schedule block */}
-      <div style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 10 }}>Расписание</div>
-      <div style={{ display: 'inline-block', border: '1px solid #e0e0e0', borderRadius: 12, padding: '16px 24px', textAlign: 'center', minWidth: 120 }}>
-        <div style={{ fontSize: 42, fontWeight: 700, color: '#111', lineHeight: 1 }}>{d.getDate()}</div>
-        <div style={{ fontSize: 14, color: '#555', marginTop: 2 }}>{shortMonths[d.getMonth()]}</div>
-        <div style={{ fontSize: 13, color: '#555', marginTop: 2 }}>{weekday}</div>
-        <div style={{ fontSize: 15, fontWeight: 600, color: '#111', marginTop: 4 }}>{time}</div>
-        {timeLeft && <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{timeLeft}</div>}
-      </div>
-    </div>
-  );
-}
-
-function Modal({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end' }}
-      onClick={onClose}>
-      <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', overflowY: 'auto', paddingBottom: 'env(safe-area-inset-bottom)' }}
-        onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 16px 12px' }}>
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>{title}</h3>
-          <button onClick={onClose} style={{ background: '#f0f0f0', border: 'none', borderRadius: '50%', width: 30, height: 30, cursor: 'pointer', fontSize: 16 }}>×</button>
-        </div>
-        {children}
-      </div>
     </div>
   );
 }
