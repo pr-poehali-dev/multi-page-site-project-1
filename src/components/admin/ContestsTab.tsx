@@ -170,7 +170,6 @@ const ContestsTab = ({
                           {contest.location}
                         </div>
                       )}
-                      <div className="text-sm text-muted-foreground mt-0.5">{contest.description}</div>
                     </td>
                     <td className="px-6 py-4 text-sm">
                       {new Date(contest.start_date).toLocaleDateString('ru-RU')} —{' '}
