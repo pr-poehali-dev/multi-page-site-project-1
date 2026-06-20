@@ -293,7 +293,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     SELECT DISTINCT ON (field_label) field_name, field_label, field_type, is_required
                     FROM {SCHEMA}.shop_form_fields
                     WHERE field_name NOT IN ('__hidden__', '__deleted__')
-                      AND field_name != ''
                       AND field_label != ''
                     ORDER BY field_label, id
                 ''')

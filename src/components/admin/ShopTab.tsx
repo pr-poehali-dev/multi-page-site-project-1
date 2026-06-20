@@ -243,7 +243,7 @@ const ShopTab = () => {
       ]);
       const [dataFields, dataAll] = await Promise.all([resFields.json(), resAll.json()]);
       setFields(dataFields.fields || []);
-      setAllFields((dataAll.fields || []).filter((f: FormField) => f.field_name && f.field_name !== '__hidden__' && f.field_label));
+      setAllFields((dataAll.fields || []).filter((f: FormField) => f.field_label));
     } catch { setFields([]); setAllFields([]); }
     setShowFieldsEditor(true);
   };
@@ -411,7 +411,7 @@ const ShopTab = () => {
           <p className="text-sm font-medium mb-3 text-muted-foreground">Выберите поле для добавления:</p>
           <div className="flex flex-wrap gap-2">
             {allFields.map((f, i) => {
-              const alreadyAdded = fields.some(x => x.field_name === f.field_name);
+              const alreadyAdded = fields.some(x => x.field_label === f.field_label);
               return (
                 <button
                   key={i}
