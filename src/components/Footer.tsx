@@ -32,6 +32,8 @@ const Footer = () => {
               <li><Link to="/gallery" className="opacity-90 hover:opacity-100 transition-opacity">Галерея</Link></li>
               <li><Link to="/results" className="opacity-90 hover:opacity-100 transition-opacity">Итоги</Link></li>
               <li><Link to="/sponsors" className="opacity-90 hover:opacity-100 transition-opacity">Партнёры</Link></li>
+              <li><Link to="/shop" className="opacity-90 hover:opacity-100 transition-opacity">Интернет-магазин</Link></li>
+              <li><Link to="/diploma-check" className="opacity-90 hover:opacity-100 transition-opacity">Проверка диплома</Link></li>
             </ul>
           </div>
 
