@@ -201,17 +201,16 @@ const ShopProductPage = () => {
             <div>
               {product.photo_url ? (
                 <div
-                  className="relative cursor-pointer rounded-2xl overflow-hidden group shadow-lg"
-                  style={{ aspectRatio: '5/8' }}
+                  className="relative cursor-pointer rounded-2xl overflow-hidden group shadow-lg bg-muted flex items-center justify-center"
                   onClick={() => setLightbox(true)}
                 >
-                  <img src={product.photo_url} alt={product.name} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <img src={product.photo_url} alt={product.name} className="w-full h-auto object-contain rounded-2xl group-hover:opacity-90 transition-opacity" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <Icon name="ZoomIn" size={36} className="text-white drop-shadow" />
                   </div>
                 </div>
               ) : (
-                <div className="w-full rounded-2xl bg-muted flex items-center justify-center" style={{ aspectRatio: '5/8' }}>
+                <div className="w-full rounded-2xl bg-muted flex items-center justify-center" style={{ minHeight: '240px' }}>
                   <Icon name="Image" size={56} className="text-muted-foreground/30" />
                 </div>
               )}

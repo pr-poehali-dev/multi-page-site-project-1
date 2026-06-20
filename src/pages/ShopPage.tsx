@@ -100,11 +100,11 @@ const ShopPage = () => {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
               {products.map(p => (
                 <Card key={p.id} className="overflow-hidden group flex flex-col">
-                  <div className="relative overflow-hidden bg-muted cursor-pointer" style={{ aspectRatio: '5/8' }}
+                  <div className="relative bg-muted cursor-pointer flex items-center justify-center" style={{ minHeight: '180px', maxHeight: '320px' }}
                     onClick={() => p.photo_url && setLightboxSrc(p.photo_url)}>
                     {p.photo_url ? (
                       <img src={p.photo_url} alt={p.name}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                        className="w-full h-auto object-contain transition-opacity duration-300 group-hover:opacity-90" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Icon name="Image" size={40} className="text-muted-foreground/30" />
