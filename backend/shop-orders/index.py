@@ -103,12 +103,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'language': 'ru',
                 }, timeout=15)
                 alfa_data = alfa_resp.json()
+                print(f"[ALFA] register.do response: {alfa_data}")
 
                 error_code = str(alfa_data.get('errorCode', '0'))
                 if error_code != '0':
                     conn.rollback()
                     return {'statusCode': 502, 'headers': CORS,
-                            'body': json.dumps({'error': alfa_data.get('errorMessage', 'Ошибка банка')})}
+                            'body': json.dumps({'error': alfa_data.get('errorMessage', 'Ошибка банка'), 'errorCode': error_code})}
 
                 alfa_order_id = alfa_data.get('orderId', '')
                 payment_url = alfa_data.get('formUrl', '')
