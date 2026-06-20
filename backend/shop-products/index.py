@@ -135,6 +135,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         FROM {SCHEMA}.shop_products p
                         LEFT JOIN {SCHEMA}.shop_categories sc ON sc.id = p.category_id
                         WHERE p.category_id = %s
+                          AND p.name NOT IN ('__hidden__', '__deleted__')
                         ORDER BY p.sort_order, p.id
                     ''', (category_id,))
                 else:
@@ -142,6 +143,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         SELECT p.*, sc.name AS category_name
                         FROM {SCHEMA}.shop_products p
                         LEFT JOIN {SCHEMA}.shop_categories sc ON sc.id = p.category_id
+                        WHERE p.name NOT IN ('__hidden__', '__deleted__')
                         ORDER BY p.sort_order, p.id
                     ''')
                 rows = [dict(r) for r in cur.fetchall()]
