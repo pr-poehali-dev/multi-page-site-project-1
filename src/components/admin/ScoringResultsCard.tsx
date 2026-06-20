@@ -23,6 +23,7 @@ interface ResultRow {
   region: string;
   directing_party: string;
   participant_name: string;
+  director_name: string;
   age: string;
   nomination: string;
   piece_title: string;
@@ -59,13 +60,13 @@ const ScoringResultsCard = ({
     if (!results.length) return;
     const juryCount = Math.max(...results.map(r => r.jury_count), 1);
     const juryHeaders = Array.from({ length: juryCount }, (_, i) => `Судья ${i + 1}`);
-    const headers = ['№', 'Регион', 'Направляющая сторона', 'ФИО / Коллектив', 'Возраст', 'Номинация', 'Произведение / номер', 'Хронометраж', ...juryHeaders, 'Итог', 'Звание'];
+    const headers = ['№', 'Регион', 'Направляющая сторона', 'ФИО / Коллектив', 'ФИО руководителя', 'Возраст', 'Номинация', 'Произведение / номер', 'Хронометраж', ...juryHeaders, 'Итог', 'Звание'];
     const rows = results.map(row => {
       const juryScores = Array.from({ length: juryCount }, (_, i) => {
         const entry = row.jury_scores.find(s => s.order === i + 1);
         return i < row.jury_count ? (entry?.score ?? '') : '';
       });
-      return [row.order_number, row.region, row.directing_party, row.participant_name, row.age, row.nomination, row.piece_title, row.duration, ...juryScores, row.total ?? '', row.award];
+      return [row.order_number, row.region, row.directing_party, row.participant_name, row.director_name || '', row.age, row.nomination, row.piece_title, row.duration, ...juryScores, row.total ?? '', row.award];
     });
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
@@ -151,6 +152,7 @@ const ScoringResultsCard = ({
                 <th className="text-left py-2 px-2 font-medium text-muted-foreground">Регион</th>
                 <th className="text-left py-2 px-2 font-medium text-muted-foreground">Направляющая сторона</th>
                 <th className="text-left py-2 px-2 font-medium text-muted-foreground">ФИО / Коллектив</th>
+                <th className="text-left py-2 px-2 font-medium text-muted-foreground">ФИО руководителя</th>
                 <th className="text-left py-2 px-2 font-medium text-muted-foreground">Возраст</th>
                 <th className="text-left py-2 px-2 font-medium text-muted-foreground">Номинация</th>
                 <th className="text-left py-2 px-2 font-medium text-muted-foreground">Произведение / номер</th>
@@ -169,6 +171,7 @@ const ScoringResultsCard = ({
                   <td className="py-2 px-2 text-muted-foreground">{row.region || '—'}</td>
                   <td className="py-2 px-2 text-muted-foreground">{row.directing_party || '—'}</td>
                   <td className="py-2 px-2 font-medium">{row.participant_name}</td>
+                  <td className="py-2 px-2 text-muted-foreground">{row.director_name || '—'}</td>
                   <td className="py-2 px-2 text-muted-foreground">{row.age || '—'}</td>
                   <td className="py-2 px-2 text-muted-foreground">{row.nomination || '—'}</td>
                   <td className="py-2 px-2 text-muted-foreground">{row.piece_title || '—'}</td>

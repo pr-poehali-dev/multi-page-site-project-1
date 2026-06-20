@@ -359,7 +359,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
             # Получаем всех участников программы
             cur.execute(f'''
-                SELECT cp.id, cp.order_number, cp.participant_name, cp.age, cp.nomination, cp.piece_title, cp.region, cp.directing_party
+                SELECT cp.id, cp.order_number, cp.participant_name, cp.age, cp.nomination, cp.piece_title, cp.region, cp.directing_party, cp.director_name, cp.diploma_number
                 FROM {schema}.contest_program cp
                 WHERE cp.contest_id = %s
                 ORDER BY cp.order_number
@@ -469,6 +469,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'piece_title': row[5],
                     'region': row[6],
                     'directing_party': row[7],
+                    'director_name': row[8] if len(row) > 8 else '',
+                    'diploma_number': row[9] if len(row) > 9 else '',
                     'jury_scores': jury_scores,
                     'jury_count': jury_count,
                     'total': round(total, 2) if all_scored and jury_count > 0 else None,

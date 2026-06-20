@@ -20,6 +20,7 @@ interface ProgramRow {
   piece_title: string;
   duration: string;
   diploma_number: string;
+  director_name: string;
 }
 
 interface Contest {
@@ -42,6 +43,8 @@ const emptyRow = (): Omit<ProgramRow, 'id' | 'order_number'> => ({
   nomination: '',
   piece_title: '',
   duration: '',
+  diploma_number: '',
+  director_name: '',
 });
 
 const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
@@ -201,6 +204,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
     { key: 'region', label: 'Регион', width: 'w-28' },
     { key: 'directing_party', label: 'Направляющая сторона', width: 'w-40' },
     { key: 'participant_name', label: 'ФИО / Коллектив', width: 'w-40' },
+    { key: 'director_name', label: 'ФИО руководителя', width: 'w-40' },
     { key: 'age', label: 'Возраст', width: 'w-20' },
     { key: 'nomination', label: 'Номинация', width: 'w-32' },
     { key: 'piece_title', label: 'Произведение / номер', width: 'w-40' },
@@ -310,6 +314,10 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
                   <div>
                     <label className="text-xs font-medium mb-1 block">ФИО / Коллектив</label>
                     <Input value={newRow.participant_name} onChange={e => setNewRow(p => ({ ...p, participant_name: e.target.value }))} placeholder="ФИО или название" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium mb-1 block">ФИО руководителя</label>
+                    <Input value={newRow.director_name} onChange={e => setNewRow(p => ({ ...p, director_name: e.target.value }))} placeholder="ФИО руководителя" />
                   </div>
                   <div>
                     <label className="text-xs font-medium mb-1 block">Возраст</label>
