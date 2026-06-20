@@ -235,6 +235,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return {'statusCode': 200, 'headers': CORS,
                         'body': json.dumps({'product': product}, default=json_serial)}
 
+            if method == 'PUT' and action == 'remove':
+                pid = params.get('id')
+                if not pid:
+                    return {'statusCode': 400, 'headers': CORS,
+                            'body': json.dumps({'error': 'id required'})}
+                cur.execute(f'''
+                    UPDATE {SCHEMA}.shop_products SET name = '__hidden__', is_active = false WHERE id = %s
+                ''', (pid,))
+                cur.execute(f'''
+                    UPDATE {SCHEMA}.shop_form_fields SET field_name = '__hidden__' WHERE product_id = %s
+                ''', (pid,))
+                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'ok': True})}
+
             if method == 'POST' and action == 'upload_photo':
                 pid = params.get('id')
                 body = json.loads(event.get('body') or '{}')

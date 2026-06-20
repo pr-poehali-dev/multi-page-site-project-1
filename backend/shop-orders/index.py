@@ -75,7 +75,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         FROM {SCHEMA}.shop_orders o
                         JOIN {SCHEMA}.shop_products p ON p.id = o.product_id
                         JOIN {SCHEMA}.contests c ON c.id = p.contest_id
-                        WHERE p.contest_id = %s
+                        WHERE p.contest_id = %s AND o.status != '__hidden__'
                         ORDER BY o.created_at DESC
                     ''', (contest_id,))
                 elif product_id:
@@ -83,16 +83,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         SELECT o.*, p.name AS product_name, p.price
                         FROM {SCHEMA}.shop_orders o
                         JOIN {SCHEMA}.shop_products p ON p.id = o.product_id
-                        WHERE o.product_id = %s
+                        WHERE o.product_id = %s AND o.status != '__hidden__'
                         ORDER BY o.created_at DESC
                     ''', (product_id,))
                 else:
                     cur.execute(f'''
-                        SELECT o.*, p.name AS product_name, p.price,
-                               c.title AS contest_title
+                        SELECT o.*, p.name AS product_name, p.price
                         FROM {SCHEMA}.shop_orders o
                         JOIN {SCHEMA}.shop_products p ON p.id = o.product_id
-                        JOIN {SCHEMA}.contests c ON c.id = p.contest_id
+                        WHERE o.status != '__hidden__'
                         ORDER BY o.created_at DESC
                         LIMIT 500
                     ''')
@@ -103,6 +102,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     row['form_data'] = dict(row['form_data']) if row['form_data'] else {}
                     rows.append(row)
                 return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'orders': rows}, default=json_serial)}
+
+            # ── REMOVE order ──────────────────────────────────────────────────
+            if method == 'PUT' and params.get('action') == 'remove':
+                oid = params.get('id')
+                if not oid:
+                    return {'statusCode': 400, 'headers': CORS,
+                            'body': json.dumps({'error': 'id required'})}
+                cur.execute(f'''
+                    UPDATE {SCHEMA}.shop_orders SET status = '__hidden__' WHERE id = %s
+                ''', (oid,))
+                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'ok': True})}
 
             # ── UPDATE order status ───────────────────────────────────────────
             if method == 'PUT':

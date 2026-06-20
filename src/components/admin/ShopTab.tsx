@@ -261,6 +261,18 @@ const ShopTab = () => {
     } finally { setSavingFields(false); }
   };
 
+  // ── delete product ─────────────────────────────────────────────────────────
+  const deleteProduct = async (p: Product) => {
+    if (!confirm(`Удалить товар «${p.name}»?`)) return;
+    try {
+      await fetch(`${PRODUCTS_URL}?action=remove&id=${p.id}`, { method: 'PUT' });
+      setProducts(ps => ps.filter(x => x.id !== p.id));
+      toast({ title: 'Товар удалён' });
+    } catch {
+      toast({ title: 'Ошибка удаления', variant: 'destructive' });
+    }
+  };
+
   // ── orders ─────────────────────────────────────────────────────────────────
   const updateOrderStatus = async (orderId: number, status: string) => {
     try {
@@ -270,6 +282,17 @@ const ShopTab = () => {
       });
       setOrders(os => os.map(o => o.id === orderId ? { ...o, status } : o));
     } catch { toast({ title: 'Ошибка обновления статуса', variant: 'destructive' }); }
+  };
+
+  const deleteOrder = async (orderId: number) => {
+    if (!confirm('Удалить заказ?')) return;
+    try {
+      await fetch(`${ORDERS_URL}?action=remove&id=${orderId}`, { method: 'PUT' });
+      setOrders(os => os.filter(o => o.id !== orderId));
+      toast({ title: 'Заказ удалён' });
+    } catch {
+      toast({ title: 'Ошибка удаления', variant: 'destructive' });
+    }
   };
 
   const exportToExcel = (list: Order[], filename: string) => {
@@ -547,6 +570,7 @@ const ShopTab = () => {
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" onClick={() => openEdit(p)}><Icon name="Pencil" size={13} className="mr-1" /> Изм.</Button>
                       <Button size="sm" variant="outline" onClick={() => openFieldsEditor(p)}><Icon name="ListChecks" size={13} className="mr-1" /> Форма</Button>
+                      <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => deleteProduct(p)}><Icon name="Trash2" size={13} /></Button>
                     </div>
                   </div>
                 </Card>
@@ -615,12 +639,17 @@ const ShopTab = () => {
                               ))}
                             </div>
                           </div>
-                          <Select value={o.status} onValueChange={v => updateOrderStatus(o.id, v)}>
-                            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {Object.entries(STATUS_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
+                          <div className="flex items-center gap-2">
+                            <Select value={o.status} onValueChange={v => updateOrderStatus(o.id, v)}>
+                              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(STATUS_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive shrink-0" onClick={() => deleteOrder(o.id)}>
+                              <Icon name="Trash2" size={15} />
+                            </Button>
+                          </div>
                         </div>
                       </Card>
                     ))}
