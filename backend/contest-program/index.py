@@ -1,5 +1,7 @@
 import json
 import os
+import random
+import string
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
@@ -68,6 +70,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         conn.close()
 
 
+def generate_diploma_number(conn) -> str:
+    '''Генерация уникального номера диплома: 2 случайные буквы + 6 цифр (сквозная нумерация)'''
+    series = ''.join(random.choices(string.ascii_uppercase, k=2))
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'''
+            SELECT COALESCE(MAX(CAST(SUBSTRING(diploma_number FROM 3) AS INTEGER)), 0) + 1 AS next_num
+            FROM {SCHEMA}.contest_program
+            WHERE diploma_number ~ '^[A-Z]{{2}}[0-9]{{6}}$'
+        ''')
+        next_num = cur.fetchone()['next_num']
+    return f'{series}{str(next_num).zfill(6)}'
+
+
 def get_program(conn, event: Dict[str, Any]) -> Dict[str, Any]:
     '''Получение программы и правил оценивания конкурса'''
     params = event.get('queryStringParameters') or {}
@@ -80,7 +95,7 @@ def get_program(conn, event: Dict[str, Any]) -> Dict[str, Any]:
 
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(f'''
-            SELECT id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration
+            SELECT id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number
             FROM {SCHEMA}.contest_program
             WHERE contest_id = %s
             ORDER BY order_number
@@ -119,11 +134,13 @@ def create_row(conn, event: Dict[str, Any]) -> Dict[str, Any]:
 
         order_number = body.get('order_number', next_num)
 
+        diploma_number = generate_diploma_number(conn)
+
         cur.execute(f'''
             INSERT INTO {SCHEMA}.contest_program
-              (contest_id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration
+              (contest_id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number
         ''', (
             contest_id,
             order_number,
@@ -133,7 +150,8 @@ def create_row(conn, event: Dict[str, Any]) -> Dict[str, Any]:
             body.get('age', ''),
             body.get('nomination', ''),
             body.get('piece_title', ''),
-            body.get('duration', '')
+            body.get('duration', ''),
+            diploma_number
         ))
         row = dict(cur.fetchone())
 
@@ -152,7 +170,7 @@ def update_row(conn, event: Dict[str, Any]) -> Dict[str, Any]:
     if not row_id:
         return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'id строки обязателен'}), 'isBase64Encoded': False}
 
-    fields = ['order_number', 'region', 'directing_party', 'participant_name', 'age', 'nomination', 'piece_title', 'duration']
+    fields = ['order_number', 'region', 'directing_party', 'participant_name', 'age', 'nomination', 'piece_title', 'duration', 'diploma_number']
     updates = []
     values = []
     for f in fields:

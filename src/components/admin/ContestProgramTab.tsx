@@ -19,6 +19,7 @@ interface ProgramRow {
   nomination: string;
   piece_title: string;
   duration: string;
+  diploma_number: string;
 }
 
 interface Contest {
@@ -196,6 +197,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
 
   const columns = [
     { key: 'order_number', label: '№', width: 'w-12' },
+    { key: 'diploma_number', label: 'Номер диплома', width: 'w-32' },
     { key: 'region', label: 'Регион', width: 'w-28' },
     { key: 'directing_party', label: 'Направляющая сторона', width: 'w-40' },
     { key: 'participant_name', label: 'ФИО / Коллектив', width: 'w-40' },
