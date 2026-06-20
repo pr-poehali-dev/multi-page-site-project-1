@@ -24,6 +24,8 @@ import ParticipantCabinetPage from "./pages/ParticipantCabinetPage";
 import NotFound from "./pages/NotFound";
 import VkPosterPage from "./pages/VkPosterPage";
 import DiplomaCheckPage from "./pages/DiplomaCheckPage";
+import ShopPage from "./pages/ShopPage";
+import ShopProductPage from "./pages/ShopProductPage";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +55,8 @@ const App = () => (
           <Route path="/participant-cabinet" element={<ParticipantCabinetPage />} />
           <Route path="/vk-poster" element={<VkPosterPage />} />
           <Route path="/diploma-check" element={<DiplomaCheckPage />} />
+          <Route path="/shop" element={<ShopPage />} />
+          <Route path="/shop/:id" element={<ShopProductPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

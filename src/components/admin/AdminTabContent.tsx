@@ -8,8 +8,9 @@ import GalleryTab from '@/components/admin/GalleryTab';
 import ResultsManagementTab from '@/components/admin/ResultsManagementTab';
 import PartnersManagementTab from '@/components/admin/PartnersManagementTab';
 import ContestProgramTab from '@/components/admin/ContestProgramTab';
+import ShopTab from '@/components/admin/ShopTab';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop';
 
 interface AdminTabContentProps {
   activeTab: TabType;
@@ -213,6 +214,11 @@ const AdminTabContent = ({
     case 'program':
       return (
         <ContestProgramTab contests={contests} />
+      );
+
+    case 'shop':
+      return (
+        <ShopTab contests={contests} />
       );
 
     default:

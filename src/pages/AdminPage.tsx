@@ -18,7 +18,7 @@ import AdminModalsContainer from '@/components/admin/AdminModalsContainer';
 const AdminPage = () => {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop'>('applications');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [contestFilter, setContestFilter] = useState('all');
@@ -192,13 +192,14 @@ const AdminPage = () => {
       case 'results': return resultsLoading;
       case 'partners': return partnersLoading;
       case 'program': return false;
+      case 'shop': return false;
       default: return juryLoading;
     }
   }, [activeTab, applicationsLoading, contestsLoading, concertsLoading, scoringLoading, galleryLoading, resultsLoading, partnersLoading, juryLoading]);
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (activeTab === 'contests' || activeTab === 'scoring' || activeTab === 'gallery' || activeTab === 'program') {
+      if (activeTab === 'contests' || activeTab === 'scoring' || activeTab === 'gallery' || activeTab === 'program' || activeTab === 'shop') {
         loadContests();
       }
       if (activeTab === 'concerts') {

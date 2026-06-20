@@ -1,0 +1,25 @@
+{
+  "tests": [
+    {
+      "name": "GET list without contest_id returns 400",
+      "method": "GET",
+      "path": "/?action=list",
+      "expectedStatus": 400,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "GET product without id returns 400",
+      "method": "GET",
+      "path": "/?action=product",
+      "expectedStatus": 400,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "OPTIONS returns 200",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    }
+  ]
+}

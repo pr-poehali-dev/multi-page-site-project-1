@@ -1,4 +1,6 @@
 {
+  "shop-orders": "https://functions.poehali.dev/b020db38-8100-400d-9e53-2dbfcafd5f48",
+  "shop-products": "https://functions.poehali.dev/eddcb40d-3bae-4f75-9c69-390ad1190d83",
   "diploma-check": "https://functions.poehali.dev/1806f979-38b3-442e-b8ef-fa6827104251",
   "events": "https://functions.poehali.dev/be285661-455d-4c13-b45f-897f4395817d",
   "contest-program": "https://functions.poehali.dev/9fcbf70c-fd6d-4489-bc77-1e4bcd6f1cb1",
