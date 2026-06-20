@@ -86,10 +86,11 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
             region: String(row[1] ?? ''),
             directing_party: String(row[2] ?? ''),
             participant_name: String(row[3] ?? ''),
-            age: String(row[4] ?? ''),
-            nomination: String(row[5] ?? ''),
-            piece_title: String(row[6] ?? ''),
-            duration: String(row[7] ?? ''),
+            director_name: String(row[4] ?? ''),
+            age: String(row[5] ?? ''),
+            nomination: String(row[6] ?? ''),
+            piece_title: String(row[7] ?? ''),
+            duration: String(row[8] ?? ''),
           };
           const res = await fetch(API_URL, {
             method: 'POST',
@@ -116,14 +117,14 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
     const contestName = contests.find(c => String(c.id) === selectedContestId)?.title || 'программа';
 
     const wsData = [
-      ['№', 'Регион', 'Направляющая сторона', 'ФИО / Коллектив', 'Возраст', 'Номинация', 'Произведение / номер', 'Хронометраж'],
-      ...rows.map(r => [r.order_number, r.region, r.directing_party, r.participant_name, r.age, r.nomination, r.piece_title, r.duration]),
+      ['№', 'Регион', 'Направляющая сторона', 'ФИО / Коллектив', 'ФИО руководителя', 'Возраст', 'Номинация', 'Произведение / номер', 'Хронометраж'],
+      ...rows.map(r => [r.order_number, r.region, r.directing_party, r.participant_name, r.director_name, r.age, r.nomination, r.piece_title, r.duration]),
     ];
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-    ws['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 10 }, { wch: 20 }, { wch: 35 }, { wch: 12 }];
+    ws['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 30 }, { wch: 10 }, { wch: 20 }, { wch: 35 }, { wch: 12 }];
 
     XLSX.utils.book_append_sheet(wb, ws, 'Программа');
     XLSX.writeFile(wb, `${contestName}_программа.xlsx`);
