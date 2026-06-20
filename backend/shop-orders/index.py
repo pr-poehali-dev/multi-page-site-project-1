@@ -3,6 +3,13 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
+from datetime import datetime, date
+
+
+def json_serial(obj):
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError(f'Object of type {type(obj)} is not JSON serializable')
 
 SCHEMA = 't_p73771717_multi_page_site_proj'
 
@@ -55,7 +62,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 ''', (product_id, json.dumps(form_data)))
                 order = dict(cur.fetchone())
                 order['form_data'] = dict(order['form_data']) if order['form_data'] else {}
-                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'order': order})}
+                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'order': order}, default=json_serial)}
 
             # ── LIST orders ───────────────────────────────────────────────────
             if method == 'GET':
@@ -95,7 +102,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     row['price'] = float(row['price'])
                     row['form_data'] = dict(row['form_data']) if row['form_data'] else {}
                     rows.append(row)
-                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'orders': rows})}
+                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'orders': rows}, default=json_serial)}
 
             # ── UPDATE order status ───────────────────────────────────────────
             if method == 'PUT':

@@ -5,6 +5,13 @@ import boto3
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
+from datetime import datetime, date
+
+
+def json_serial(obj):
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError(f'Object of type {type(obj)} is not JSON serializable')
 
 SCHEMA = 't_p73771717_multi_page_site_proj'
 
@@ -63,7 +70,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 rows = [dict(r) for r in cur.fetchall()]
                 for r in rows:
                     r['price'] = float(r['price'])
-                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'products': rows})}
+                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'products': rows}, default=json_serial)}
 
             # ── GET single product + fields ────────────────────────────────────
             if method == 'GET' and action == 'product':
@@ -89,7 +96,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 ''', (pid,))
                 fields = [dict(f) for f in cur.fetchall()]
                 return {'statusCode': 200, 'headers': CORS,
-                        'body': json.dumps({'product': product, 'fields': fields})}
+                        'body': json.dumps({'product': product, 'fields': fields}, default=json_serial)}
 
             # ── CREATE product ────────────────────────────────────────────────
             if method == 'POST' and action == 'create':
@@ -115,7 +122,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 ))
                 product = dict(cur.fetchone())
                 product['price'] = float(product['price'])
-                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'product': product})}
+                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'product': product}, default=json_serial)}
 
             # ── UPDATE product ────────────────────────────────────────────────
             if method == 'PUT' and action == 'update':
@@ -141,7 +148,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 ''', vals)
                 product = dict(cur.fetchone())
                 product['price'] = float(product['price'])
-                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'product': product})}
+                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'product': product}, default=json_serial)}
 
             # ── UPLOAD photo ──────────────────────────────────────────────────
             if method == 'POST' and action == 'upload_photo':
@@ -181,7 +188,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     WHERE product_id = %s ORDER BY sort_order, id
                 ''', (pid,))
                 fields = [dict(f) for f in cur.fetchall()]
-                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'fields': fields})}
+                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'fields': fields}, default=json_serial)}
 
             # ── SAVE form fields (full replace) ───────────────────────────────
             if method == 'POST' and action == 'save_fields':
@@ -235,7 +242,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                             VALUES (%s,%s,%s,%s,%s,%s) RETURNING *
                         ''', (pid, fname, label, ftype, req, i))
                     saved.append(dict(cur.fetchone()))
-                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'fields': saved})}
+                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'fields': saved}, default=json_serial)}
 
         return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({'error': 'Unknown action'})}
 
