@@ -363,10 +363,10 @@ const ShopTab = () => {
         </div>
         <div>
           <label className="text-sm font-medium mb-1 block">Раздел</label>
-          <Select value={String(form.category_id ?? '')} onValueChange={v => setForm(f => ({ ...f, category_id: v ? Number(v) : null }))}>
+          <Select value={String(form.category_id ?? 'none')} onValueChange={v => setForm(f => ({ ...f, category_id: v === 'none' ? null : Number(v) }))}>
             <SelectTrigger><SelectValue placeholder="Без раздела" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Без раздела</SelectItem>
+              <SelectItem value="none">Без раздела</SelectItem>
               {categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -507,10 +507,10 @@ const ShopTab = () => {
           <div className="flex items-end gap-4 mb-6 flex-wrap">
             <div className="max-w-xs flex-1">
               <label className="text-sm font-medium mb-1 block">Раздел</label>
-              <Select value={selectedCatId} onValueChange={setSelectedCatId}>
+              <Select value={selectedCatId || 'all'} onValueChange={v => setSelectedCatId(v === 'all' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="Все товары" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Все товары</SelectItem>
+                  <SelectItem value="all">Все товары</SelectItem>
                   {categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -562,10 +562,10 @@ const ShopTab = () => {
           <div className="flex items-end gap-4 mb-6 flex-wrap">
             <div className="max-w-xs flex-1">
               <label className="text-sm font-medium mb-1 block">Раздел</label>
-              <Select value={selectedCatId} onValueChange={setSelectedCatId}>
+              <Select value={selectedCatId || 'all'} onValueChange={v => setSelectedCatId(v === 'all' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="Все разделы" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Все разделы</SelectItem>
+                  <SelectItem value="all">Все разделы</SelectItem>
                   {categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
