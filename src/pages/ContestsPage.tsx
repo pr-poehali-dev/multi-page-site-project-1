@@ -85,6 +85,7 @@ const ContestsPage = () => {
   const [loading, setLoading] = useState(true);
   const [mainTab, setMainTab] = useState<'active' | 'archive'>('active');
   const [archiveYear, setArchiveYear] = useState<number | null>(null);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     loadContests();
@@ -113,8 +114,9 @@ const ContestsPage = () => {
 
   const now = new Date();
 
-  const activeContests = contests.filter(c => new Date(c.end_date) >= now);
-  const pastContests = contests.filter(c => new Date(c.end_date) < now);
+  const q = search.toLowerCase().trim();
+  const activeContests = contests.filter(c => new Date(c.end_date) >= now && (!q || c.title.toLowerCase().includes(q)));
+  const pastContests = contests.filter(c => new Date(c.end_date) < now && (!q || c.title.toLowerCase().includes(q)));
 
   const archiveYears = Array.from(
     new Set(pastContests.map(c => new Date(c.end_date).getFullYear()))
@@ -152,6 +154,22 @@ const ContestsPage = () => {
           <p className="text-lg text-muted-foreground text-center mb-10 animate-fade-in">
             Выберите направление и начните свой путь к победе
           </p>
+
+          <div className="relative max-w-md mx-auto mb-8">
+            <Icon name="Search" size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Поиск по названию..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <Icon name="X" size={16} />
+              </button>
+            )}
+          </div>
 
           {loading ? (
             <div className="text-center py-20">
