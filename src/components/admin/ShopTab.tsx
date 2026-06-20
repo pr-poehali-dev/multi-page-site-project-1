@@ -243,7 +243,7 @@ const ShopTab = () => {
       ]);
       const [dataFields, dataAll] = await Promise.all([resFields.json(), resAll.json()]);
       setFields(dataFields.fields || []);
-      setAllFields((dataAll.fields || []).filter((f: FormField) => f.field_name !== '__hidden__'));
+      setAllFields((dataAll.fields || []).filter((f: FormField) => f.field_name && f.field_name !== '__hidden__' && f.field_label));
     } catch { setFields([]); setAllFields([]); }
     setShowFieldsEditor(true);
   };

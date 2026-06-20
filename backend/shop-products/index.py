@@ -290,10 +290,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
             if method == 'GET' and action == 'all_fields':
                 cur.execute(f'''
-                    SELECT DISTINCT ON (field_name) field_name, field_label, field_type, is_required
+                    SELECT DISTINCT ON (field_label) field_name, field_label, field_type, is_required
                     FROM {SCHEMA}.shop_form_fields
                     WHERE field_name NOT IN ('__hidden__', '__deleted__')
-                    ORDER BY field_name, id
+                      AND field_name != ''
+                      AND field_label != ''
+                    ORDER BY field_label, id
                 ''')
                 fields = [dict(f) for f in cur.fetchall()]
                 return {'statusCode': 200, 'headers': CORS,
