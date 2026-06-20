@@ -24,11 +24,6 @@ const Navigation = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           <Link to="/" className="flex items-center">
-            <img 
-              src="https://cdn.poehali.dev/projects/ecdaf1c5-6d12-4487-8a18-89243ebbcc9e/bucket/cbb5a490-057b-4588-af89-0e013dfbf827.png" 
-              alt="ИНДИГО" 
-              className="h-24 w-auto"
-            />
           </Link>
 
           <div className="hidden lg:flex items-center gap-8">
