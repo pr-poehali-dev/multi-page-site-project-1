@@ -70,27 +70,23 @@ const ShopProductPage = () => {
     fields.forEach(f => { namedData[f.field_label || f.field_name] = formValues[f.id] || ''; });
     setSubmitting(true);
     try {
-      const res = await fetch(ORDERS_URL, {
+      const returnUrl = `${window.location.origin}/shop/success`;
+      const res = await fetch(`${ORDERS_URL}?action=pay`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           product_id: product!.id,
           form_data: namedData,
+          return_url: returnUrl,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      toast({ title: 'Заявка принята!', description: 'Вы будете перенаправлены на страницу оплаты' });
-
-      // Redirect to payment
+      toast({ title: 'Заявка принята!', description: 'Переходим на страницу оплаты...' });
       setTimeout(() => {
-        if (product!.payment_url) {
-          window.location.href = product!.payment_url;
-        } else {
-          navigate('/shop');
-        }
-      }, 1500);
+        window.location.href = data.payment_url;
+      }, 800);
     } catch (e: unknown) {
       toast({ title: 'Ошибка', description: (e as Error).message, variant: 'destructive' });
     } finally {
