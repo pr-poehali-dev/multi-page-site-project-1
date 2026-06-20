@@ -261,6 +261,29 @@ const ShopTab = () => {
     } finally { setSavingFields(false); }
   };
 
+  // ── copy product ───────────────────────────────────────────────────────────
+  const copyProduct = async (p: Product) => {
+    const copy = { ...p, name: `${p.name} (копия)`, sort_order: p.sort_order + 1 };
+     
+    const { id: _id, ...body } = copy;
+    try {
+      const res = await fetch(`${PRODUCTS_URL}?action=create`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setProducts(ps => {
+        const idx = ps.findIndex(x => x.id === p.id);
+        const next = [...ps];
+        next.splice(idx + 1, 0, data.product);
+        return next;
+      });
+      toast({ title: 'Товар скопирован' });
+    } catch {
+      toast({ title: 'Ошибка копирования', variant: 'destructive' });
+    }
+  };
+
   // ── delete product ─────────────────────────────────────────────────────────
   const deleteProduct = async (p: Product) => {
     if (!confirm(`Удалить товар «${p.name}»?`)) return;
@@ -567,9 +590,10 @@ const ShopTab = () => {
                     </div>
                     {p.description && <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{p.description}</p>}
                     <p className="font-bold text-lg mb-3">{p.price.toLocaleString('ru-RU')} ₽</p>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Button size="sm" variant="outline" onClick={() => openEdit(p)}><Icon name="Pencil" size={13} className="mr-1" /> Изм.</Button>
                       <Button size="sm" variant="outline" onClick={() => openFieldsEditor(p)}><Icon name="ListChecks" size={13} className="mr-1" /> Форма</Button>
+                      <Button size="sm" variant="outline" onClick={() => copyProduct(p)}><Icon name="Copy" size={13} /></Button>
                       <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => deleteProduct(p)}><Icon name="Trash2" size={13} /></Button>
                     </div>
                   </div>
