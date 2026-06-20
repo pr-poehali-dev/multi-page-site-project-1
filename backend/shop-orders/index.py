@@ -1,5 +1,6 @@
 import json
 import os
+import hashlib
 import psycopg2
 import requests
 from psycopg2.extras import RealDictCursor
@@ -19,11 +20,29 @@ def get_conn():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
 
+def tbank_token(params: dict, password: str) -> str:
+    """Генерация подписи для T-Bank API (SHA-256 по отсортированным значениям)"""
+    items = sorted({**params, 'Password': password}.items())
+    concat = ''.join(str(v) for _, v in items)
+    return hashlib.sha256(concat.encode('utf-8')).hexdigest()
+
+
+def tbank_request(terminal_key: str, password: str, method: str, params: dict) -> dict:
+    payload = {'TerminalKey': terminal_key, **params}
+    payload['Token'] = tbank_token(payload, password)
+    resp = requests.post(
+        f'https://securepay.tinkoff.ru/v2/{method}',
+        json=payload,
+        timeout=15
+    )
+    return resp.json()
+
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    Заказы интернет-магазина + интеграция с Альфа-Банком.
-    POST /?action=pay      — создать заказ и получить ссылку оплаты Альфа-Банка { product_id, form_data, return_url }
-    POST /?action=callback — webhook от Альфа-Банка (авто-пометка заказа оплаченным)
+    Заказы интернет-магазина + интеграция с Т-Банком.
+    POST /?action=pay      — создать заказ и получить ссылку оплаты Т-Банка { product_id, form_data, return_url }
+    POST /?action=callback — webhook от Т-Банка (авто-пометка заказа оплаченным)
     GET  /?action=check&order_id=X — проверить статус оплаты заказа у банка
     POST /                 — создать заказ без оплаты { product_id, form_data }
     GET  /?contest_id=X    — список заказов по конкурсу (для админки)
@@ -48,9 +67,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     action = params.get('action', '')
     CORS = {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}
 
-    alfa_login = os.environ.get('ALFA_LOGIN', '')
-    alfa_password = os.environ.get('ALFA_PASSWORD', '')
-    alfa_api_url = os.environ.get('ALFA_API_URL', 'https://pay.alfabank.ru/payment/rest')
+    terminal_key = os.environ.get('TBANK_TERMINAL_KEY', '')
+    password = os.environ.get('TBANK_PASSWORD', '')
 
     conn = get_conn()
     conn.autocommit = False
@@ -58,7 +76,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
 
-            # ── Создать заказ + зарегистрировать в Альфа-Банке ───────────────
+            # ── Создать заказ + зарегистрировать в Т-Банке ───────────────────
             if method == 'POST' and action == 'pay':
                 body = json.loads(event.get('body') or '{}')
                 product_id = body.get('product_id')
@@ -90,64 +108,59 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 host = (event.get('headers') or {}).get('host', '')
                 base = f'https://{host}' if host else ''
                 success_url = return_url or f'{base}/shop/success?order_id={order_id}'
-                fail_url = success_url.replace('success', 'fail')
 
-                alfa_resp = requests.post(f'{alfa_api_url}/register.do', data={
-                    'userName': alfa_login,
-                    'password': alfa_password,
-                    'orderNumber': str(order_id),
-                    'amount': amount_kopecks,
-                    'returnUrl': success_url,
-                    'failUrl': fail_url,
-                    'description': product['name'],
-                    'language': 'ru',
-                }, timeout=15)
-                alfa_data = alfa_resp.json()
-                print(f"[ALFA] register.do response: {alfa_data}")
+                tbank_resp = tbank_request(terminal_key, password, 'Init', {
+                    'Amount': amount_kopecks,
+                    'OrderId': str(order_id),
+                    'Description': product['name'][:250],
+                    'SuccessURL': success_url,
+                    'FailURL': success_url.replace('success', 'fail'),
+                    'Language': 'ru',
+                })
+                print(f"[TBANK] Init response: {tbank_resp}")
 
-                error_code = str(alfa_data.get('errorCode', '0'))
-                if error_code != '0':
+                if not tbank_resp.get('Success'):
                     conn.rollback()
                     return {'statusCode': 502, 'headers': CORS,
-                            'body': json.dumps({'error': alfa_data.get('errorMessage', 'Ошибка банка'), 'errorCode': error_code})}
+                            'body': json.dumps({
+                                'error': tbank_resp.get('Message', 'Ошибка банка'),
+                                'details': tbank_resp.get('Details', '')
+                            })}
 
-                alfa_order_id = alfa_data.get('orderId', '')
-                payment_url = alfa_data.get('formUrl', '')
+                tbank_order_id = tbank_resp.get('PaymentId', '')
+                payment_url = tbank_resp.get('PaymentURL', '')
 
                 cur.execute(f'''
                     UPDATE {SCHEMA}.shop_orders
                     SET alfa_order_id = %s, payment_url = %s
                     WHERE id = %s
-                ''', (alfa_order_id, payment_url, order_id))
+                ''', (str(tbank_order_id), payment_url, order_id))
                 conn.commit()
 
                 return {'statusCode': 200, 'headers': CORS,
                         'body': json.dumps({'order_id': order_id, 'payment_url': payment_url})}
 
-            # ── Webhook от Альфа-Банка ────────────────────────────────────────
+            # ── Webhook от Т-Банка ────────────────────────────────────────────
             if method == 'POST' and action == 'callback':
                 raw_body = event.get('body') or ''
                 try:
                     body = json.loads(raw_body)
                 except Exception:
                     body = {}
-                    for pair in raw_body.split('&'):
-                        if '=' in pair:
-                            k, v = pair.split('=', 1)
-                            body[k] = v
 
-                operation = body.get('operation', '')
-                cb_status = body.get('status', '')
-                our_order_id = body.get('orderNumber', '')
+                print(f"[TBANK] callback: {body}")
 
-                if operation == 'deposited' and str(cb_status) == '1' and our_order_id:
+                cb_status = body.get('Status', '')
+                our_order_id = body.get('OrderId', '')
+
+                if cb_status == 'CONFIRMED' and our_order_id:
                     cur.execute(f'''
                         UPDATE {SCHEMA}.shop_orders SET status = 'paid'
                         WHERE id = %s AND status != 'paid'
                     ''', (our_order_id,))
                     conn.commit()
 
-                return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'ok': True})}
+                return {'statusCode': 200, 'headers': CORS, 'body': 'OK'}
 
             # ── Проверка статуса у банка (вызывается фронтендом после редиректа) ─
             if method == 'GET' and action == 'check':
@@ -172,15 +185,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                             'body': json.dumps({'status': 'paid', 'order_id': int(order['id'])})}
 
                 if order['alfa_order_id']:
-                    resp = requests.post(f'{alfa_api_url}/getOrderStatus.do', data={
-                        'userName': alfa_login,
-                        'password': alfa_password,
-                        'orderId': order['alfa_order_id'],
-                        'language': 'ru',
-                    }, timeout=15)
-                    alfa_data = resp.json()
-                    order_status = alfa_data.get('OrderStatus') or alfa_data.get('orderStatus')
-                    if order_status == 2:
+                    tbank_resp = tbank_request(terminal_key, password, 'GetState', {
+                        'PaymentId': order['alfa_order_id'],
+                    })
+                    print(f"[TBANK] GetState response: {tbank_resp}")
+                    tbank_status = tbank_resp.get('Status', '')
+                    if tbank_status == 'CONFIRMED':
                         cur.execute(f'''
                             UPDATE {SCHEMA}.shop_orders SET status = 'paid' WHERE id = %s
                         ''', (order_id,))
