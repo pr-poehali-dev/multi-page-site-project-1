@@ -37,7 +37,7 @@ const ShopProductPage = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [fields, setFields] = useState<FormField[]>([]);
   const [loading, setLoading] = useState(true);
-  const [formValues, setFormValues] = useState<Record<string, string>>({});
+  const [formValues, setFormValues] = useState<Record<number, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [lightbox, setLightbox] = useState(false);
 
@@ -49,8 +49,8 @@ const ShopProductPage = () => {
       .then(d => {
         setProduct(d.product);
         setFields(d.fields || []);
-        const init: Record<string, string> = {};
-        (d.fields || []).forEach((f: FormField) => { init[f.field_name] = ''; });
+        const init: Record<number, string> = {};
+        (d.fields || []).forEach((f: FormField) => { init[f.id] = ''; });
         setFormValues(init);
       })
       .catch(() => toast({ title: 'Ошибка загрузки товара', variant: 'destructive' }))
@@ -60,11 +60,14 @@ const ShopProductPage = () => {
   const handleSubmit = async () => {
     // Validate required
     for (const f of fields) {
-      if (f.is_required && !formValues[f.field_name]?.trim()) {
+      if (f.is_required && !formValues[f.id]?.trim()) {
         toast({ title: `Заполните поле: ${f.field_label}`, variant: 'destructive' });
         return;
       }
     }
+    // Build named form data for storage
+    const namedData: Record<string, string> = {};
+    fields.forEach(f => { namedData[f.field_label || f.field_name] = formValues[f.id] || ''; });
     setSubmitting(true);
     try {
       const res = await fetch(ORDERS_URL, {
@@ -72,7 +75,7 @@ const ShopProductPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           product_id: product!.id,
-          form_data: formValues,
+          form_data: namedData,
         }),
       });
       const data = await res.json();
@@ -96,8 +99,8 @@ const ShopProductPage = () => {
   };
 
   const renderField = (f: FormField) => {
-    const value = formValues[f.field_name] || '';
-    const onChange = (val: string) => setFormValues(v => ({ ...v, [f.field_name]: val }));
+    const value = formValues[f.id] || '';
+    const onChange = (val: string) => setFormValues(v => ({ ...v, [f.id]: val }));
 
     if (f.field_type === 'textarea') {
       return (
