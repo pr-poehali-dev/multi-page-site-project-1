@@ -61,7 +61,7 @@ const emptyProduct = (): Omit<Product, 'id'> => ({
 
 const ShopTab = ({ contests }: { contests: Contest[] }) => {
   const { toast } = useToast();
-  const [view, setView] = useState<'products' | 'orders'>('products');
+  const [view, setView] = useState<'products' | 'orders' | 'archive'>('products');
   const [selectedContestId, setSelectedContestId] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -235,6 +235,38 @@ const ShopTab = ({ contests }: { contests: Contest[] }) => {
     new: 'Новый', paid: 'Оплачен', cancelled: 'Отменён', completed: 'Выполнен',
   };
 
+  const exportToExcel = (list: Order[], filename: string) => {
+    if (list.length === 0) {
+      toast({ title: 'Нет данных для экспорта', variant: 'destructive' });
+      return;
+    }
+    // Collect all form_data keys
+    const formKeys = Array.from(new Set(list.flatMap(o => Object.keys(o.form_data || {}))));
+    const headers = ['№', 'Товар', 'Цена', 'Статус', 'Дата', ...formKeys];
+    const rows = list.map(o => [
+      o.id,
+      o.product_name,
+      Number(o.price).toLocaleString('ru-RU'),
+      STATUS_LABELS[o.status] || o.status,
+      new Date(o.created_at).toLocaleString('ru-RU'),
+      ...formKeys.map(k => o.form_data?.[k] || ''),
+    ]);
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
+      .join('\n');
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const activeOrders = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
+  const archiveOrders = orders.filter(o => o.status === 'completed' || o.status === 'cancelled');
+
   // ── Render ──────────────────────────────────────────────────────────────────
   if (showFieldsEditor && fieldsProduct) {
     return (
@@ -385,12 +417,17 @@ const ShopTab = ({ contests }: { contests: Contest[] }) => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h2 className="text-2xl font-heading font-bold">Интернет-магазин</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant={view === 'products' ? 'default' : 'outline'} onClick={() => setView('products')}>
             <Icon name="ShoppingBag" size={16} className="mr-2" /> Товары
           </Button>
           <Button variant={view === 'orders' ? 'default' : 'outline'} onClick={() => setView('orders')}>
             <Icon name="ClipboardList" size={16} className="mr-2" /> Заказы
+            {activeOrders.length > 0 && <span className="ml-1 bg-primary-foreground text-primary rounded-full text-xs px-1.5">{activeOrders.length}</span>}
+          </Button>
+          <Button variant={view === 'archive' ? 'default' : 'outline'} onClick={() => setView('archive')}>
+            <Icon name="Archive" size={16} className="mr-2" /> Архив
+            {archiveOrders.length > 0 && <span className="ml-1 bg-primary-foreground text-primary rounded-full text-xs px-1.5">{archiveOrders.length}</span>}
           </Button>
         </div>
       </div>
@@ -466,53 +503,75 @@ const ShopTab = ({ contests }: { contests: Contest[] }) => {
         </>
       )}
 
-      {/* ORDERS */}
-      {selectedContestId && view === 'orders' && (
+      {/* ORDERS & ARCHIVE */}
+      {selectedContestId && (view === 'orders' || view === 'archive') && (
         <>
           {loading ? (
             <div className="text-center py-12 text-muted-foreground">
               <Icon name="Loader" size={32} className="mx-auto mb-2 animate-spin" />
             </div>
-          ) : orders.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <Icon name="ClipboardList" size={48} className="mx-auto mb-3 opacity-30" />
-              <p>Заказов пока нет</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {orders.map(o => (
-                <Card key={o.id} className="p-4">
-                  <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold">#{o.id}</span>
-                        <span className="font-medium">{o.product_name}</span>
-                        <span className="font-bold text-secondary">{Number(o.price).toLocaleString('ru-RU')} ₽</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mb-2">{new Date(o.created_at).toLocaleString('ru-RU')}</p>
-                      <div className="grid grid-cols-2 gap-x-6 gap-y-0.5">
-                        {Object.entries(o.form_data || {}).map(([k, v]) => (
-                          <p key={k} className="text-sm"><span className="text-muted-foreground">{k}:</span> {v}</p>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Select value={o.status} onValueChange={v => updateOrderStatus(o.id, v)}>
-                        <SelectTrigger className="w-36">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(STATUS_LABELS).map(([v, l]) => (
-                            <SelectItem key={v} value={v}>{l}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+          ) : (() => {
+            const list = view === 'orders' ? activeOrders : archiveOrders;
+            const emptyLabel = view === 'orders' ? 'Активных заказов пока нет' : 'Архив пуст';
+            const exportName = view === 'orders' ? 'заказы_активные' : 'заказы_архив';
+            return (
+              <>
+                <div className="flex justify-end mb-4">
+                  <Button variant="outline" size="sm" onClick={() => exportToExcel(list, exportName)}>
+                    <Icon name="Download" size={15} className="mr-2" /> Экспорт в Excel
+                  </Button>
+                </div>
+                {list.length === 0 ? (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <Icon name={view === 'orders' ? 'ClipboardList' : 'Archive'} size={48} className="mx-auto mb-3 opacity-30" />
+                    <p>{emptyLabel}</p>
                   </div>
-                </Card>
-              ))}
-            </div>
-          )}
+                ) : (
+                  <div className="space-y-3">
+                    {list.map(o => (
+                      <Card key={o.id} className={`p-4 ${view === 'archive' ? 'opacity-75' : ''}`}>
+                        <div className="flex items-start justify-between gap-4 flex-wrap">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <span className="font-semibold text-muted-foreground">#{o.id}</span>
+                              <span className="font-medium">{o.product_name}</span>
+                              <span className="font-bold text-secondary">{Number(o.price).toLocaleString('ru-RU')} ₽</span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                o.status === 'new' ? 'bg-blue-100 text-blue-700' :
+                                o.status === 'paid' ? 'bg-green-100 text-green-700' :
+                                o.status === 'completed' ? 'bg-gray-100 text-gray-600' :
+                                'bg-red-100 text-red-600'
+                              }`}>
+                                {STATUS_LABELS[o.status] || o.status}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-2">{new Date(o.created_at).toLocaleString('ru-RU')}</p>
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-0.5">
+                              {Object.entries(o.form_data || {}).map(([k, v]) => (
+                                <p key={k} className="text-sm"><span className="text-muted-foreground">{k}:</span> {v}</p>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Select value={o.status} onValueChange={v => updateOrderStatus(o.id, v)}>
+                              <SelectTrigger className="w-36">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(STATUS_LABELS).map(([v, l]) => (
+                                  <SelectItem key={v} value={v}>{l}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </>
       )}
     </div>
