@@ -26,6 +26,7 @@ interface Contest {
   title: string;
   location?: string;
   event_date?: string;
+  end_date?: string;
 }
 
 interface ContestProgramTabProps {
@@ -204,17 +205,53 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
     { key: 'duration', label: 'Хронометраж', width: 'w-28' },
   ] as const;
 
+  const now = new Date();
+  const activeContests = contests.filter(c => !c.end_date || new Date(c.end_date) >= now);
+  const pastContests = contests.filter(c => c.end_date && new Date(c.end_date) < now);
+  const archiveYears = Array.from(
+    new Set(pastContests.map(c => new Date(c.end_date!).getFullYear()))
+  ).sort((a, b) => b - a);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <div className="w-72">
+        <div className="w-96">
           <Select value={selectedContestId} onValueChange={setSelectedContestId}>
             <SelectTrigger>
               <SelectValue placeholder="Выберите конкурс" />
             </SelectTrigger>
             <SelectContent>
-              {contests.map(c => (
-                <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>
+              {activeContests.length > 0 && (
+                <>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Текущие</div>
+                  {activeContests.map(c => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      <span className="font-medium">{c.title}</span>
+                      {(c.event_date || c.location) && (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {[c.event_date, c.location].filter(Boolean).join(' · ')}
+                        </span>
+                      )}
+                    </SelectItem>
+                  ))}
+                </>
+              )}
+              {archiveYears.map(year => (
+                <>
+                  <div key={`y-${year}`} className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1">Архив {year}</div>
+                  {pastContests
+                    .filter(c => new Date(c.end_date!).getFullYear() === year)
+                    .map(c => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        <span className="font-medium text-muted-foreground">{c.title}</span>
+                        {(c.event_date || c.location) && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            {[c.event_date, c.location].filter(Boolean).join(' · ')}
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))}
+                </>
               ))}
             </SelectContent>
           </Select>
