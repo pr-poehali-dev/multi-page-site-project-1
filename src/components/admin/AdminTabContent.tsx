@@ -218,7 +218,7 @@ const AdminTabContent = ({
 
     case 'shop':
       return (
-        <ShopTab contests={contests} />
+        <ShopTab />
       );
 
     default:

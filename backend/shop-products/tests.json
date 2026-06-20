@@ -1,11 +1,16 @@
 {
   "tests": [
     {
-      "name": "GET list without contest_id returns 400",
+      "name": "GET list returns 200",
       "method": "GET",
       "path": "/?action=list",
-      "expectedStatus": 400,
-      "bodyMatcher": "partial"
+      "expectedStatus": 200
+    },
+    {
+      "name": "GET categories returns 200",
+      "method": "GET",
+      "path": "/?action=categories",
+      "expectedStatus": 200
     },
     {
       "name": "GET product without id returns 400",
