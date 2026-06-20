@@ -288,6 +288,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return {'statusCode': 200, 'headers': CORS,
                         'body': json.dumps({'fields': fields}, default=json_serial)}
 
+            if method == 'GET' and action == 'all_fields':
+                cur.execute(f'''
+                    SELECT DISTINCT ON (field_name) field_name, field_label, field_type, is_required
+                    FROM {SCHEMA}.shop_form_fields
+                    WHERE field_name NOT IN ('__hidden__', '__deleted__')
+                    ORDER BY field_name, id
+                ''')
+                fields = [dict(f) for f in cur.fetchall()]
+                return {'statusCode': 200, 'headers': CORS,
+                        'body': json.dumps({'fields': fields}, default=json_serial)}
+
             if method == 'POST' and action == 'save_fields':
                 pid = params.get('product_id')
                 body = json.loads(event.get('body') or '{}')

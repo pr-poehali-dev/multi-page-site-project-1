@@ -93,6 +93,8 @@ const ShopTab = () => {
   const [fieldsProduct, setFieldsProduct] = useState<Product | null>(null);
   const [fields, setFields] = useState<FormField[]>([]);
   const [savingFields, setSavingFields] = useState(false);
+  const [allFields, setAllFields] = useState<FormField[]>([]);
+  const [showFieldPicker, setShowFieldPicker] = useState(false);
 
   // ── loaders ────────────────────────────────────────────────────────────────
   const loadCategories = async () => {
@@ -235,13 +237,21 @@ const ShopTab = () => {
   const openFieldsEditor = async (p: Product) => {
     setFieldsProduct(p);
     try {
-      const res = await fetch(`${PRODUCTS_URL}?action=fields&product_id=${p.id}`);
-      const data = await res.json();
-      setFields(data.fields || []);
-    } catch { setFields([]); }
+      const [resFields, resAll] = await Promise.all([
+        fetch(`${PRODUCTS_URL}?action=fields&product_id=${p.id}`),
+        fetch(`${PRODUCTS_URL}?action=all_fields`),
+      ]);
+      const [dataFields, dataAll] = await Promise.all([resFields.json(), resAll.json()]);
+      setFields(dataFields.fields || []);
+      setAllFields((dataAll.fields || []).filter((f: FormField) => f.field_name !== '__hidden__'));
+    } catch { setFields([]); setAllFields([]); }
     setShowFieldsEditor(true);
   };
   const addField = () => setFields(fs => [...fs, { field_name: '', field_label: '', field_type: 'text', is_required: false, sort_order: fs.length }]);
+  const addFieldFromTemplate = (f: FormField) => {
+    setFields(fs => [...fs, { field_name: f.field_name, field_label: f.field_label, field_type: f.field_type, is_required: f.is_required, sort_order: fs.length }]);
+    setShowFieldPicker(false);
+  };
   const updateField = (i: number, key: keyof FormField, val: string | boolean | number) =>
     setFields(fs => fs.map((f, idx) => idx === i ? { ...f, [key]: val } : f));
   const removeField = (i: number) => setFields(fs => fs.filter((_, idx) => idx !== i));
@@ -383,13 +393,41 @@ const ShopTab = () => {
           {fields.length === 0 && <p className="text-muted-foreground text-center py-6">Нет полей. Добавьте первое поле.</p>}
         </div>
       </Card>
-      <div className="flex gap-2">
-        <Button variant="outline" onClick={addField}><Icon name="Plus" size={16} className="mr-2" /> Добавить поле</Button>
+      <div className="flex gap-2 flex-wrap">
+        <Button variant="outline" onClick={addField}><Icon name="Plus" size={16} className="mr-2" /> Новое поле</Button>
+        {allFields.length > 0 && (
+          <Button variant="outline" onClick={() => setShowFieldPicker(v => !v)}>
+            <Icon name="Library" size={16} className="mr-2" /> Из существующих
+          </Button>
+        )}
         <Button onClick={saveFields} disabled={savingFields}>
           {savingFields ? <Icon name="Loader" size={16} className="mr-2 animate-spin" /> : <Icon name="Save" size={16} className="mr-2" />}
           Сохранить
         </Button>
       </div>
+
+      {showFieldPicker && (
+        <Card className="p-4 mt-3 border-dashed">
+          <p className="text-sm font-medium mb-3 text-muted-foreground">Выберите поле для добавления:</p>
+          <div className="flex flex-wrap gap-2">
+            {allFields.map((f, i) => {
+              const alreadyAdded = fields.some(x => x.field_name === f.field_name);
+              return (
+                <button
+                  key={i}
+                  disabled={alreadyAdded}
+                  onClick={() => addFieldFromTemplate(f)}
+                  className={`px-3 py-1.5 rounded-lg border text-sm transition-colors ${alreadyAdded ? 'opacity-40 cursor-not-allowed bg-muted' : 'hover:bg-accent cursor-pointer'}`}
+                >
+                  <span className="font-medium">{f.field_label}</span>
+                  <span className="text-muted-foreground ml-1.5 text-xs">{FIELD_TYPES.find(t => t.value === f.field_type)?.label}</span>
+                  {f.is_required && <span className="text-red-500 ml-1 text-xs">*</span>}
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      )}
     </div>
   );
 
