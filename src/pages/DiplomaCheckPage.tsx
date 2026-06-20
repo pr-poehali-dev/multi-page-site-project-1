@@ -23,6 +23,7 @@ interface DiplomaResult {
   diploma_number: string;
   participant_name: string;
   director_name: string;
+  directing_party: string;
   piece_title: string;
   nomination: string;
   award: string;
@@ -124,6 +125,9 @@ const DiplomaCheckPage = () => {
                     <h2 className="text-2xl font-heading font-bold">{result.participant_name}</h2>
                     {result.director_name && (
                       <p className="text-muted-foreground mt-1">Руководитель: {result.director_name}</p>
+                    )}
+                    {result.directing_party && (
+                      <p className="text-muted-foreground mt-0.5">Направляющая сторона: {result.directing_party}</p>
                     )}
                   </div>
                   {result.award && (

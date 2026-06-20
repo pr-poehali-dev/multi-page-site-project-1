@@ -144,6 +144,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'diploma_number': diploma_number,
                 'participant_name': row['participant_name'],
                 'director_name': row['director_name'],
+                'directing_party': row['directing_party'],
                 'piece_title': row['piece_title'],
                 'nomination': row['nomination'],
                 'award': award,
