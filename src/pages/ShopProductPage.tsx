@@ -70,14 +70,13 @@ const ShopProductPage = () => {
     fields.forEach(f => { namedData[f.field_label || f.field_name] = formValues[f.id] || ''; });
     setSubmitting(true);
     try {
-      const returnUrl = `${window.location.origin}/shop/success`;
       const res = await fetch(`${ORDERS_URL}?action=pay`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           product_id: product!.id,
           form_data: namedData,
-          return_url: returnUrl,
+          return_url: `${window.location.origin}/shop/success`,
         }),
       });
       const data = await res.json();

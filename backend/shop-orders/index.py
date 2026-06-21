@@ -107,7 +107,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 amount_kopecks = int(float(product['price']) * 100)
                 host = (event.get('headers') or {}).get('host', '')
                 base = f'https://{host}' if host else ''
-                success_url = return_url or f'{base}/shop/success?order_id={order_id}'
+                base_return = return_url or f'{base}/shop/success'
+                success_url = f'{base_return}?order_id={order_id}'
 
                 tbank_resp = tbank_request(terminal_key, password, 'Init', {
                     'Amount': amount_kopecks,
