@@ -27,6 +27,7 @@ import DiplomaCheckPage from "./pages/DiplomaCheckPage";
 import ShopPage from "./pages/ShopPage";
 import ShopProductPage from "./pages/ShopProductPage";
 import ShopSuccessPage from "./pages/ShopSuccessPage";
+import ShopFailPage from "./pages/ShopFailPage";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ const App = () => (
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/shop/:id" element={<ShopProductPage />} />
           <Route path="/shop/success" element={<ShopSuccessPage />} />
+          <Route path="/shop/fail" element={<ShopFailPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
