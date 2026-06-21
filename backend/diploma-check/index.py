@@ -129,7 +129,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
             # Фото жюри
             cur.execute(f'''
-                SELECT DISTINCT jm.name, jm.photo_url, jm.title
+                SELECT DISTINCT jm.name, jm.image_url AS photo_url, jm.role AS title
                 FROM {SCHEMA}.program_jury_assignments pja
                 JOIN {SCHEMA}.jury_members jm ON jm.id = pja.jury_member_id
                 WHERE pja.contest_id = %s
