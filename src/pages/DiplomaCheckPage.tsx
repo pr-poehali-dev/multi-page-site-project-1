@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
+import { useSEO } from '@/hooks/useSEO';
 
 const DIPLOMA_CHECK_URL = 'https://functions.poehali.dev/1806f979-38b3-442e-b8ef-fa6827104251';
 
@@ -34,6 +35,12 @@ interface DiplomaResult {
 }
 
 const DiplomaCheckPage = () => {
+  useSEO({
+    title: 'Проверка диплома',
+    description: 'Проверьте подлинность диплома ИНДИГО по серии и номеру. Получите сведения об участнике, номинации и присвоенном звании.',
+    keywords: 'проверка диплома ИНДИГО, подлинность диплома, номер диплома, лауреат, дипломант',
+    path: '/diploma-check',
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DiplomaResult | null>(null);

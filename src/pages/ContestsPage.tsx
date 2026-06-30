@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import Icon from '@/components/ui/icon';
+import { useSEO } from '@/hooks/useSEO';
 
 interface Contest {
   id: number;
@@ -81,6 +82,12 @@ const ContestCard = ({ contest, index, isPast }: { contest: Contest; index: numb
 };
 
 const ContestsPage = () => {
+  useSEO({
+    title: 'Конкурсы',
+    description: 'Все конкурсы ИНДИГО: вокал, хореография, инструментальная музыка, художественное слово. Подайте заявку и станьте лауреатом!',
+    keywords: 'конкурсы ИНДИГО, творческие конкурсы, конкурс вокалистов, хореография, музыкальные конкурсы, подать заявку',
+    path: '/contests',
+  });
   const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
   const [mainTab, setMainTab] = useState<'active' | 'archive'>('active');

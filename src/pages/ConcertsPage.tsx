@@ -4,6 +4,7 @@ import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
+import { useSEO } from '@/hooks/useSEO';
 
 type Concert = {
   id: number;
@@ -17,6 +18,12 @@ type Concert = {
 };
 
 const ConcertsPage = () => {
+  useSEO({
+    title: 'Концерты',
+    description: 'Афиша концертов ИНДИГО — выступления победителей и лауреатов конкурсов. Расписание мероприятий, билеты.',
+    keywords: 'концерты ИНДИГО, афиша концертов, выступления, победители конкурсов, билеты',
+    path: '/concerts',
+  });
   const [concerts, setConcerts] = useState<Concert[]>([]);
   const [loading, setLoading] = useState(true);
 

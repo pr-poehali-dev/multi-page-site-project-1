@@ -4,6 +4,7 @@ import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
+import { useSEO } from '@/hooks/useSEO';
 
 type ContestResult = {
   id: number;
@@ -18,6 +19,12 @@ type ContestResult = {
 };
 
 const ResultsPage = () => {
+  useSEO({
+    title: 'Итоги конкурсов',
+    description: 'Результаты и итоги конкурсов ИНДИГО. Протоколы оценивания, списки лауреатов и дипломантов.',
+    keywords: 'итоги конкурса ИНДИГО, результаты, лауреаты, дипломанты, протоколы',
+    path: '/results',
+  });
   const [results, setResults] = useState<ContestResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedContest, setSelectedContest] = useState<number | null>(null);

@@ -5,6 +5,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useSEO } from '@/hooks/useSEO';
 
 const GALLERY_URL = 'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?endpoint=gallery';
 const CONTESTS_URL = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
@@ -32,6 +33,12 @@ interface Contest {
 }
 
 const HomePage = () => {
+  useSEO({
+    title: 'Здесь рождаются звёзды',
+    description: 'ИНДИГО — творческая платформа для артистов. Конкурсы для вокалистов, танцоров, музыкантов и артистов в Воронеже и по всей России.',
+    keywords: 'конкурс ИНДИГО, творческий конкурс, вокал, танцы, музыка, Воронеж, конкурс для детей, конкурс для артистов',
+    path: '/',
+  });
   const [featuredPhotos, setFeaturedPhotos] = useState<GalleryItem[]>([]);
   const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);

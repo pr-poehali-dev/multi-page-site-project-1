@@ -3,6 +3,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
+import { useSEO } from '@/hooks/useSEO';
 
 type Partner = {
   id: number;
@@ -14,6 +15,12 @@ type Partner = {
 };
 
 const SponsorsPage = () => {
+  useSEO({
+    title: 'Партнёры и спонсоры',
+    description: 'Партнёры и спонсоры конкурсов ИНДИГО. Узнайте, кто поддерживает развитие творческих талантов в России.',
+    keywords: 'партнёры ИНДИГО, спонсоры конкурса, поддержка талантов, стать партнёром',
+    path: '/sponsors',
+  });
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
 

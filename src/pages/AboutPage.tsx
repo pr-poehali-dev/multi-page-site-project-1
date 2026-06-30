@@ -3,6 +3,7 @@ import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
 import { useState, useEffect } from 'react';
+import { useSEO } from '@/hooks/useSEO';
 
 const GALLERY_URL = 'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?endpoint=gallery';
 
@@ -14,6 +15,12 @@ interface GalleryItem {
 }
 
 const AboutPage = () => {
+  useSEO({
+    title: 'О нас',
+    description: 'ИНДИГО — профессиональная творческая платформа для артистов. Более 500 участников, 50+ конкурсов, международное признание.',
+    keywords: 'о конкурсе ИНДИГО, творческое объединение, миссия, артисты, история',
+    path: '/about',
+  });
   const [galleryPhotos, setGalleryPhotos] = useState<GalleryItem[]>([]);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 

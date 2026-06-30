@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useSEO } from '@/hooks/useSEO';
 import RegisterStepPersonal from '@/components/register/RegisterStepPersonal';
 import RegisterStepContest from '@/components/register/RegisterStepContest';
 import RegisterStepFiles from '@/components/register/RegisterStepFiles';
@@ -38,6 +39,12 @@ type FormData = {
 };
 
 const RegisterPage = () => {
+  useSEO({
+    title: 'Подать заявку',
+    description: 'Регистрация участника конкурсов ИНДИГО. Заполните заявку онлайн — вокал, хореография, музыка, художественное слово.',
+    keywords: 'подать заявку ИНДИГО, регистрация участника, конкурс онлайн, запись на конкурс',
+    path: '/register',
+  });
   const { toast } = useToast();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);

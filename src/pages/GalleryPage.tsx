@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { useSEO } from '@/hooks/useSEO';
 
 const GALLERY_URL = 'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?endpoint=gallery';
 const CONTESTS_URL = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
@@ -28,6 +29,12 @@ interface Contest {
 }
 
 const GalleryPage = () => {
+  useSEO({
+    title: 'Галерея',
+    description: 'Фото и видео лучших выступлений участников конкурсов ИНДИГО. Смотрите яркие моменты творческих состязаний.',
+    keywords: 'галерея ИНДИГО, фото конкурсов, видео выступлений, участники, творческие конкурсы',
+    path: '/gallery',
+  });
   const [filter, setFilter] = useState<number | 'all' | 'featured'>('all');
   const [mediaFilter, setMediaFilter] = useState<'all' | 'photo' | 'video'>('all');
   const [items, setItems] = useState<GalleryItem[]>([]);

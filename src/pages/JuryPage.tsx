@@ -3,6 +3,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
+import { useSEO } from '@/hooks/useSEO';
 
 interface JuryMember {
   id: number;
@@ -15,6 +16,12 @@ interface JuryMember {
 }
 
 const JuryPage = () => {
+  useSEO({
+    title: 'Жюри',
+    description: 'Профессиональное жюри конкурсов ИНДИГО — заслуженные деятели искусства, педагоги и эксперты в области культуры.',
+    keywords: 'жюри ИНДИГО, члены жюри, эксперты, деятели искусства, оценивание конкурса',
+    path: '/jury',
+  });
   const [jury, setJury] = useState<JuryMember[]>([]);
   const [loading, setLoading] = useState(true);
 

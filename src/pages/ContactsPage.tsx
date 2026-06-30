@@ -7,8 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { useSEO } from '@/hooks/useSEO';
 
 const ContactsPage = () => {
+  useSEO({
+    title: 'Контакты',
+    description: 'Контакты ИНДИГО: телефон +7-922-415-4463, email info@индиго-арт.рф. Воронеж, ул. Лизюкова д.75. Напишите нам — мы всегда на связи.',
+    keywords: 'контакты ИНДИГО, адрес, телефон, email, связаться, Воронеж',
+    path: '/contacts',
+  });
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: '',

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
+import { useSEO } from '@/hooks/useSEO';
 
 const PRODUCTS_URL = 'https://functions.poehali.dev/eddcb40d-3bae-4f75-9c69-390ad1190d83';
 
@@ -21,6 +22,12 @@ interface Product {
 }
 
 const ShopPage = () => {
+  useSEO({
+    title: 'Магазин',
+    description: 'Официальный магазин ИНДИГО — дипломы, сувениры, атрибутика конкурсов. Заказ и оплата онлайн.',
+    keywords: 'магазин ИНДИГО, дипломы, сувениры, атрибутика, купить онлайн',
+    path: '/shop',
+  });
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCatId, setSelectedCatId] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
