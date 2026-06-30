@@ -11,11 +11,18 @@ def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
 
+SCHEMA = os.environ.get('MAIN_DB_SCHEMA', 't_p73771717_multi_page_site_proj')
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
-    Авторизация участников и получение их заявок
-    POST - проверка email и пароля
-    GET ?email=xxx - получить заявки участника по email (legacy)
+    Авторизация участников и управление ими.
+    POST - авторизация (email+password)
+    GET ?action=list - список всех участников (для админа)
+    GET ?action=chat&participant_id=X - чат с участником
+    POST ?action=send - отправить сообщение (body: {participant_id, message, sender})
+    PUT ?action=read&participant_id=X - пометить прочитанными
+    PUT ?action=delete&id=X - удалить участника
+    GET ?email=xxx - получить заявки по email (legacy)
     '''
     method: str = event.get('httpMethod', 'GET')
     
@@ -49,7 +56,25 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     try:
         if method == 'POST':
+            params = event.get('queryStringParameters') or {}
+            action = params.get('action')
             body_data = json.loads(event.get('body', '{}'))
+
+            # Отправка сообщения в чат
+            if action == 'send':
+                pid = body_data.get('participant_id')
+                message = (body_data.get('message') or '').strip()
+                sender = body_data.get('sender', 'admin')
+                if not pid or not message:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Укажите participant_id и message'}), 'isBase64Encoded': False}
+                if sender not in ('admin', 'user'):
+                    sender = 'admin'
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(f"INSERT INTO {SCHEMA}.chat_messages (participant_id, sender, message) VALUES (%s, %s, %s) RETURNING id, participant_id, sender, message, created_at, is_read", (pid, sender, message))
+                    msg = dict(cur.fetchone())
+                    if msg.get('created_at'): msg['created_at'] = msg['created_at'].isoformat()
+                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'message': msg}), 'isBase64Encoded': False}
+
             email = body_data.get('email')
             password = body_data.get('password')
             
@@ -159,8 +184,59 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'isBase64Encoded': False
                 }
         
+        elif method == 'PUT':
+            params = event.get('queryStringParameters') or {}
+            action = params.get('action')
+            if action == 'delete':
+                pid = params.get('id')
+                if not pid:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Укажите id'}), 'isBase64Encoded': False}
+                with conn.cursor() as cur:
+                    cur.execute(f'UPDATE {SCHEMA}.participants SET email = NULL, phone = NULL, password_hash = NULL, full_name = \'[удалён]\' WHERE id = %s', (pid,))
+                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True}), 'isBase64Encoded': False}
+            elif action == 'read':
+                pid = params.get('participant_id')
+                if not pid:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Укажите participant_id'}), 'isBase64Encoded': False}
+                with conn.cursor() as cur:
+                    cur.execute(f"UPDATE {SCHEMA}.chat_messages SET is_read = TRUE WHERE participant_id = %s AND sender = 'user'", (pid,))
+                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True}), 'isBase64Encoded': False}
+            return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Неизвестное действие'}), 'isBase64Encoded': False}
+
         elif method == 'GET':
             params = event.get('queryStringParameters') or {}
+            action = params.get('action')
+
+            # Список участников для администратора
+            if action == 'list':
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(f'''
+                        SELECT p.id, p.full_name, p.email, p.phone, p.city, p.created_at,
+                               COUNT(DISTINCT a.id) AS applications_count,
+                               COUNT(DISTINCT cm.id) FILTER (WHERE cm.sender = 'user' AND cm.is_read = FALSE) AS unread_count
+                        FROM {SCHEMA}.participants p
+                        LEFT JOIN {SCHEMA}.applications a ON a.participant_id = p.id
+                        LEFT JOIN {SCHEMA}.chat_messages cm ON cm.participant_id = p.id
+                        GROUP BY p.id ORDER BY p.created_at DESC
+                    ''')
+                    rows = cur.fetchall()
+                    for r in rows:
+                        if r.get('created_at'): r['created_at'] = r['created_at'].isoformat()
+                    return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'participants': [dict(r) for r in rows]}), 'isBase64Encoded': False}
+
+            # Чат с участником
+            elif action == 'chat':
+                pid = params.get('participant_id')
+                if not pid:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Укажите participant_id'}), 'isBase64Encoded': False}
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(f'SELECT id, participant_id, sender, message, created_at, is_read FROM {SCHEMA}.chat_messages WHERE participant_id = %s ORDER BY created_at ASC', (pid,))
+                    rows = cur.fetchall()
+                    for r in rows:
+                        if r.get('created_at'): r['created_at'] = r['created_at'].isoformat()
+                    return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'messages': [dict(r) for r in rows]}), 'isBase64Encoded': False}
+
+            # Отправить сообщение (через GET action=send для простоты — но лучше POST)
             email = params.get('email')
             
             if not email:

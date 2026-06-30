@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants';
 
 interface AdminTabNavigationProps {
   activeTab: TabType;
@@ -107,6 +107,13 @@ const AdminTabNavigation = ({ activeTab, onTabChange, onLogout }: AdminTabNaviga
         >
           <Icon name="ShoppingBag" className="mr-2 h-4 w-4" />
           Интернет-магазин
+        </Button>
+        <Button
+          variant={activeTab === 'participants' ? 'default' : 'outline'}
+          onClick={() => onTabChange('participants')}
+        >
+          <Icon name="Users" className="mr-2 h-4 w-4" />
+          Участники
         </Button>
       </div>
     </div>
