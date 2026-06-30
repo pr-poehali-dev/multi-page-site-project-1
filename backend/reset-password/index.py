@@ -46,10 +46,19 @@ def send_email(to_email: str, code: str, full_name: str):
     """
     msg.attach(MIMEText(html, 'html'))
 
-    with smtplib.SMTP(smtp_host, smtp_port) as server:
-        server.starttls()
-        server.login(smtp_user, smtp_password)
-        server.sendmail(smtp_user, to_email, msg.as_string())
+    print(f'[SMTP] Connecting to {smtp_host}:{smtp_port}')
+    if smtp_port == 465:
+        with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, to_email, msg.as_string())
+    else:
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, to_email, msg.as_string())
+    print(f'[SMTP] Email sent to {to_email}')
 
 
 def handler(event: dict, context) -> dict:
@@ -97,7 +106,15 @@ def handler(event: dict, context) -> dict:
                 (code, expires_at, participant['id'])
             )
 
-            send_email(participant['email'], code, participant['full_name'])
+            try:
+                send_email(participant['email'], code, participant['full_name'])
+            except Exception as smtp_err:
+                print(f'[SMTP ERROR] {smtp_err}')
+                return {
+                    'statusCode': 500,
+                    'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'},
+                    'body': json.dumps({'error': f'Ошибка отправки письма: {smtp_err}'})
+                }
 
             return {
                 'statusCode': 200,
