@@ -28,8 +28,9 @@ def send_email(to_email: str, code: str, full_name: str):
     smtp_password = os.environ['SMTP_PASSWORD']
 
     msg = MIMEMultipart('alternative')
-    msg['Subject'] = 'Восстановление пароля — ИНДИГО'
-    msg['From'] = f'ИНДИГО <{smtp_user}>'
+    from email.header import Header
+    msg['Subject'] = Header('Восстановление пароля — ИНДИГО', 'utf-8')
+    msg['From'] = smtp_user
     msg['To'] = to_email
 
     html = f"""
