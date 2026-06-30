@@ -1,4 +1,5 @@
 {
+  "reset-password": "https://functions.poehali.dev/58c43074-f156-4b89-af2b-0a1c4f3366c7",
   "shop-orders": "https://functions.poehali.dev/b020db38-8100-400d-9e53-2dbfcafd5f48",
   "shop-products": "https://functions.poehali.dev/eddcb40d-3bae-4f75-9c69-390ad1190d83",
   "diploma-check": "https://functions.poehali.dev/1806f979-38b3-442e-b8ef-fa6827104251",
