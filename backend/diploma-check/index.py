@@ -30,8 +30,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     params = event.get('queryStringParameters') or {}
     diploma_number = (params.get('diploma_number') or '').strip().upper()
+    participant_name = (params.get('participant_name') or '').strip()
 
-    if not diploma_number:
+    if not diploma_number and not participant_name:
         return {
             'statusCode': 400,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
@@ -40,6 +41,30 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     conn.autocommit = True
+
+    # Поиск всех дипломов по имени участника
+    if participant_name and not diploma_number:
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(f'''
+                    SELECT cp.diploma_number, cp.participant_name, cp.director_name,
+                           cp.piece_title, cp.nomination, cp.directing_party,
+                           c.title as contest_title, c.location as contest_location,
+                           c.event_date as contest_event_date
+                    FROM {SCHEMA}.contest_program cp
+                    JOIN {SCHEMA}.contests c ON c.id = cp.contest_id
+                    WHERE cp.diploma_number != ''
+                      AND LOWER(cp.participant_name) LIKE LOWER(%s)
+                    ORDER BY c.event_date DESC
+                ''', (f'%{participant_name}%',))
+                rows = cur.fetchall()
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'diplomas': [dict(r) for r in rows]})
+                }
+        finally:
+            conn.close()
 
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
