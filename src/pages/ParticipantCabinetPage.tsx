@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import NewApplicationModal from '@/components/participant/NewApplicationModal';
 
 interface Application {
   id: number;
@@ -33,6 +34,7 @@ interface Participant {
 const ParticipantCabinetPage = () => {
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [showNewApp, setShowNewApp] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -147,8 +149,8 @@ const ParticipantCabinetPage = () => {
 
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-2xl font-heading font-bold">Мои заявки</h2>
-            <Button 
-              onClick={() => navigate('/register')}
+            <Button
+              onClick={() => setShowNewApp(true)}
               className="bg-secondary hover:bg-secondary/90 gap-2"
             >
               <Icon name="Plus" size={18} />
@@ -163,8 +165,8 @@ const ParticipantCabinetPage = () => {
                 <p className="text-muted-foreground mb-4">
                   У вас пока нет заявок
                 </p>
-                <Button 
-                  onClick={() => navigate('/register')}
+                <Button
+                  onClick={() => setShowNewApp(true)}
                   className="bg-secondary hover:bg-secondary/90"
                 >
                   Подать первую заявку
@@ -238,6 +240,21 @@ const ParticipantCabinetPage = () => {
       </main>
 
       <Footer />
+
+      {showNewApp && participant && (
+        <NewApplicationModal
+          participant={participant}
+          onClose={() => setShowNewApp(false)}
+          onSuccess={() => {
+            setShowNewApp(false);
+            const data = localStorage.getItem('participantData');
+            if (data) {
+              const parsed = JSON.parse(data);
+              setApplications(parsed.applications);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
