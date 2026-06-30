@@ -28,7 +28,7 @@ const ContactsPage = () => {
     e.preventDefault();
     
     try {
-      const response = await fetch('https://functions.poehali.dev/7b4dd767-4bd4-477d-b8bf-4b1f699b263f', {
+      const response = await fetch('https://functions.poehali.dev/c847112c-20e3-46ac-9feb-19ac15744ac5', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
