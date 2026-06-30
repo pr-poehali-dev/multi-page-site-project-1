@@ -27,18 +27,6 @@ const RegisterStepFinish = ({ formData, setFormData }: RegisterStepFinishProps) 
   return (
     <div className="space-y-6 animate-fade-in">
       <h2 className="text-2xl font-heading font-bold mb-6">Завершение регистрации</h2>
-      
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Достижения и награды
-        </label>
-        <Textarea
-          placeholder="Расскажите о своих достижениях, наградах, участии в других конкурсах..."
-          rows={5}
-          value={formData.achievements}
-          onChange={(e) => setFormData({ ...formData, achievements: e.target.value })}
-        />
-      </div>
 
       <div>
         <label className="block text-sm font-medium mb-2">

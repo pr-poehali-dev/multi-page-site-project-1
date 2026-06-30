@@ -120,8 +120,6 @@ const RegisterPage = () => {
           performanceTitle: formData.performanceTitle,
           participationFormat: formData.participationFormat,
           nomination: formData.nomination,
-          experience: formData.experience,
-          achievements: formData.achievements,
           additionalInfo: formData.additionalInfo,
           filesCount: formData.files.length,
         }),

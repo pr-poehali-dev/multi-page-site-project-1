@@ -40,7 +40,7 @@ const RegisterStepContest = ({ formData, setFormData, contests, loadingContests 
           disabled={loadingContests}
         >
           <SelectTrigger>
-            <SelectValue placeholder={loadingContests ? "Загрузка..." : "Выберите конкурс"} />
+            <SelectValue placeholder={loadingContests ? "Загрузка..." : contests.length === 0 ? "Нет активных конкурсов" : "Выберите конкурс"} />
           </SelectTrigger>
           <SelectContent>
             {contests.map((contest) => (
@@ -54,22 +54,13 @@ const RegisterStepContest = ({ formData, setFormData, contests, loadingContests 
 
       <div>
         <label className="block text-sm font-medium mb-2">
-          Категория <span className="text-destructive">*</span>
+          Возраст участника(ов) <span className="text-destructive">*</span>
         </label>
-        <Select
+        <Input
+          placeholder="Например: 12 лет, или 10-14 лет"
           value={formData.category}
-          onValueChange={(value) => setFormData({ ...formData, category: value })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Выберите категорию" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="junior">Юниоры (до 14 лет)</SelectItem>
-            <SelectItem value="youth">Молодёжь (15-18 лет)</SelectItem>
-            <SelectItem value="adult">Взрослые (19-25 лет)</SelectItem>
-            <SelectItem value="professional">Профессионалы (25+ лет)</SelectItem>
-          </SelectContent>
-        </Select>
+          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+        />
       </div>
 
       <div>
@@ -114,26 +105,6 @@ const RegisterStepContest = ({ formData, setFormData, contests, loadingContests 
             required
           />
         </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Опыт выступлений
-        </label>
-        <Select
-          value={formData.experience}
-          onValueChange={(value) => setFormData({ ...formData, experience: value })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Выберите уровень опыта" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="beginner">Начинающий (менее 1 года)</SelectItem>
-            <SelectItem value="intermediate">Средний (1-3 года)</SelectItem>
-            <SelectItem value="advanced">Продвинутый (3-5 лет)</SelectItem>
-            <SelectItem value="expert">Эксперт (более 5 лет)</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
     </div>
   );
