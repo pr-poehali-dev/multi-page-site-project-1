@@ -36,10 +36,11 @@ interface NewApplicationModalProps {
 const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId }: NewApplicationModalProps) => {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
-  const [contests, setContests] = useState<Array<{ id: number; title: string; location?: string; event_date?: string }>>([]);
+  const [contests, setContests] = useState<Array<{ id: number; title: string; location?: string; event_date?: string; status: string }>>([]);
   const [loadingContests, setLoadingContests] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  const [selectedCity, setSelectedCity] = useState('');
   const [contestId, setContestId] = useState(initialContestId || '');
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
@@ -54,12 +55,26 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
       try {
         const res = await fetch(CONTESTS_URL);
         const data = await res.json();
-        setContests((data.contests || []).filter((c: { status: string }) => c.status === 'active'));
+        const activeContests = (data.contests || []).filter((c: { status: string }) => c.status === 'active');
+        setContests(activeContests);
+
+        if (initialContestId) {
+          const preselected = activeContests.find((c: { id: number }) => String(c.id) === initialContestId);
+          if (preselected?.location) setSelectedCity(preselected.location);
+        }
       } catch { setContests([]); }
       finally { setLoadingContests(false); }
     };
     load();
-  }, []);
+  }, [initialContestId]);
+
+  const cities = Array.from(new Set(contests.map(c => c.location).filter((l): l is string => Boolean(l))));
+  const contestsInCity = selectedCity ? contests.filter(c => c.location === selectedCity) : [];
+
+  const handleCityChange = (city: string) => {
+    setSelectedCity(city);
+    setContestId('');
+  };
 
   // Загружаем доп. поля формы, назначенные выбранному конкурсу
   useEffect(() => {
@@ -190,13 +205,25 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
           {step === 1 && (
             <div className="space-y-4 animate-fade-in">
               <div>
-                <label className="block text-sm font-medium mb-2">Конкурс <span className="text-destructive">*</span></label>
-                <Select value={contestId} onValueChange={setContestId} disabled={loadingContests}>
+                <label className="block text-sm font-medium mb-2">Город <span className="text-destructive">*</span></label>
+                <Select value={selectedCity} onValueChange={handleCityChange} disabled={loadingContests}>
                   <SelectTrigger>
-                    <SelectValue placeholder={loadingContests ? 'Загрузка...' : contests.length === 0 ? 'Нет активных конкурсов' : 'Выберите конкурс'} />
+                    <SelectValue placeholder={loadingContests ? 'Загрузка...' : cities.length === 0 ? 'Нет активных конкурсов' : 'Выберите город'} />
                   </SelectTrigger>
                   <SelectContent>
-                    {contests.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>)}
+                    {cities.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Конкурс <span className="text-destructive">*</span></label>
+                <Select value={contestId} onValueChange={setContestId} disabled={!selectedCity}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={!selectedCity ? 'Сначала выберите город' : contestsInCity.length === 0 ? 'Нет конкурсов в этом городе' : 'Выберите конкурс'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contestsInCity.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
