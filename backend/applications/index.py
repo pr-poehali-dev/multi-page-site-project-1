@@ -142,6 +142,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         achievements = EXCLUDED.achievements,
                         additional_info = EXCLUDED.additional_info,
                         custom_fields = EXCLUDED.custom_fields,
+                        status = 'pending',
+                        reviewed_at = NULL,
                         submitted_at = CURRENT_TIMESTAMP
                     RETURNING id, submitted_at, status
                     ''',

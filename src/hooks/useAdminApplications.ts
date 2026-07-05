@@ -59,6 +59,8 @@ export const useAdminApplications = (statusFilter: string, contestFilter: string
 
   useEffect(() => {
     loadApplications();
+    const interval = setInterval(loadApplications, 15000);
+    return () => clearInterval(interval);
   }, [statusFilter, contestFilter]);
 
   return {
