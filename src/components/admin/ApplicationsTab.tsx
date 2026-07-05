@@ -381,13 +381,25 @@ const ApplicationsTab = ({
                             const defs = fieldDefsByContest[app.contest_id] || [];
                             const def = defs.find(d => d.field_name === key);
                             const label = def?.field_label || key;
+                            const isAudio = def?.field_type === 'audio';
                             const displayValue = def?.field_type === 'checkbox'
                               ? (value === 'true' ? 'Да' : 'Нет')
                               : (value || '—');
                             return (
                               <div key={key}>
                                 <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
-                                <p className="text-sm font-medium">{displayValue}</p>
+                                {isAudio && value ? (
+                                  <a
+                                    href={value}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm font-medium text-secondary hover:underline flex items-center gap-1"
+                                  >
+                                    <Icon name="Music" size={14} /> Открыть фонограмму на Яндекс.Диске
+                                  </a>
+                                ) : (
+                                  <p className="text-sm font-medium">{displayValue}</p>
+                                )}
                               </div>
                             );
                           })}

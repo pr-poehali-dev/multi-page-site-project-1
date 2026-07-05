@@ -60,6 +60,7 @@ const FIELD_TYPES = [
   { value: 'checkbox', label: 'Чекбокс (да/нет)' },
   { value: 'date', label: 'Дата' },
   { value: 'file', label: 'Файл' },
+  { value: 'audio', label: 'Фонограмма (загрузка на Яндекс.Диск)' },
 ];
 
 interface SortableFieldItemProps {
@@ -140,6 +141,11 @@ const SortableFieldItem = ({ field: f, index: i, updateField, removeField }: Sor
       {f.field_type === 'file' && (
         <p className="text-xs text-muted-foreground flex items-center gap-1">
           <Icon name="Info" size={12} /> Участник сможет загрузить файл размером до 15 МБ
+        </p>
+      )}
+      {f.field_type === 'audio' && (
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <Icon name="Info" size={12} /> Фонограмма загрузится на Яндекс.Диск в папку конкурса (до 50 МБ)
         </p>
       )}
     </div>

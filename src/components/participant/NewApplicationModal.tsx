@@ -45,9 +45,11 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [customFileValues, setCustomFileValues] = useState<Record<string, File>>({});
+  const [customAudioFileValues, setCustomAudioFileValues] = useState<Record<string, File>>({});
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
 
   const CUSTOM_FILE_MAX_SIZE = 15 * 1024 * 1024;
+  const CUSTOM_AUDIO_MAX_SIZE = 50 * 1024 * 1024;
   const totalSteps = 2;
 
   useEffect(() => {
@@ -87,6 +89,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
         setCustomFields(data.fields || []);
         setCustomValues({});
         setCustomFileValues({});
+        setCustomAudioFileValues({});
       } catch { setCustomFields([]); }
       finally { setLoadingCustomFields(false); }
     };
@@ -96,6 +99,8 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
+      const contestTitle = contests.find(c => String(c.id) === contestId)?.title || '';
+
       // Загружаем файлы из кастомных полей и получаем их URL перед отправкой заявки
       let finalCustomValues = customValues;
       const fileEntries = Object.entries(customFileValues);
@@ -120,7 +125,37 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
             uploadedUrls[fieldName] = uploadData.files[0].fileUrl;
           }
         }
-        finalCustomValues = { ...customValues, ...uploadedUrls };
+        finalCustomValues = { ...finalCustomValues, ...uploadedUrls };
+      }
+
+      // Загружаем фонограммы на Яндекс.Диск в папку конкурса
+      const audioEntries = Object.entries(customAudioFileValues);
+      if (audioEntries.length > 0) {
+        const uploadedAudioUrls: Record<string, string> = {};
+        for (const [fieldName, file] of audioEntries) {
+          const fileData = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve((reader.result as string).split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          const uploadRes = await fetch(UPLOAD_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              target: 'yandex',
+              contestTitle,
+              files: [{ fileName: file.name, fileType: file.type, fileSize: file.size, fileData }],
+            }),
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadData.files?.[0]?.fileUrl) {
+            uploadedAudioUrls[fieldName] = uploadData.files[0].fileUrl;
+          } else {
+            toast({ title: 'Ошибка загрузки фонограммы', description: uploadData.error || file.name, variant: 'destructive' });
+          }
+        }
+        finalCustomValues = { ...finalCustomValues, ...uploadedAudioUrls };
       }
 
       const res = await fetch(APPLICATIONS_URL, {
@@ -328,6 +363,35 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
                             </Button>
                           </label>
                           <p className="text-xs text-muted-foreground mt-1">Максимум 15 МБ</p>
+                        </div>
+                      ) : f.field_type === 'audio' ? (
+                        <div>
+                          <input
+                            type="file"
+                            accept="audio/*"
+                            id={`custom-audio-${f.id}`}
+                            className="hidden"
+                            onChange={e => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              if (file.size > CUSTOM_AUDIO_MAX_SIZE) {
+                                toast({ title: 'Файл слишком большой', description: `${file.name} превышает 50 МБ`, variant: 'destructive' });
+                                e.target.value = '';
+                                return;
+                              }
+                              setCustomAudioFileValues(v => ({ ...v, [f.field_name]: file }));
+                              setCustomValues(v => ({ ...v, [f.field_name]: file.name }));
+                            }}
+                          />
+                          <label htmlFor={`custom-audio-${f.id}`}>
+                            <Button type="button" variant="outline" className="w-full cursor-pointer" asChild>
+                              <span>
+                                <Icon name="Music" size={16} className="mr-2" />
+                                {customAudioFileValues[f.field_name] ? customAudioFileValues[f.field_name].name : 'Выбрать фонограмму'}
+                              </span>
+                            </Button>
+                          </label>
+                          <p className="text-xs text-muted-foreground mt-1">Загрузится на Яндекс.Диск, максимум 50 МБ</p>
                         </div>
                       ) : (
                         <Input
