@@ -126,25 +126,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         'isBase64Encoded': False
                     }
                 
-                # Создаем заявку
+                # Создаем новую заявку (каждая подача - отдельная запись, включая повторные)
                 cur.execute(
                     '''
                     INSERT INTO applications 
                     (participant_id, contest_id, category, performance_title, participation_format, nomination, experience, achievements, additional_info, custom_fields, status)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending')
-                    ON CONFLICT (participant_id, contest_id)
-                    DO UPDATE SET
-                        category = EXCLUDED.category,
-                        performance_title = EXCLUDED.performance_title,
-                        participation_format = EXCLUDED.participation_format,
-                        nomination = EXCLUDED.nomination,
-                        experience = EXCLUDED.experience,
-                        achievements = EXCLUDED.achievements,
-                        additional_info = EXCLUDED.additional_info,
-                        custom_fields = EXCLUDED.custom_fields,
-                        status = 'pending',
-                        reviewed_at = NULL,
-                        submitted_at = CURRENT_TIMESTAMP
                     RETURNING id, submitted_at, status
                     ''',
                     (participant_id, contest_id, category, performance_title, participation_format, nomination, experience, achievements, additional_info, json.dumps(custom_fields))

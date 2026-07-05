@@ -1,0 +1,2 @@
+ALTER TABLE t_p73771717_multi_page_site_proj.applications
+  DROP CONSTRAINT IF EXISTS applications_participant_id_contest_id_key;
