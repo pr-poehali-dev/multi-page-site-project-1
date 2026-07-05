@@ -231,7 +231,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 if not pid:
                     return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Укажите id'}), 'isBase64Encoded': False}
                 with conn.cursor() as cur:
-                    cur.execute(f'UPDATE {SCHEMA}.participants SET email = NULL, phone = NULL, password_hash = NULL, full_name = \'[удалён]\' WHERE id = %s', (pid,))
+                    cur.execute(
+                        f'''UPDATE {SCHEMA}.participants
+                            SET email = %s, phone = '', password_hash = NULL, full_name = '[удалён]'
+                            WHERE id = %s''',
+                        (f'deleted_{pid}@deleted.local', pid)
+                    )
+                    if cur.rowcount == 0:
+                        return {'statusCode': 404, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Участник не найден'}), 'isBase64Encoded': False}
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True}), 'isBase64Encoded': False}
             elif action == 'read':
                 pid = params.get('participant_id')
