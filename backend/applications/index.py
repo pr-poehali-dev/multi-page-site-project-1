@@ -54,7 +54,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             city = body_data.get('city')
             password = body_data.get('password', '')
             contest_input = body_data.get('contestId')
-            category = body_data.get('category')
+            category = body_data.get('category') or ''
             performance_title = body_data.get('performanceTitle', '')
             participation_format = body_data.get('participationFormat', '')
             nomination = body_data.get('nomination', '')

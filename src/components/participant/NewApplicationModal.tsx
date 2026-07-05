@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
-import FileUpload from '@/components/FileUpload';
 import { useToast } from '@/hooks/use-toast';
 
 const CONTESTS_URL = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
@@ -43,20 +42,13 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
   const [submitting, setSubmitting] = useState(false);
 
   const [contestId, setContestId] = useState(initialContestId || '');
-  const [category, setCategory] = useState('');
-  const [performanceTitle, setPerformanceTitle] = useState('');
-  const [participationFormat, setParticipationFormat] = useState('');
-  const [nomination, setNomination] = useState('');
-  const [additionalInfo, setAdditionalInfo] = useState('');
-  const [files, setFiles] = useState<File[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [customFileValues, setCustomFileValues] = useState<Record<string, File>>({});
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
 
   const CUSTOM_FILE_MAX_SIZE = 15 * 1024 * 1024;
-
-  const totalSteps = customFields.length > 0 ? 4 : 3;
+  const totalSteps = 2;
 
   useEffect(() => {
     const load = async () => {
@@ -128,41 +120,12 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
           city: participant.city,
           password: '',
           contestId,
-          category,
-          performanceTitle,
-          participationFormat,
-          nomination,
-          additionalInfo,
-          filesCount: files.length,
           customFields: finalCustomValues,
         }),
       });
       const result = await res.json();
 
       if (result.success) {
-        if (files.length > 0) {
-          const filesData = await Promise.all(files.map(file =>
-            new Promise<{ fileName: string; fileType: string; fileSize: number; fileData: string }>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => {
-                resolve({
-                  fileName: file.name,
-                  fileType: file.type,
-                  fileSize: file.size,
-                  fileData: (reader.result as string).split(',')[1],
-                });
-              };
-              reader.onerror = reject;
-              reader.readAsDataURL(file);
-            })
-          ));
-          await fetch(UPLOAD_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ applicationId: result.applicationId, files: filesData }),
-          });
-        }
-
         // Обновляем данные в localStorage
         const stored = localStorage.getItem('participantData');
         if (stored) {
@@ -171,10 +134,10 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
             {
               id: result.applicationId,
               contest_title: contests.find(c => String(c.id) === contestId)?.title || '',
-              category,
-              performance_title: performanceTitle,
-              participation_format: participationFormat,
-              nomination,
+              category: '',
+              performance_title: '',
+              participation_format: '',
+              nomination: '',
               status: 'pending',
               submitted_at: new Date().toISOString(),
               start_date: '',
@@ -194,7 +157,8 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
     } catch {
       toast({ title: 'Ошибка соединения', variant: 'destructive' });
     } finally {
-      setSubmitting(false); }
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -205,7 +169,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
         <div className="flex items-center justify-between p-6 border-b shrink-0">
           <div>
             <h2 className="text-xl font-heading font-bold">Новая заявка</h2>
-            <p className="text-sm text-muted-foreground">Шаг {step} из 3</p>
+            <p className="text-sm text-muted-foreground">Шаг {step} из {totalSteps}</p>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <Icon name="X" size={20} />
@@ -215,7 +179,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
         {/* Прогресс */}
         <div className="px-6 pt-4 shrink-0">
           <div className="flex gap-2">
-            {[1, 2, 3].map(s => (
+            {Array.from({ length: totalSteps }, (_, i) => i + 1).map(s => (
               <div key={s} className={`h-1.5 flex-1 rounded-full transition-all ${s <= step ? 'bg-secondary' : 'bg-muted'}`} />
             ))}
           </div>
@@ -224,7 +188,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
         {/* Контент */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
 
-          {/* Шаг 1: Конкурс */}
+          {/* Шаг 1: Выбор конкурса */}
           {step === 1 && (
             <div className="space-y-4 animate-fade-in">
               <div>
@@ -238,40 +202,27 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Возраст участника(ов) <span className="text-destructive">*</span></label>
-                <Input placeholder="Например: 12 лет, или 10-14 лет" value={category} onChange={e => setCategory(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Название номера <span className="text-destructive">*</span></label>
-                <Input placeholder="Например: 'Танец с огнём'" value={performanceTitle} onChange={e => setPerformanceTitle(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Формат <span className="text-destructive">*</span></label>
-                  <Select value={participationFormat} onValueChange={setParticipationFormat}>
-                    <SelectTrigger><SelectValue placeholder="Выберите" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="offline">Очное</SelectItem>
-                      <SelectItem value="online">Заочное</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Номинация <span className="text-destructive">*</span></label>
-                  <Input placeholder="Например: Вокал" value={nomination} onChange={e => setNomination(e.target.value)} />
-                </div>
-              </div>
+            </div>
+          )}
 
+          {/* Шаг 2: Дополнительные вопросы организатора */}
+          {step === 2 && (
+            <div className="space-y-4 animate-fade-in">
               {loadingCustomFields && (
-                <div className="text-center py-2">
+                <div className="text-center py-4">
                   <Icon name="Loader2" size={20} className="mx-auto animate-spin text-muted-foreground" />
                 </div>
               )}
 
+              {!loadingCustomFields && customFields.length === 0 && (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Icon name="CheckCircle2" size={32} className="mx-auto mb-2 opacity-40" />
+                  <p>Для этого конкурса нет дополнительных вопросов</p>
+                </div>
+              )}
+
               {customFields.length > 0 && (
-                <div className="space-y-4 pt-2 border-t">
-                  <p className="text-sm font-medium text-muted-foreground">Дополнительные вопросы организатора</p>
+                <div className="space-y-4">
                   {customFields.map(f => (
                     <div key={f.id}>
                       <label className="block text-sm font-medium mb-2">
@@ -345,54 +296,6 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
               )}
             </div>
           )}
-
-          {/* Шаг 2: Файлы */}
-          {step === 2 && (
-            <div className="space-y-4 animate-fade-in">
-              <div className="bg-muted/50 rounded-lg p-4 text-sm">
-                <p className="font-semibold mb-2">ВНИМАНИЕ!</p>
-                <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                  <li>Обязательно приложите заполненный бланк заявки в формате Word</li>
-                  <li>ДЛЯ ОЧНОГО: минусовую фонограмму или фото работ</li>
-                  <li>ДЛЯ ЗАОЧНОГО: видео конкурсного номера или фото работ</li>
-                </ol>
-              </div>
-              <FileUpload
-                files={files}
-                onChange={setFiles}
-                accept="image/*,video/*,.pdf,.doc,.docx"
-                maxSize={50}
-              />
-            </div>
-          )}
-
-          {/* Шаг 3: Завершение */}
-          {step === 3 && (
-            <div className="space-y-4 animate-fade-in">
-              <div>
-                <label className="block text-sm font-medium mb-2">Дополнительная информация</label>
-                <Textarea
-                  placeholder="Любая другая информация..."
-                  rows={4}
-                  value={additionalInfo}
-                  onChange={e => setAdditionalInfo(e.target.value)}
-                />
-              </div>
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                <p className="font-semibold mb-2 flex items-center gap-2">
-                  <Icon name="CheckCircle2" size={18} className="text-primary" /> Проверьте данные
-                </p>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p><span className="text-foreground font-medium">Участник:</span> {participant.full_name}</p>
-                  <p><span className="text-foreground font-medium">Конкурс:</span> {contests.find(c => String(c.id) === contestId)?.title}</p>
-                  <p><span className="text-foreground font-medium">Номинация:</span> {nomination}</p>
-                  <p><span className="text-foreground font-medium">Номер:</span> {performanceTitle}</p>
-                  <p><span className="text-foreground font-medium">Формат:</span> {participationFormat === 'offline' ? 'Очное' : 'Заочное'}</p>
-                  <p><span className="text-foreground font-medium">Файлов:</span> {files.length}</p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Кнопки */}
@@ -402,14 +305,11 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
               <Icon name="ArrowLeft" size={16} className="mr-2" /> Назад
             </Button>
           )}
-          {step < 3 ? (
+          {step < totalSteps ? (
             <Button
               className="flex-1 bg-secondary hover:bg-secondary/90"
               onClick={() => setStep(s => s + 1)}
-              disabled={step === 1 && (
-                !contestId || !category || !performanceTitle || !participationFormat || !nomination ||
-                customFields.some(f => f.is_required && !customValues[f.field_name]?.trim())
-              )}
+              disabled={!contestId}
             >
               Далее <Icon name="ArrowRight" size={16} className="ml-2" />
             </Button>
@@ -417,7 +317,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
             <Button
               className="flex-1 bg-secondary hover:bg-secondary/90"
               onClick={handleSubmit}
-              disabled={submitting}
+              disabled={submitting || customFields.some(f => f.is_required && !customValues[f.field_name]?.trim())}
             >
               {submitting ? <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Отправка...</> : <><Icon name="Send" size={16} className="mr-2" />Отправить заявку</>}
             </Button>
