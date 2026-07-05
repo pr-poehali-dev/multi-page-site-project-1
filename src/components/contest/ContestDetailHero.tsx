@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
@@ -13,6 +14,7 @@ interface Contest {
   application_form_url?: string;
   event_date?: string;
   logo_url?: string;
+  application_type?: 'external' | 'internal';
 }
 
 interface ContestDetailHeroProps {
@@ -25,6 +27,17 @@ interface ContestDetailHeroProps {
 }
 
 const ContestDetailHero = ({ contest, isPast, isActive, isFuture, daysUntilStart, daysUntilEnd }: ContestDetailHeroProps) => {
+  const navigate = useNavigate();
+  const isInternal = contest.application_type === 'internal';
+
+  const handleApply = () => {
+    if (isInternal) {
+      navigate(`/register?contest=${contest.id}`);
+    } else if (contest.application_form_url) {
+      window.open(contest.application_form_url, '_blank');
+    }
+  };
+
   return (
     <div className="px-12 pt-8 pb-8 md:px-12 md:pt-12 md:pb-12">
       <div className="flex items-center gap-6 mb-6">
@@ -74,8 +87,8 @@ const ContestDetailHero = ({ contest, isPast, isActive, isFuture, daysUntilStart
         <Button
           size="lg"
           className="bg-secondary hover:bg-secondary/90"
-          disabled={isPast || isFuture || !contest.application_form_url}
-          onClick={() => contest.application_form_url && window.open(contest.application_form_url, '_blank')}
+          disabled={isPast || isFuture || (!isInternal && !contest.application_form_url)}
+          onClick={handleApply}
         >
           <Icon name="Send" size={20} className="mr-2" />
           {isPast ? 'Конкурс завершён' : isFuture ? 'Скоро откроется приём заявок' : 'Подать заявку'}

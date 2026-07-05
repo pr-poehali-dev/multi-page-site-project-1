@@ -19,6 +19,7 @@ interface Contest {
   details_link?: string;
   logo_url?: string;
   form_template_id?: number | null;
+  application_type?: 'external' | 'internal';
 }
 
 interface ContestFormData {
@@ -38,6 +39,7 @@ interface ContestFormData {
   ticket_link?: string;
   details_link?: string;
   logo_url?: string;
+  application_type?: 'external' | 'internal';
 }
 
 export const useAdminContests = () => {
@@ -57,7 +59,8 @@ export const useAdminContests = () => {
     categories: '',
     pdf_url: '',
     poster_url: '',
-    application_form_url: ''
+    application_form_url: '',
+    application_type: 'external'
   });
 
   const loadContests = useCallback(async () => {
@@ -83,7 +86,7 @@ export const useAdminContests = () => {
       
       if (response.ok) {
         setShowCreateModal(false);
-        setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming', rules: '', prizes: '', categories: '', pdf_url: '', poster_url: '', application_form_url: '' });
+        setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming', rules: '', prizes: '', categories: '', pdf_url: '', poster_url: '', application_form_url: '', application_type: 'external' });
         loadContests();
       }
     } catch (error) {
@@ -104,7 +107,7 @@ export const useAdminContests = () => {
       if (response.ok) {
         setShowEditModal(false);
         setSelectedContest(null);
-        setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming', rules: '', prizes: '', categories: '', pdf_url: '', poster_url: '', application_form_url: '' });
+        setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming', rules: '', prizes: '', categories: '', pdf_url: '', poster_url: '', application_form_url: '', application_type: 'external' });
         loadContests();
       }
     } catch (error) {
@@ -146,13 +149,14 @@ export const useAdminContests = () => {
       event_date: contest.event_date || '',
       ticket_link: contest.ticket_link || '',
       details_link: contest.details_link || '',
-      logo_url: contest.logo_url || ''
+      logo_url: contest.logo_url || '',
+      application_type: contest.application_type || 'external'
     });
     setShowEditModal(true);
   };
 
   const handleCreateClick = () => {
-    setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming', rules: '', prizes: '', categories: '', pdf_url: '', poster_url: '', application_form_url: '' });
+    setFormData({ title: '', description: '', start_date: '', end_date: '', status: 'upcoming', rules: '', prizes: '', categories: '', pdf_url: '', poster_url: '', application_form_url: '', application_type: 'external' });
     setShowCreateModal(true);
   };
 

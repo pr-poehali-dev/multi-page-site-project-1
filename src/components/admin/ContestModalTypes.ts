@@ -15,4 +15,5 @@ export interface ContestFormData {
   event_date?: string;
   application_form_url?: string;
   logo_url?: string;
+  application_type?: 'external' | 'internal';
 }

@@ -4,6 +4,11 @@ import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 import { ContestFormData } from './ContestModalTypes';
 
+const APPLICATION_TYPES = [
+  { value: 'external', label: 'Внешняя ссылка', description: 'Кнопка «Подать заявку» откроет ссылку, указанную ниже (Google Forms, Яндекс Формы и т.д.)' },
+  { value: 'internal', label: 'Форма в личном кабинете', description: 'Кнопка «Подать заявку» откроет регистрацию/форму подачи заявки прямо на сайте' },
+] as const;
+
 interface ContestUploadFieldsProps {
   formData: ContestFormData;
   setFormData: (data: ContestFormData) => void;
@@ -81,29 +86,55 @@ const ContestUploadFields = ({
 
       <div>
         <label className="text-sm font-medium mb-2 block flex items-center gap-2">
-          <Icon name="Link" size={16} />
-          Ссылка на форму заявки
+          <Icon name="MousePointerClick" size={16} />
+          Куда ведёт кнопка «Подать заявку»
         </label>
-        <div className="flex gap-2">
-          <Input
-            type="url"
-            placeholder="https://forms.google.com/..."
-            value={formData.application_form_url || ''}
-            onChange={(e) => setFormData({ ...formData, application_form_url: e.target.value })}
-            className="flex-1"
-          />
-          {formData.application_form_url && (
-            <Button
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {APPLICATION_TYPES.map((t) => (
+            <button
+              key={t.value}
               type="button"
-              variant="outline"
-              onClick={() => window.open(formData.application_form_url, '_blank')}
+              onClick={() => setFormData({ ...formData, application_type: t.value })}
+              className={`text-left p-3 rounded-lg border transition-colors ${
+                (formData.application_type || 'external') === t.value
+                  ? 'border-secondary bg-secondary/10'
+                  : 'border-border hover:bg-muted/50'
+              }`}
             >
-              <Icon name="ExternalLink" size={16} />
-            </Button>
-          )}
+              <p className="text-sm font-medium">{t.label}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
+            </button>
+          ))}
         </div>
-        <p className="text-xs text-muted-foreground mt-1">Вставьте ссылку на Google Forms, Яндекс Формы или любую другую форму</p>
       </div>
+
+      {(formData.application_type || 'external') === 'external' && (
+        <div>
+          <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+            <Icon name="Link" size={16} />
+            Ссылка на форму заявки
+          </label>
+          <div className="flex gap-2">
+            <Input
+              type="url"
+              placeholder="https://forms.google.com/..."
+              value={formData.application_form_url || ''}
+              onChange={(e) => setFormData({ ...formData, application_form_url: e.target.value })}
+              className="flex-1"
+            />
+            {formData.application_form_url && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => window.open(formData.application_form_url, '_blank')}
+              >
+                <Icon name="ExternalLink" size={16} />
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">Вставьте ссылку на Google Forms, Яндекс Формы или любую другую форму</p>
+        </div>
+      )}
 
       <div>
         <label className="text-sm font-medium mb-2 block flex items-center gap-2">

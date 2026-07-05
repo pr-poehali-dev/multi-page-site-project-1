@@ -24,6 +24,7 @@ interface Contest {
   event_date?: string;
   poster_url?: string;
   logo_url?: string;
+  application_type?: 'external' | 'internal';
 }
 
 interface GalleryItem {

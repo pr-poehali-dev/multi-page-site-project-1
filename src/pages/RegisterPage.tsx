@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSEO } from '@/hooks/useSEO';
 import RegisterStepPersonal from '@/components/register/RegisterStepPersonal';
 import RegisterStepContest from '@/components/register/RegisterStepContest';
@@ -47,6 +47,7 @@ const RegisterPage = () => {
   });
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
   const [contests, setContests] = useState<Array<{ id: number; title: string }>>([]);
   const [loadingContests, setLoadingContests] = useState(true);
@@ -80,6 +81,11 @@ const RegisterPage = () => {
           (contest: { status: string }) => contest.status === 'active'
         );
         setContests(activeContests);
+
+        const preselectedContestId = searchParams.get('contest');
+        if (preselectedContestId && activeContests.some((c: { id: number }) => String(c.id) === preselectedContestId)) {
+          setFormData((prev) => ({ ...prev, contestId: preselectedContestId }));
+        }
       } catch (error) {
         console.error('Ошибка загрузки конкурсов:', error);
       } finally {
@@ -87,7 +93,7 @@ const RegisterPage = () => {
       }
     };
     loadContests();
-  }, []);
+  }, [searchParams]);
 
   const handleNext = () => {
     if (step < totalSteps) {
