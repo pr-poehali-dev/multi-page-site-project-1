@@ -11,9 +11,10 @@ import { useToast } from '@/hooks/use-toast';
 
 type ParticipantData = {
   fullName: string;
+  contactPosition?: string;
   email: string;
   phone: string;
-  birthDate: string;
+  vkLink?: string;
   city: string;
   contestId: string;
   contestTitle?: string;
@@ -148,10 +149,14 @@ const ProfilePage = () => {
                     <Icon name="MapPin" size={16} className="text-muted-foreground" />
                     <span>{data.city}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <Icon name="Calendar" size={16} className="text-muted-foreground" />
-                    <span>{new Date(data.birthDate).toLocaleDateString('ru-RU')}</span>
-                  </div>
+                  {data.vkLink && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <Icon name="Link" size={16} className="text-muted-foreground" />
+                      <a href={data.vkLink} target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline truncate">
+                        {data.vkLink}
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 <Button variant="outline" className="w-full mt-6" onClick={() => navigate('/register')}>

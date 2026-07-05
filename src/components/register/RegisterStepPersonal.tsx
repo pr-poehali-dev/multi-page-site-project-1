@@ -2,9 +2,10 @@ import { Input } from '@/components/ui/input';
 
 type PersonalData = {
   fullName: string;
+  contactPosition: string;
   email: string;
   phone: string;
-  birthDate: string;
+  vkLink: string;
   city: string;
   password: string;
 };
@@ -18,10 +19,10 @@ const RegisterStepPersonal = <T extends PersonalData,>({ formData, setFormData }
   return (
     <div className="space-y-6 animate-fade-in">
       <h2 className="text-2xl font-heading font-bold mb-6">Личные данные</h2>
-      
+
       <div>
         <label className="block text-sm font-medium mb-2">
-          ФИО <span className="text-destructive">*</span>
+          ФИО контактного лица <span className="text-destructive">*</span>
         </label>
         <Input
           placeholder="Иванов Иван Иванович"
@@ -31,20 +32,19 @@ const RegisterStepPersonal = <T extends PersonalData,>({ formData, setFormData }
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Email <span className="text-destructive">*</span>
-          </label>
-          <Input
-            type="email"
-            placeholder="example@mail.com"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            required
-          />
-        </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">
+          Должность контактного лица <span className="text-destructive">*</span>
+        </label>
+        <Input
+          placeholder="Например: руководитель коллектива"
+          value={formData.contactPosition}
+          onChange={(e) => setFormData({ ...formData, contactPosition: e.target.value })}
+          required
+        />
+      </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-2">
             Телефон <span className="text-destructive">*</span>
@@ -57,32 +57,44 @@ const RegisterStepPersonal = <T extends PersonalData,>({ formData, setFormData }
             required
           />
         </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Email <span className="text-destructive">*</span>
+          </label>
+          <Input
+            type="email"
+            placeholder="example@mail.com"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            required
+          />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Дата рождения <span className="text-destructive">*</span>
-          </label>
-          <Input
-            type="date"
-            value={formData.birthDate}
-            onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-            required
-          />
-        </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">
+          Ссылка на страницу в ВК <span className="text-destructive">*</span>
+        </label>
+        <Input
+          type="url"
+          placeholder="https://vk.com/username"
+          value={formData.vkLink}
+          onChange={(e) => setFormData({ ...formData, vkLink: e.target.value })}
+          required
+        />
+      </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Город <span className="text-destructive">*</span>
-          </label>
-          <Input
-            placeholder="Москва"
-            value={formData.city}
-            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-            required
-          />
-        </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">
+          Место проживания (с указанием субъекта РФ) <span className="text-destructive">*</span>
+        </label>
+        <Input
+          placeholder="Например: г. Казань, Республика Татарстан"
+          value={formData.city}
+          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+          required
+        />
       </div>
 
       <div>

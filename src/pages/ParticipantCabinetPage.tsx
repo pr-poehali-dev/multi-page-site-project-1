@@ -30,9 +30,10 @@ interface Application {
 interface Participant {
   id: number;
   full_name: string;
+  contact_position: string;
   email: string;
   phone: string;
-  birth_date: string;
+  vk_link: string;
   city: string;
 }
 
@@ -253,19 +254,31 @@ const ParticipantCabinetPage = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">ФИО</p>
+                  <p className="text-sm text-muted-foreground">ФИО контактного лица</p>
                   <p className="font-medium">{participant.full_name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{participant.email}</p>
+                  <p className="text-sm text-muted-foreground">Должность</p>
+                  <p className="font-medium">{participant.contact_position}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Телефон</p>
                   <p className="font-medium">{participant.phone}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Город</p>
+                  <p className="text-sm text-muted-foreground">Email</p>
+                  <p className="font-medium">{participant.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Страница в ВК</p>
+                  <p className="font-medium">
+                    <a href={participant.vk_link} target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline">
+                      {participant.vk_link}
+                    </a>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Место проживания</p>
                   <p className="font-medium">{participant.city}</p>
                 </div>
               </div>

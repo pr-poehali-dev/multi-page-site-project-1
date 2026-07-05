@@ -50,7 +50,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             full_name = body_data.get('fullName')
             email = body_data.get('email')
             phone = body_data.get('phone')
-            birth_date = body_data.get('birthDate')
             city = body_data.get('city')
             password = body_data.get('password', '')
             contest_input = body_data.get('contestId')
@@ -71,33 +70,31 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 if password_hash:
                     cur.execute(
                         '''
-                        INSERT INTO participants (full_name, email, phone, birth_date, city, password_hash)
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (email) 
-                        DO UPDATE SET 
-                            full_name = EXCLUDED.full_name,
-                            phone = EXCLUDED.phone,
-                            birth_date = EXCLUDED.birth_date,
-                            city = EXCLUDED.city,
-                            password_hash = EXCLUDED.password_hash
-                        RETURNING id
-                        ''',
-                        (full_name, email, phone, birth_date, city, password_hash)
-                    )
-                else:
-                    cur.execute(
-                        '''
-                        INSERT INTO participants (full_name, email, phone, birth_date, city)
+                        INSERT INTO participants (full_name, email, phone, city, password_hash)
                         VALUES (%s, %s, %s, %s, %s)
                         ON CONFLICT (email) 
                         DO UPDATE SET 
                             full_name = EXCLUDED.full_name,
                             phone = EXCLUDED.phone,
-                            birth_date = EXCLUDED.birth_date,
+                            city = EXCLUDED.city,
+                            password_hash = EXCLUDED.password_hash
+                        RETURNING id
+                        ''',
+                        (full_name, email, phone, city, password_hash)
+                    )
+                else:
+                    cur.execute(
+                        '''
+                        INSERT INTO participants (full_name, email, phone, city)
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (email) 
+                        DO UPDATE SET 
+                            full_name = EXCLUDED.full_name,
+                            phone = EXCLUDED.phone,
                             city = EXCLUDED.city
                         RETURNING id
                         ''',
-                        (full_name, email, phone, birth_date, city)
+                        (full_name, email, phone, city)
                     )
                 participant_id = cur.fetchone()['id']
                 
@@ -184,7 +181,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 cur.execute(
                     '''
                     SELECT 
-                        p.full_name, p.email, p.phone, p.birth_date, p.city,
+                        p.full_name, p.contact_position, p.email, p.phone, p.vk_link, p.city,
                         a.id as application_id, a.category, a.performance_title, a.participation_format, 
                         a.nomination, a.experience, a.achievements, a.additional_info, a.custom_fields, a.status, a.submitted_at,
                         c.contest_key, c.title as contest_title
@@ -216,9 +213,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 
                 response_data = {
                     'fullName': result['full_name'],
+                    'contactPosition': result.get('contact_position') or '',
                     'email': result['email'],
                     'phone': result['phone'],
-                    'birthDate': result['birth_date'].isoformat() if result['birth_date'] else None,
+                    'vkLink': result.get('vk_link') or '',
                     'city': result['city'],
                     'contestId': result['contest_key'],
                     'contestTitle': result['contest_title'],

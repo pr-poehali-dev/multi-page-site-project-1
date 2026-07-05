@@ -265,9 +265,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         a.status,
                         a.submitted_at,
                         p.full_name,
+                        p.contact_position,
                         p.email,
                         p.phone,
-                        p.birth_date,
+                        p.vk_link,
                         p.city,
                         c.title as contest_title
                     FROM applications a
@@ -294,8 +295,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 for app in applications:
                     if app.get('submitted_at'):
                         app['submitted_at'] = app['submitted_at'].isoformat()
-                    if app.get('birth_date'):
-                        app['birth_date'] = app['birth_date'].isoformat()
                 
                 # Получаем файлы для каждой заявки отдельным курсором
                 for app in applications:
@@ -339,7 +338,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # Получаем данные заявки
                 cur.execute(
-                    '''SELECT a.*, p.full_name, p.email, p.phone, p.birth_date, p.city
+                    '''SELECT a.*, p.full_name, p.contact_position, p.email, p.phone, p.vk_link, p.city
                        FROM applications a
                        JOIN participants p ON a.participant_id = p.id
                        WHERE a.id = %s''',
@@ -366,20 +365,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 
                 # Если заявка одобрена - обновляем участника для системы оценивания
                 if new_status == 'approved':
-                    from datetime import datetime
-                    birth_date = application['birth_date']
-                    age = datetime.now().year - birth_date.year
-                    if datetime.now().month < birth_date.month or \
-                       (datetime.now().month == birth_date.month and datetime.now().day < birth_date.day):
-                        age -= 1
-                    
-                    # Обновляем участника: добавляем contest_id, age, category, performance_title, participation_format, nomination, status
+                    # Обновляем участника: добавляем contest_id, category, performance_title, participation_format, nomination, status
                     cur.execute(
                         '''UPDATE participants 
-                           SET contest_id = %s, age = %s, category = %s, performance_title = %s, 
+                           SET contest_id = %s, category = %s, performance_title = %s, 
                                participation_format = %s, nomination = %s, status = 'approved'
                            WHERE id = %s''',
-                        (application['contest_id'], age, application['category'], 
+                        (application['contest_id'], application['category'], 
                          application.get('performance_title', 'Не указано'),
                          application.get('participation_format', ''),
                          application.get('nomination', ''),
@@ -410,12 +402,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                             application.get('city', ''),
                             '',
                             application['full_name'],
-                            str(age),
+                            '',
                             application.get('nomination', ''),
                             application.get('performance_title', ''),
                             '',
                             diploma_number,
-                            '',
+                            application.get('contact_position', ''),
                             app_id
                         ))
             

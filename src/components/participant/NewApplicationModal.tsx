@@ -14,7 +14,6 @@ interface Participant {
   full_name: string;
   email: string;
   phone: string;
-  birth_date: string;
   city: string;
 }
 
@@ -116,7 +115,6 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
           fullName: participant.full_name,
           email: participant.email,
           phone: participant.phone,
-          birthDate: participant.birth_date,
           city: participant.city,
           password: '',
           contestId,

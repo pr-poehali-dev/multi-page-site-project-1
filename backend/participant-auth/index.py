@@ -63,13 +63,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             # Регистрация нового аккаунта участника (без подачи заявки на конкурс)
             if action == 'register':
                 full_name = (body_data.get('fullName') or '').strip()
+                contact_position = (body_data.get('contactPosition') or '').strip()
                 email = (body_data.get('email') or '').strip().lower()
                 phone = (body_data.get('phone') or '').strip()
-                birth_date = body_data.get('birthDate')
+                vk_link = (body_data.get('vkLink') or '').strip()
                 city = (body_data.get('city') or '').strip()
                 password = body_data.get('password') or ''
 
-                if not full_name or not email or not phone or not birth_date or not city or not password:
+                if not full_name or not contact_position or not email or not phone or not vk_link or not city or not password:
                     return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Заполните все поля'}), 'isBase64Encoded': False}
                 if len(password) < 6:
                     return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Пароль должен содержать минимум 6 символов'}), 'isBase64Encoded': False}
@@ -84,17 +85,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
                     cur.execute(
                         f'''
-                        INSERT INTO {SCHEMA}.participants (full_name, email, phone, birth_date, city, password_hash)
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                        INSERT INTO {SCHEMA}.participants (full_name, contact_position, email, phone, vk_link, city, password_hash)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (email)
-                        DO UPDATE SET full_name = EXCLUDED.full_name, phone = EXCLUDED.phone, birth_date = EXCLUDED.birth_date, city = EXCLUDED.city, password_hash = EXCLUDED.password_hash
-                        RETURNING id, full_name, email, phone, birth_date, city
+                        DO UPDATE SET full_name = EXCLUDED.full_name, contact_position = EXCLUDED.contact_position, phone = EXCLUDED.phone, vk_link = EXCLUDED.vk_link, city = EXCLUDED.city, password_hash = EXCLUDED.password_hash
+                        RETURNING id, full_name, contact_position, email, phone, vk_link, city
                         ''',
-                        (full_name, email, phone, birth_date, city, password_hash)
+                        (full_name, contact_position, email, phone, vk_link, city, password_hash)
                     )
                     participant = dict(cur.fetchone())
-                    if participant.get('birth_date'):
-                        participant['birth_date'] = participant['birth_date'].isoformat()
 
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True, 'participant': participant, 'applications': []}), 'isBase64Encoded': False}
 
@@ -132,9 +131,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     SELECT 
                         p.id,
                         p.full_name,
+                        p.contact_position,
                         p.email,
                         p.phone,
-                        p.birth_date,
+                        p.vk_link,
                         p.city,
                         p.password_hash
                     FROM participants p
@@ -209,9 +209,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 participant_data = dict(participant)
                 del participant_data['password_hash']
                 
-                if participant_data.get('birth_date'):
-                    participant_data['birth_date'] = participant_data['birth_date'].isoformat()
-                
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
@@ -251,7 +248,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             if action == 'list':
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
                     cur.execute(f'''
-                        SELECT p.id, p.full_name, p.email, p.phone, p.city, p.created_at,
+                        SELECT p.id, p.full_name, p.contact_position, p.email, p.phone, p.vk_link, p.city, p.created_at,
                                COUNT(DISTINCT a.id) AS applications_count,
                                COUNT(DISTINCT cm.id) FILTER (WHERE cm.sender = 'user' AND cm.is_read = FALSE) AS unread_count
                         FROM {SCHEMA}.participants p

@@ -25,9 +25,10 @@ interface Application {
   contest_id: number;
   contest_title: string;
   full_name: string;
+  contact_position?: string;
   email: string;
   phone: string;
-  birth_date: string;
+  vk_link?: string;
   city: string;
   category: string;
   performance_title?: string;
@@ -112,17 +113,6 @@ const ApplicationsTab = ({
         return 'bg-yellow-100 text-yellow-800';
     }
   };
-
-  const calculateAge = useCallback((birthDate: string) => {
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
-  }, []);
 
   const filteredApplications = useMemo(() => {
     return applications.filter(
@@ -232,10 +222,20 @@ const ApplicationsTab = ({
                         <Icon name="MapPin" size={16} />
                         <span>{app.city}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Icon name="Calendar" size={16} />
-                        <span>{calculateAge(app.birth_date)} лет</span>
-                      </div>
+                      {app.contact_position && (
+                        <div className="flex items-center gap-2">
+                          <Icon name="Briefcase" size={16} />
+                          <span>{app.contact_position}</span>
+                        </div>
+                      )}
+                      {app.vk_link && (
+                        <div className="flex items-center gap-2">
+                          <Icon name="Link" size={16} />
+                          <a href={app.vk_link} target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline truncate">
+                            {app.vk_link}
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2 ml-4">

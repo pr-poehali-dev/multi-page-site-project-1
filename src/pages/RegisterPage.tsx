@@ -13,9 +13,10 @@ const REGISTER_URL = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-9852
 
 type FormData = {
   fullName: string;
+  contactPosition: string;
   email: string;
   phone: string;
-  birthDate: string;
+  vkLink: string;
   city: string;
   password: string;
 };
@@ -33,16 +34,17 @@ const RegisterPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
+    contactPosition: '',
     email: '',
     phone: '',
-    birthDate: '',
+    vkLink: '',
     city: '',
     password: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.fullName || !formData.email || !formData.phone || !formData.birthDate || !formData.city || !formData.password) {
+    if (!formData.fullName || !formData.contactPosition || !formData.email || !formData.phone || !formData.vkLink || !formData.city || !formData.password) {
       toast({ title: 'Заполните все поля', variant: 'destructive' });
       return;
     }

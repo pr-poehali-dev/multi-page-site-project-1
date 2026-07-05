@@ -11,8 +11,10 @@ const API = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904'
 interface Participant {
   id: number;
   full_name: string;
+  contact_position?: string;
   email: string;
   phone: string;
+  vk_link?: string;
   city: string;
   created_at: string;
   applications_count: number;
@@ -209,6 +211,7 @@ const ParticipantsTab = () => {
                     <p className="text-sm text-muted-foreground truncate">{p.email || '—'}</p>
                     <div className="flex gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
                       {p.phone && <span>{p.phone}</span>}
+                      {p.contact_position && <span>{p.contact_position}</span>}
                       {p.city && <span>{p.city}</span>}
                       {p.created_at && <span>Рег.: {new Date(p.created_at).toLocaleDateString('ru-RU')}</span>}
                       {p.applications_count > 0 && <span>Заявок: {p.applications_count}</span>}
