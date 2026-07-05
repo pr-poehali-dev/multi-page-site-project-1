@@ -92,7 +92,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         nomination = %s, experience = %s, achievements = %s,
                         additional_info = %s, custom_fields = %s
                     WHERE id = %s
-                    RETURNING id, status, submitted_at
+                    RETURNING id, status, submitted_at, contest_id, participant_id
                     ''',
                     (
                         body_data.get('category') or '',
@@ -107,6 +107,54 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     )
                 )
                 updated = cur.fetchone()
+
+                # Если заявка уже занесена в программу конкурса - синхронизируем данные программы
+                cur.execute('SELECT id FROM contest_program WHERE application_id = %s', (application_id,))
+                program_row = cur.fetchone()
+
+                if program_row:
+                    cur.execute(
+                        '''SELECT p.full_name, p.contact_position, p.city
+                           FROM participants p WHERE p.id = %s''',
+                        (updated['participant_id'],)
+                    )
+                    participant_info = cur.fetchone() or {}
+
+                    system_values = {}
+                    cur.execute('''
+                        SELECT f.system_key, f.field_name
+                        FROM application_form_fields f
+                        JOIN contests c ON c.form_template_id = f.template_id
+                        WHERE c.id = %s AND f.system_key IS NOT NULL
+                    ''', (updated['contest_id'],))
+                    for row in cur.fetchall():
+                        value = custom_fields.get(row['field_name'], '')
+                        if value:
+                            system_values[row['system_key']] = value
+
+                    participant_name = system_values.get('participant_name') or participant_info.get('full_name', '')
+                    nomination = system_values.get('nomination') or body_data.get('nomination', '')
+                    piece_title = system_values.get('piece_title') or body_data.get('performanceTitle', '')
+                    participation_format = system_values.get('participation_format') or body_data.get('participationFormat', '')
+                    region = system_values.get('region') or participant_info.get('city', '')
+                    directing_party = system_values.get('directing_party', '')
+                    duration = system_values.get('duration', '')
+                    director_name = system_values.get('director_name') or participant_info.get('contact_position', '')
+                    age_category = system_values.get('age_category', '')
+
+                    cur.execute(
+                        '''
+                        UPDATE contest_program
+                        SET region = %s, directing_party = %s, participant_name = %s, age = %s,
+                            nomination = %s, piece_title = %s, duration = %s, director_name = %s,
+                            participation_format = %s, updated_at = CURRENT_TIMESTAMP
+                        WHERE application_id = %s
+                        ''',
+                        (region, directing_party, participant_name, age_category,
+                         nomination, piece_title, duration, director_name,
+                         participation_format, application_id)
+                    )
+
                 conn.commit()
 
                 return {
