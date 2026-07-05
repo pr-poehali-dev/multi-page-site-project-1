@@ -89,30 +89,40 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
         finalCustomValues = { ...finalCustomValues, ...uploadedUrls };
       }
 
+      // Загружаем фонограммы напрямую на Яндекс.Диск (минуя наш сервер, без ограничения по размеру)
       const audioEntries = Object.entries(customAudioFileValues);
       if (audioEntries.length > 0) {
         const uploadedAudioUrls: Record<string, string> = {};
         for (const [fieldName, file] of audioEntries) {
-          const fileData = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve((reader.result as string).split(',')[1]);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-          const uploadRes = await fetch(UPLOAD_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              target: 'yandex',
-              contestTitle: application.contest_title,
-              files: [{ fileName: file.name, fileType: file.type, fileSize: file.size, fileData }],
-            }),
-          });
-          const uploadData = await uploadRes.json();
-          if (uploadData.files?.[0]?.fileUrl) {
-            uploadedAudioUrls[fieldName] = uploadData.files[0].fileUrl;
-          } else {
-            toast({ title: 'Ошибка загрузки фонограммы', description: uploadData.error || file.name, variant: 'destructive' });
+          try {
+            const urlRes = await fetch(UPLOAD_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ target: 'yandex', contestTitle: application.contest_title, fileName: file.name }),
+            });
+            const urlData = await urlRes.json();
+            if (!urlData.uploadUrl) {
+              throw new Error(urlData.error || 'Не удалось получить ссылку для загрузки');
+            }
+
+            const putRes = await fetch(urlData.uploadUrl, { method: 'PUT', body: file });
+            if (!putRes.ok) {
+              throw new Error('Не удалось загрузить файл на Яндекс.Диск');
+            }
+
+            const finalizeRes = await fetch(UPLOAD_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ target: 'yandex', step: 'finalize', path: urlData.path }),
+            });
+            const finalizeData = await finalizeRes.json();
+            if (finalizeData.fileUrl) {
+              uploadedAudioUrls[fieldName] = finalizeData.fileUrl;
+            } else {
+              throw new Error(finalizeData.error || 'Не удалось опубликовать файл');
+            }
+          } catch (err) {
+            toast({ title: 'Ошибка загрузки фонограммы', description: err instanceof Error ? err.message : file.name, variant: 'destructive' });
           }
         }
         finalCustomValues = { ...finalCustomValues, ...uploadedAudioUrls };

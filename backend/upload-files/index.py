@@ -18,9 +18,12 @@ class FileUpload(BaseModel):
 
 class UploadRequest(BaseModel):
     applicationId: int = Field(default=0, ge=0)
-    files: List[FileUpload] = Field(..., min_items=1, max_items=10)
+    files: List[FileUpload] = Field(default_factory=list, max_items=10)
     target: str = Field(default='s3')
     contestTitle: str = Field(default='')
+    step: str = Field(default='')
+    fileName: str = Field(default='')
+    path: str = Field(default='')
 
 YANDEX_API = 'https://cloud-api.yandex.net/v1/disk'
 YANDEX_ROOT_FOLDER = 'Фонограммы конкурсов'
@@ -46,8 +49,8 @@ def _yandex_ensure_folder(token: str, path: str) -> None:
         if resp.status_code not in (201, 409):
             raise Exception(f'Не удалось создать папку "{current}" на Яндекс.Диске: {resp.text}')
 
-def upload_to_yandex_disk(contest_title: str, file_name: str, file_type: str, file_data: bytes) -> str:
-    '''Загружает файл в папку конкурса на Яндекс.Диск и возвращает публичную ссылку'''
+def yandex_get_upload_url(contest_title: str, file_name: str) -> Dict[str, str]:
+    '''Создаёт папку конкурса и возвращает временную ссылку для прямой загрузки файла на Яндекс.Диск'''
     token = os.environ.get('YANDEX_DISK_TOKEN')
     if not token:
         raise Exception('YANDEX_DISK_TOKEN не настроен')
@@ -66,21 +69,25 @@ def upload_to_yandex_disk(contest_title: str, file_name: str, file_type: str, fi
     )
     if upload_url_resp.status_code != 200:
         raise Exception(f'Не удалось получить ссылку для загрузки: {upload_url_resp.text}')
-    upload_href = upload_url_resp.json().get('href')
 
-    put_resp = requests.put(upload_href, data=file_data, timeout=60)
-    if put_resp.status_code not in (201, 202):
-        raise Exception(f'Ошибка загрузки файла на Яндекс.Диск: {put_resp.text}')
+    return {'uploadUrl': upload_url_resp.json().get('href'), 'path': file_path}
+
+def yandex_finalize(path: str) -> str:
+    '''Публикует загруженный файл на Яндекс.Диске и возвращает публичную ссылку'''
+    token = os.environ.get('YANDEX_DISK_TOKEN')
+    if not token:
+        raise Exception('YANDEX_DISK_TOKEN не настроен')
+    headers = {'Authorization': f'OAuth {token}'}
 
     publish_resp = requests.put(
-        f'{YANDEX_API}/resources/publish', headers=headers, params={'path': file_path}, timeout=15
+        f'{YANDEX_API}/resources/publish', headers=headers, params={'path': path}, timeout=15
     )
     if publish_resp.status_code != 200:
         raise Exception(f'Не удалось опубликовать файл: {publish_resp.text}')
 
     meta_resp = requests.get(
         f'{YANDEX_API}/resources', headers=headers,
-        params={'path': file_path, 'fields': 'public_url'}, timeout=15
+        params={'path': path, 'fields': 'public_url'}, timeout=15
     )
     if meta_resp.status_code != 200:
         raise Exception(f'Не удалось получить публичную ссылку: {meta_resp.text}')
@@ -119,22 +126,30 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     body_data = json.loads(event.get('body', '{}'))
     upload_req = UploadRequest(**body_data)
 
-    # Загрузка фонограмм на Яндекс.Диск в папку конкурса (отдельный путь, без S3 и БД)
+    # Загрузка фонограмм на Яндекс.Диск: файл загружается браузером НАПРЯМУЮ по временной ссылке,
+    # минуя наш сервер, поэтому размер файла не ограничен нашей функцией.
     if upload_req.target == 'yandex':
         try:
-            uploaded_files = []
-            for file_upload in upload_req.files:
-                file_data = base64.b64decode(file_upload.fileData)
-                public_url = upload_to_yandex_disk(
-                    upload_req.contestTitle, file_upload.fileName, file_upload.fileType, file_data
-                )
-                uploaded_files.append({'fileName': file_upload.fileName, 'fileUrl': public_url})
-            return {
-                'statusCode': 200,
-                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'success': True, 'files': uploaded_files}),
-                'isBase64Encoded': False
-            }
+            if upload_req.step == 'finalize':
+                if not upload_req.path:
+                    raise Exception('path обязателен для finalize')
+                public_url = yandex_finalize(upload_req.path)
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'success': True, 'fileUrl': public_url}),
+                    'isBase64Encoded': False
+                }
+            else:
+                if not upload_req.fileName:
+                    raise Exception('fileName обязателен')
+                result = yandex_get_upload_url(upload_req.contestTitle, upload_req.fileName)
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'success': True, 'uploadUrl': result['uploadUrl'], 'path': result['path']}),
+                    'isBase64Encoded': False
+                }
         except Exception as e:
             return {
                 'statusCode': 502,
