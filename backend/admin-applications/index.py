@@ -1,11 +1,28 @@
 import json
 import os
+import random
+import string
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
 import base64
 import uuid
 import boto3
+
+SCHEMA = 't_p73771717_multi_page_site_proj'
+
+
+def generate_diploma_number(conn) -> str:
+    '''Генерация уникального номера диплома: 2 случайные буквы + 6 цифр (сквозная нумерация)'''
+    series = ''.join(random.choices(string.ascii_uppercase, k=2))
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'''
+            SELECT COALESCE(MAX(CAST(SUBSTRING(diploma_number FROM 3) AS INTEGER)), 0) + 1 AS next_num
+            FROM {SCHEMA}.contest_program
+            WHERE diploma_number ~ '^[A-Z]{{2}}[0-9]{{6}}$'
+        ''')
+        next_num = cur.fetchone()['next_num']
+    return f'{series}{str(next_num).zfill(6)}'
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -368,6 +385,39 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                          application.get('nomination', ''),
                          application['participant_id'])
                     )
+
+                    # Автоматически заносим заявку в программу конкурса (если ещё не занесена)
+                    cur.execute(f'SELECT id FROM {SCHEMA}.contest_program WHERE application_id = %s', (app_id,))
+                    already_in_program = cur.fetchone()
+
+                    if not already_in_program:
+                        cur.execute(f'''
+                            SELECT COALESCE(MAX(order_number), 0) + 1 AS next_num
+                            FROM {SCHEMA}.contest_program
+                            WHERE contest_id = %s
+                        ''', (application['contest_id'],))
+                        next_num = cur.fetchone()['next_num']
+
+                        diploma_number = generate_diploma_number(conn)
+
+                        cur.execute(f'''
+                            INSERT INTO {SCHEMA}.contest_program
+                              (contest_id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name, application_id)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ''', (
+                            application['contest_id'],
+                            next_num,
+                            application.get('city', ''),
+                            '',
+                            application['full_name'],
+                            str(age),
+                            application.get('nomination', ''),
+                            application.get('performance_title', ''),
+                            '',
+                            diploma_number,
+                            '',
+                            app_id
+                        ))
             
             return {
                 'statusCode': 200,
@@ -377,7 +427,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 },
                 'body': json.dumps({
                     'success': True, 
-                    'message': 'Статус обновлён' + (' и участник добавлен в систему оценивания' if new_status == 'approved' else '')
+                    'message': 'Статус обновлён' + (' и участник добавлен в систему оценивания и программу конкурса' if new_status == 'approved' else '')
                 }),
                 'isBase64Encoded': False
             }

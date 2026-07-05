@@ -11,6 +11,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+const CONTESTS_API = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
+
+interface CustomFieldDef {
+  field_name: string;
+  field_label: string;
+  field_type: string;
+}
+
 interface Application {
   id: number;
   participant_id: number;
@@ -28,6 +36,7 @@ interface Application {
   experience: string;
   achievements: string;
   additional_info: string;
+  custom_fields?: Record<string, string>;
   status: string;
   submitted_at: string;
   files?: Array<{
@@ -66,6 +75,26 @@ const ApplicationsTab = ({
   onDeleteApplication,
 }: ApplicationsTabProps) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [fieldDefsByContest, setFieldDefsByContest] = useState<Record<number, CustomFieldDef[]>>({});
+
+  const loadFieldDefs = useCallback(async (contestId: number) => {
+    if (fieldDefsByContest[contestId]) return;
+    try {
+      const res = await fetch(`${CONTESTS_API}?action=contest_form&contest_id=${contestId}`);
+      const data = await res.json();
+      setFieldDefsByContest(prev => ({ ...prev, [contestId]: data.fields || [] }));
+    } catch {
+      setFieldDefsByContest(prev => ({ ...prev, [contestId]: [] }));
+    }
+  }, [fieldDefsByContest]);
+
+  const toggleExpand = (app: Application) => {
+    const next = expandedId === app.id ? null : app.id;
+    setExpandedId(next);
+    if (next !== null && app.custom_fields && Object.keys(app.custom_fields).length > 0) {
+      loadFieldDefs(app.contest_id);
+    }
+  };
 
   const statuses: Record<string, string> = {
     pending: 'На рассмотрении',
@@ -247,7 +276,7 @@ const ApplicationsTab = ({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setExpandedId(expandedId === app.id ? null : app.id)}
+                      onClick={() => toggleExpand(app)}
                     >
                       <Icon 
                         name={expandedId === app.id ? "ChevronUp" : "ChevronDown"} 
@@ -304,6 +333,27 @@ const ApplicationsTab = ({
                       <div>
                         <p className="text-sm font-medium mb-1">Дополнительная информация:</p>
                         <p className="text-sm text-muted-foreground">{app.additional_info}</p>
+                      </div>
+                    )}
+                    {app.custom_fields && Object.keys(app.custom_fields).length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium mb-2">Ответы на дополнительные вопросы:</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-muted/30 rounded-lg p-3">
+                          {Object.entries(app.custom_fields).map(([key, value]) => {
+                            const defs = fieldDefsByContest[app.contest_id] || [];
+                            const def = defs.find(d => d.field_name === key);
+                            const label = def?.field_label || key;
+                            const displayValue = def?.field_type === 'checkbox'
+                              ? (value === 'true' ? 'Да' : 'Нет')
+                              : (value || '—');
+                            return (
+                              <div key={key}>
+                                <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+                                <p className="text-sm font-medium">{displayValue}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                     {app.files && app.files.length > 0 && (
