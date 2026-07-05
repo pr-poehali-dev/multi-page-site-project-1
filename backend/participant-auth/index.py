@@ -196,10 +196,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True}), 'isBase64Encoded': False}
             elif action == 'read':
                 pid = params.get('participant_id')
+                reader = params.get('reader', 'admin')
                 if not pid:
                     return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Укажите participant_id'}), 'isBase64Encoded': False}
+                sender_to_mark = 'user' if reader == 'admin' else 'admin'
                 with conn.cursor() as cur:
-                    cur.execute(f"UPDATE {SCHEMA}.chat_messages SET is_read = TRUE WHERE participant_id = %s AND sender = 'user'", (pid,))
+                    cur.execute(f"UPDATE {SCHEMA}.chat_messages SET is_read = TRUE WHERE participant_id = %s AND sender = %s", (pid, sender_to_mark))
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True}), 'isBase64Encoded': False}
             return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Неизвестное действие'}), 'isBase64Encoded': False}
 
@@ -223,6 +225,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     for r in rows:
                         if r.get('created_at'): r['created_at'] = r['created_at'].isoformat()
                     return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'participants': [dict(r) for r in rows]}), 'isBase64Encoded': False}
+
+            # Количество непрочитанных сообщений от организаторов для участника
+            elif action == 'unread':
+                pid = params.get('participant_id')
+                if not pid:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Укажите participant_id'}), 'isBase64Encoded': False}
+                with conn.cursor() as cur:
+                    cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.chat_messages WHERE participant_id = %s AND sender = 'admin' AND is_read = FALSE", (pid,))
+                    count = cur.fetchone()[0]
+                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'unread_count': count}), 'isBase64Encoded': False}
 
             # Чат с участником
             elif action == 'chat':

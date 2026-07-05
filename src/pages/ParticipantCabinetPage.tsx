@@ -80,6 +80,7 @@ const ParticipantCabinetPage = () => {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [msgText, setMsgText] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -118,7 +119,7 @@ const ParticipantCabinetPage = () => {
     load();
   }, [tab, participant, diplomas.length]);
 
-  // Загружаем чат при переходе на вкладку
+  // Загружаем чат при переходе на вкладку и помечаем прочитанным
   useEffect(() => {
     if (tab !== 'chat' || !participant) return;
     const load = async () => {
@@ -127,6 +128,8 @@ const ParticipantCabinetPage = () => {
         const res = await fetch(`${AUTH_URL}?action=chat&participant_id=${participant.id}`);
         const data = await res.json();
         setMessages(data.messages || []);
+        await fetch(`${AUTH_URL}?action=read&participant_id=${participant.id}&reader=user`, { method: 'PUT' });
+        setUnreadCount(0);
       } catch { setMessages([]); }
       finally { setMessagesLoading(false); }
     };
@@ -134,6 +137,22 @@ const ParticipantCabinetPage = () => {
     const interval = setInterval(load, 8000);
     return () => clearInterval(interval);
   }, [tab, participant]);
+
+  // Проверяем непрочитанные сообщения от организаторов (пока не в чате)
+  useEffect(() => {
+    if (!participant) return;
+    const checkUnread = async () => {
+      if (tab === 'chat') return;
+      try {
+        const res = await fetch(`${AUTH_URL}?action=unread&participant_id=${participant.id}`);
+        const data = await res.json();
+        setUnreadCount(data.unread_count || 0);
+      } catch { /* ignore */ }
+    };
+    checkUnread();
+    const interval = setInterval(checkUnread, 15000);
+    return () => clearInterval(interval);
+  }, [participant, tab]);
 
   useEffect(() => {
     if (tab === 'chat') messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -265,9 +284,14 @@ const ParticipantCabinetPage = () => {
             <Button
               variant={tab === 'chat' ? 'default' : 'outline'}
               onClick={() => setTab('chat')}
-              className="gap-2"
+              className="gap-2 relative"
             >
               <Icon name="MessageSquare" size={16} /> Чат с организаторами
+              {unreadCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
             </Button>
           </div>
 
