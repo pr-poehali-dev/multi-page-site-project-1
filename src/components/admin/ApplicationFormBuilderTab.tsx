@@ -5,6 +5,21 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const API = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
 
@@ -29,7 +44,10 @@ interface FormField {
   options: string;
   is_required: boolean;
   sort_order: number;
+  _uid: string;
 }
+
+const makeUid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 const FIELD_TYPES = [
   { value: 'text', label: 'Текст' },
@@ -42,6 +60,75 @@ const FIELD_TYPES = [
   { value: 'date', label: 'Дата' },
   { value: 'file', label: 'Файл' },
 ];
+
+interface SortableFieldItemProps {
+  field: FormField;
+  index: number;
+  updateField: (i: number, key: keyof FormField, val: string | boolean | number) => void;
+  removeField: (i: number) => void;
+}
+
+const SortableFieldItem = ({ field: f, index: i, updateField, removeField }: SortableFieldItemProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: f._uid });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="border rounded-lg p-3 space-y-2 bg-background">
+      <div className="grid grid-cols-12 gap-2 items-end">
+        <div className="col-span-1 flex justify-center">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+            title="Перетащить для изменения порядка"
+          >
+            <Icon name="GripVertical" size={18} />
+          </button>
+        </div>
+        <div className="col-span-3">
+          <label className="text-xs text-muted-foreground mb-1 block">Название вопроса</label>
+          <Input value={f.field_label} onChange={e => updateField(i, 'field_label', e.target.value)} placeholder="Например: Название номера" />
+        </div>
+        <div className="col-span-3">
+          <label className="text-xs text-muted-foreground mb-1 block">Тип поля</label>
+          <Select value={f.field_type} onValueChange={v => updateField(i, 'field_type', v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{FIELD_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div className="col-span-3">
+          <label className="text-xs text-muted-foreground mb-1 block">Системное имя</label>
+          <Input value={f.field_name} onChange={e => updateField(i, 'field_name', e.target.value)} placeholder="field_name" />
+        </div>
+        <div className="col-span-1 flex flex-col items-center gap-1">
+          <label className="text-xs text-muted-foreground">Обяз.</label>
+          <input type="checkbox" checked={f.is_required} onChange={e => updateField(i, 'is_required', e.target.checked)} className="w-4 h-4 cursor-pointer" />
+        </div>
+        <div className="col-span-1 flex justify-center">
+          <Button variant="ghost" size="sm" onClick={() => removeField(i)} className="text-destructive hover:text-destructive">
+            <Icon name="Trash2" size={14} />
+          </Button>
+        </div>
+      </div>
+      {f.field_type === 'select' && (
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Варианты (через запятую)</label>
+          <Input value={f.options} onChange={e => updateField(i, 'options', e.target.value)} placeholder="Вокал, Танцы, Театр" />
+        </div>
+      )}
+      {f.field_type === 'file' && (
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <Icon name="Info" size={12} /> Участник сможет загрузить файл размером до 15 МБ
+        </p>
+      )}
+    </div>
+  );
+};
 
 interface Props {
   contests: Contest[];
@@ -104,7 +191,7 @@ const ApplicationFormBuilderTab = ({ contests }: Props) => {
     try {
       const res = await fetch(`${API}?action=template_fields&template_id=${t.id}`);
       const data = await res.json();
-      setFields((data.fields || []).map((f: FormField) => ({ ...f, options: f.options || '' })));
+      setFields((data.fields || []).map((f: FormField) => ({ ...f, options: f.options || '', _uid: makeUid() })));
     } catch { setFields([]); }
   };
 
@@ -116,7 +203,21 @@ const ApplicationFormBuilderTab = ({ contests }: Props) => {
       options: '',
       is_required: false,
       sort_order: fs.length,
+      _uid: makeUid(),
     }]);
+  };
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setFields(fs => {
+      const oldIndex = fs.findIndex(f => f._uid === active.id);
+      const newIndex = fs.findIndex(f => f._uid === over.id);
+      if (oldIndex === -1 || newIndex === -1) return fs;
+      return arrayMove(fs, oldIndex, newIndex);
+    });
   };
 
   const updateField = (i: number, key: keyof FormField, val: string | boolean | number) => {
@@ -168,50 +269,16 @@ const ApplicationFormBuilderTab = ({ contests }: Props) => {
         </div>
 
         <Card className="p-5 mb-4">
-          <div className="space-y-3">
-            {fields.map((f, i) => (
-              <div key={i} className="border rounded-lg p-3 space-y-2">
-                <div className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-4">
-                    <label className="text-xs text-muted-foreground mb-1 block">Название вопроса</label>
-                    <Input value={f.field_label} onChange={e => updateField(i, 'field_label', e.target.value)} placeholder="Например: Название номера" />
-                  </div>
-                  <div className="col-span-3">
-                    <label className="text-xs text-muted-foreground mb-1 block">Тип поля</label>
-                    <Select value={f.field_type} onValueChange={v => updateField(i, 'field_type', v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{FIELD_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-3">
-                    <label className="text-xs text-muted-foreground mb-1 block">Системное имя</label>
-                    <Input value={f.field_name} onChange={e => updateField(i, 'field_name', e.target.value)} placeholder="field_name" />
-                  </div>
-                  <div className="col-span-1 flex flex-col items-center gap-1">
-                    <label className="text-xs text-muted-foreground">Обяз.</label>
-                    <input type="checkbox" checked={f.is_required} onChange={e => updateField(i, 'is_required', e.target.checked)} className="w-4 h-4 cursor-pointer" />
-                  </div>
-                  <div className="col-span-1 flex justify-center">
-                    <Button variant="ghost" size="sm" onClick={() => removeField(i)} className="text-destructive hover:text-destructive">
-                      <Icon name="Trash2" size={14} />
-                    </Button>
-                  </div>
-                </div>
-                {f.field_type === 'select' && (
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Варианты (через запятую)</label>
-                    <Input value={f.options} onChange={e => updateField(i, 'options', e.target.value)} placeholder="Вокал, Танцы, Театр" />
-                  </div>
-                )}
-                {f.field_type === 'file' && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Icon name="Info" size={12} /> Участник сможет загрузить файл размером до 15 МБ
-                  </p>
-                )}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={fields.map(f => f._uid)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3">
+                {fields.map((f, i) => (
+                  <SortableFieldItem key={f._uid} field={f} index={i} updateField={updateField} removeField={removeField} />
+                ))}
               </div>
-            ))}
-            {fields.length === 0 && <p className="text-muted-foreground text-center py-6">Нет полей. Добавьте первый вопрос.</p>}
-          </div>
+            </SortableContext>
+          </DndContext>
+          {fields.length === 0 && <p className="text-muted-foreground text-center py-6">Нет полей. Добавьте первый вопрос.</p>}
         </Card>
 
         <div className="flex gap-2">
