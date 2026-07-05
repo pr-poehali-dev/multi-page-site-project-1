@@ -10,8 +10,9 @@ import PartnersManagementTab from '@/components/admin/PartnersManagementTab';
 import ContestProgramTab from '@/components/admin/ContestProgramTab';
 import ShopTab from '@/components/admin/ShopTab';
 import ParticipantsTab from '@/components/admin/ParticipantsTab';
+import ApplicationFormBuilderTab from '@/components/admin/ApplicationFormBuilderTab';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder';
 
 interface AdminTabContentProps {
   activeTab: TabType;
@@ -225,6 +226,11 @@ const AdminTabContent = ({
     case 'participants':
       return (
         <ParticipantsTab />
+      );
+
+    case 'form-builder':
+      return (
+        <ApplicationFormBuilderTab contests={contests} />
       );
 
     default:

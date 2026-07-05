@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder';
 
 interface AdminTabNavigationProps {
   activeTab: TabType;
@@ -114,6 +114,13 @@ const AdminTabNavigation = ({ activeTab, onTabChange, onLogout }: AdminTabNaviga
         >
           <Icon name="Users" className="mr-2 h-4 w-4" />
           Участники
+        </Button>
+        <Button
+          variant={activeTab === 'form-builder' ? 'default' : 'outline'}
+          onClick={() => onTabChange('form-builder')}
+        >
+          <Icon name="ListChecks" className="mr-2 h-4 w-4" />
+          Конструктор заявок
         </Button>
       </div>
     </div>

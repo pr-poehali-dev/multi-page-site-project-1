@@ -18,6 +18,7 @@ interface Contest {
   ticket_link?: string;
   details_link?: string;
   logo_url?: string;
+  form_template_id?: number | null;
 }
 
 interface ContestFormData {

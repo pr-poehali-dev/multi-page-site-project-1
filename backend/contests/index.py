@@ -44,8 +44,26 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     conn = psycopg2.connect(dsn)
     conn.autocommit = True
     
+    params = event.get('queryStringParameters') or {}
+    action = params.get('action')
+
     try:
-        if method == 'GET':
+        if action == 'templates' and method == 'GET':
+            return list_templates(conn)
+        elif action == 'template_fields' and method == 'GET':
+            return list_template_fields(conn, params.get('template_id'))
+        elif action == 'template_create' and method == 'POST':
+            return create_template(conn, event)
+        elif action == 'template_delete' and method == 'DELETE':
+            return delete_template(conn, params.get('id'))
+        elif action == 'fields_save' and method == 'POST':
+            return save_template_fields(conn, event)
+        elif action == 'assign_template' and method == 'PUT':
+            return assign_template(conn, event)
+        elif action == 'contest_form' and method == 'GET':
+            return get_contest_form(conn, params.get('contest_id'))
+
+        elif method == 'GET':
             return get_contests(conn)
         elif method == 'POST':
             return create_contest(conn, event)
@@ -88,7 +106,8 @@ def get_contests(conn) -> Dict[str, Any]:
                 location,
                 event_date,
                 application_form_url,
-                logo_url
+                logo_url,
+                form_template_id
             FROM contests
             WHERE status IS NOT NULL
             ORDER BY start_date
@@ -322,3 +341,117 @@ def delete_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
             'body': json.dumps({'success': True}),
             'isBase64Encoded': False
         }
+
+
+def _resp(status, body):
+    return {'statusCode': status, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps(body), 'isBase64Encoded': False}
+
+
+def list_templates(conn) -> Dict[str, Any]:
+    '''Список всех шаблонов форм заявок с количеством полей'''
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute('''
+            SELECT t.id, t.name, t.created_at, COUNT(f.id) AS fields_count
+            FROM application_form_templates t
+            LEFT JOIN application_form_fields f ON f.template_id = t.id
+            GROUP BY t.id
+            ORDER BY t.created_at DESC
+        ''')
+        rows = cur.fetchall()
+        for r in rows:
+            if r.get('created_at'):
+                r['created_at'] = r['created_at'].isoformat()
+        return _resp(200, {'templates': rows})
+
+
+def list_template_fields(conn, template_id) -> Dict[str, Any]:
+    '''Список полей конкретного шаблона'''
+    if not template_id:
+        return _resp(400, {'error': 'Укажите template_id'})
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute('''
+            SELECT id, field_name, field_label, field_type, options, is_required, sort_order
+            FROM application_form_fields
+            WHERE template_id = %s
+            ORDER BY sort_order ASC, id ASC
+        ''', (template_id,))
+        return _resp(200, {'fields': cur.fetchall()})
+
+
+def create_template(conn, event) -> Dict[str, Any]:
+    '''Создание нового шаблона формы заявки'''
+    body = json.loads(event.get('body', '{}'))
+    name = (body.get('name') or '').strip()
+    if not name:
+        return _resp(400, {'error': 'Укажите название шаблона'})
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute('INSERT INTO application_form_templates (name) VALUES (%s) RETURNING id', (name,))
+        template_id = cur.fetchone()['id']
+        return _resp(201, {'id': template_id})
+
+
+def delete_template(conn, template_id) -> Dict[str, Any]:
+    '''Удаление шаблона формы (и его полей)'''
+    if not template_id:
+        return _resp(400, {'error': 'Укажите id'})
+    with conn.cursor() as cur:
+        cur.execute('DELETE FROM application_form_fields WHERE template_id = %s', (template_id,))
+        cur.execute('UPDATE contests SET form_template_id = NULL WHERE form_template_id = %s', (template_id,))
+        cur.execute('DELETE FROM application_form_templates WHERE id = %s', (template_id,))
+        return _resp(200, {'success': True})
+
+
+def save_template_fields(conn, event) -> Dict[str, Any]:
+    '''Полная замена полей шаблона (удаление старых + вставка новых)'''
+    body = json.loads(event.get('body', '{}'))
+    template_id = body.get('template_id')
+    fields = body.get('fields', [])
+    if not template_id:
+        return _resp(400, {'error': 'Укажите template_id'})
+    with conn.cursor() as cur:
+        cur.execute('DELETE FROM application_form_fields WHERE template_id = %s', (template_id,))
+        for i, f in enumerate(fields):
+            cur.execute('''
+                INSERT INTO application_form_fields
+                (template_id, field_name, field_label, field_type, options, is_required, sort_order)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ''', (
+                template_id,
+                f.get('field_name') or f"field_{i}",
+                f.get('field_label', ''),
+                f.get('field_type', 'text'),
+                f.get('options', ''),
+                bool(f.get('is_required', False)),
+                f.get('sort_order', i),
+            ))
+        return _resp(200, {'success': True})
+
+
+def assign_template(conn, event) -> Dict[str, Any]:
+    '''Назначить шаблон формы конкурсу (или снять, если template_id is null)'''
+    body = json.loads(event.get('body', '{}'))
+    contest_id = body.get('contest_id')
+    template_id = body.get('template_id')
+    if not contest_id:
+        return _resp(400, {'error': 'Укажите contest_id'})
+    with conn.cursor() as cur:
+        cur.execute('UPDATE contests SET form_template_id = %s WHERE id = %s', (template_id, contest_id))
+        return _resp(200, {'success': True})
+
+
+def get_contest_form(conn, contest_id) -> Dict[str, Any]:
+    '''Получить поля формы, назначенной конкурсу (для рендера на фронте)'''
+    if not contest_id:
+        return _resp(400, {'error': 'Укажите contest_id'})
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute('SELECT form_template_id FROM contests WHERE id = %s', (contest_id,))
+        row = cur.fetchone()
+        if not row or not row['form_template_id']:
+            return _resp(200, {'fields': []})
+        cur.execute('''
+            SELECT id, field_name, field_label, field_type, options, is_required, sort_order
+            FROM application_form_fields
+            WHERE template_id = %s
+            ORDER BY sort_order ASC, id ASC
+        ''', (row['form_template_id'],))
+        return _resp(200, {'fields': cur.fetchall()})

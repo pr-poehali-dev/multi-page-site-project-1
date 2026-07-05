@@ -19,6 +19,15 @@ interface Participant {
   city: string;
 }
 
+interface CustomField {
+  id: number;
+  field_name: string;
+  field_label: string;
+  field_type: string;
+  options: string;
+  is_required: boolean;
+}
+
 interface NewApplicationModalProps {
   participant: Participant;
   onClose: () => void;
@@ -39,6 +48,11 @@ const NewApplicationModal = ({ participant, onClose, onSuccess }: NewApplication
   const [nomination, setNomination] = useState('');
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [customValues, setCustomValues] = useState<Record<string, string>>({});
+  const [loadingCustomFields, setLoadingCustomFields] = useState(false);
+
+  const totalSteps = customFields.length > 0 ? 4 : 3;
 
   useEffect(() => {
     const load = async () => {
@@ -51,6 +65,22 @@ const NewApplicationModal = ({ participant, onClose, onSuccess }: NewApplication
     };
     load();
   }, []);
+
+  // Загружаем доп. поля формы, назначенные выбранному конкурсу
+  useEffect(() => {
+    if (!contestId) { setCustomFields([]); return; }
+    const load = async () => {
+      setLoadingCustomFields(true);
+      try {
+        const res = await fetch(`${CONTESTS_URL}?action=contest_form&contest_id=${contestId}`);
+        const data = await res.json();
+        setCustomFields(data.fields || []);
+        setCustomValues({});
+      } catch { setCustomFields([]); }
+      finally { setLoadingCustomFields(false); }
+    };
+    load();
+  }, [contestId]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -72,6 +102,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess }: NewApplication
           nomination,
           additionalInfo,
           filesCount: files.length,
+          customFields: customValues,
         }),
       });
       const result = await res.json();
@@ -199,6 +230,59 @@ const NewApplicationModal = ({ participant, onClose, onSuccess }: NewApplication
                   <Input placeholder="Например: Вокал" value={nomination} onChange={e => setNomination(e.target.value)} />
                 </div>
               </div>
+
+              {loadingCustomFields && (
+                <div className="text-center py-2">
+                  <Icon name="Loader2" size={20} className="mx-auto animate-spin text-muted-foreground" />
+                </div>
+              )}
+
+              {customFields.length > 0 && (
+                <div className="space-y-4 pt-2 border-t">
+                  <p className="text-sm font-medium text-muted-foreground">Дополнительные вопросы организатора</p>
+                  {customFields.map(f => (
+                    <div key={f.id}>
+                      <label className="block text-sm font-medium mb-2">
+                        {f.field_label} {f.is_required && <span className="text-destructive">*</span>}
+                      </label>
+                      {f.field_type === 'textarea' ? (
+                        <Textarea
+                          value={customValues[f.field_name] || ''}
+                          onChange={e => setCustomValues(v => ({ ...v, [f.field_name]: e.target.value }))}
+                        />
+                      ) : f.field_type === 'select' ? (
+                        <Select
+                          value={customValues[f.field_name] || ''}
+                          onValueChange={val => setCustomValues(v => ({ ...v, [f.field_name]: val }))}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Выберите" /></SelectTrigger>
+                          <SelectContent>
+                            {f.options.split(',').map(o => o.trim()).filter(Boolean).map(o => (
+                              <SelectItem key={o} value={o}>{o}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : f.field_type === 'checkbox' ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={customValues[f.field_name] === 'true'}
+                            onChange={e => setCustomValues(v => ({ ...v, [f.field_name]: e.target.checked ? 'true' : 'false' }))}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm text-muted-foreground">Да</span>
+                        </div>
+                      ) : (
+                        <Input
+                          type={f.field_type === 'file' ? 'text' : f.field_type}
+                          value={customValues[f.field_name] || ''}
+                          onChange={e => setCustomValues(v => ({ ...v, [f.field_name]: e.target.value }))}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -262,7 +346,10 @@ const NewApplicationModal = ({ participant, onClose, onSuccess }: NewApplication
             <Button
               className="flex-1 bg-secondary hover:bg-secondary/90"
               onClick={() => setStep(s => s + 1)}
-              disabled={step === 1 && (!contestId || !category || !performanceTitle || !participationFormat || !nomination)}
+              disabled={step === 1 && (
+                !contestId || !category || !performanceTitle || !participationFormat || !nomination ||
+                customFields.some(f => f.is_required && !customValues[f.field_name]?.trim())
+              )}
             >
               Далее <Icon name="ArrowRight" size={16} className="ml-2" />
             </Button>

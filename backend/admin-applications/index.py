@@ -244,6 +244,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         a.experience,
                         a.achievements,
                         a.additional_info,
+                        a.custom_fields,
                         a.status,
                         a.submitted_at,
                         p.full_name,
