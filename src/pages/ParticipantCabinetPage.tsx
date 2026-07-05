@@ -32,6 +32,8 @@ interface Application {
   editing_locked?: boolean;
   applications_locked?: boolean;
   is_editable?: boolean;
+  location?: string;
+  event_date?: string;
 }
 
 interface Participant {

@@ -33,6 +33,11 @@ interface NewApplicationModalProps {
   initialContestId?: string;
 }
 
+const buildContestFolderName = (title: string, location?: string, eventDate?: string) => {
+  const parts = [title, location, eventDate].filter(Boolean);
+  return parts.join(', ');
+};
+
 const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId }: NewApplicationModalProps) => {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
@@ -99,7 +104,8 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const contestTitle = contests.find(c => String(c.id) === contestId)?.title || '';
+      const selectedContest = contests.find(c => String(c.id) === contestId);
+      const contestTitle = buildContestFolderName(selectedContest?.title || '', selectedContest?.location, selectedContest?.event_date);
 
       // Загружаем файлы из кастомных полей и получаем их URL перед отправкой заявки
       let finalCustomValues = customValues;

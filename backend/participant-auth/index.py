@@ -191,7 +191,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         c.start_date,
                         c.end_date,
                         c.status as contest_status,
-                        c.applications_locked
+                        c.applications_locked,
+                        c.location,
+                        c.event_date
                     FROM applications a
                     JOIN contests c ON a.contest_id = c.id
                     WHERE a.participant_id = %s

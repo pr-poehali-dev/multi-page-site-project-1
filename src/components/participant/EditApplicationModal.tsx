@@ -24,6 +24,8 @@ interface ApplicationToEdit {
   contest_id: number;
   contest_title: string;
   custom_fields?: Record<string, string>;
+  location?: string;
+  event_date?: string;
 }
 
 interface EditApplicationModalProps {
@@ -31,6 +33,11 @@ interface EditApplicationModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
+
+const buildContestFolderName = (title: string, location?: string, eventDate?: string) => {
+  const parts = [title, location, eventDate].filter(Boolean);
+  return parts.join(', ');
+};
 
 const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicationModalProps) => {
   const { toast } = useToast();
@@ -98,7 +105,7 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
             const urlRes = await fetch(UPLOAD_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ target: 'yandex', contestTitle: application.contest_title, fileName: file.name }),
+              body: JSON.stringify({ target: 'yandex', contestTitle: buildContestFolderName(application.contest_title, application.location, application.event_date), fileName: file.name }),
             });
             const urlData = await urlRes.json();
             if (!urlData.uploadUrl) {
