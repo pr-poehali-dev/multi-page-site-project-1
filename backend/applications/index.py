@@ -19,7 +19,7 @@ def get_db_connection():
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
     API для работы с заявками участников конкурсов
-    Методы: POST - создание заявки, GET - получение заявки по email
+    Методы: POST - создание заявки, GET - получение заявки по email/applicationId, PUT - редактирование своей заявки участником
     '''
     method: str = event.get('httpMethod', 'GET')
     print(f'[DEBUG] Method: {method}')
@@ -31,7 +31,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type',
                 'Access-Control-Max-Age': '86400'
             },
@@ -42,6 +42,85 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     conn = get_db_connection()
     
     try:
+        if method == 'PUT':
+            # Редактирование существующей заявки участником (если не заморожено)
+            body_data = json.loads(event.get('body', '{}'))
+            application_id = body_data.get('applicationId')
+
+            if not application_id:
+                return {
+                    'statusCode': 400,
+                    'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'},
+                    'body': json.dumps({'error': 'applicationId обязателен'}),
+                    'isBase64Encoded': False
+                }
+
+            with conn.cursor() as cur:
+                cur.execute(
+                    '''
+                    SELECT a.id, a.editing_locked, c.applications_locked
+                    FROM applications a
+                    JOIN contests c ON a.contest_id = c.id
+                    WHERE a.id = %s
+                    ''',
+                    (application_id,)
+                )
+                existing = cur.fetchone()
+
+                if not existing:
+                    return {
+                        'statusCode': 404,
+                        'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'},
+                        'body': json.dumps({'error': 'Заявка не найдена'}),
+                        'isBase64Encoded': False
+                    }
+
+                if existing['editing_locked'] or existing['applications_locked']:
+                    return {
+                        'statusCode': 403,
+                        'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'},
+                        'body': json.dumps({'error': 'Редактирование заявки закрыто организатором'}),
+                        'isBase64Encoded': False
+                    }
+
+                custom_fields = body_data.get('customFields', {})
+
+                cur.execute(
+                    '''
+                    UPDATE applications
+                    SET category = %s, performance_title = %s, participation_format = %s,
+                        nomination = %s, experience = %s, achievements = %s,
+                        additional_info = %s, custom_fields = %s
+                    WHERE id = %s
+                    RETURNING id, status, submitted_at
+                    ''',
+                    (
+                        body_data.get('category') or '',
+                        body_data.get('performanceTitle', ''),
+                        body_data.get('participationFormat', ''),
+                        body_data.get('nomination', ''),
+                        body_data.get('experience', ''),
+                        body_data.get('achievements', ''),
+                        body_data.get('additionalInfo', ''),
+                        json.dumps(custom_fields),
+                        application_id
+                    )
+                )
+                updated = cur.fetchone()
+                conn.commit()
+
+                return {
+                    'statusCode': 200,
+                    'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'},
+                    'body': json.dumps({
+                        'success': True,
+                        'applicationId': updated['id'],
+                        'status': updated['status'],
+                        'message': 'Заявка обновлена'
+                    }),
+                    'isBase64Encoded': False
+                }
+
         if method == 'POST':
             # Создание новой заявки
             body_data = json.loads(event.get('body', '{}'))

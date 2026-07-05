@@ -6,6 +6,8 @@ interface Application {
   contest_id: number;
   status: string;
   submitted_at: string;
+  editing_locked?: boolean;
+  applications_locked?: boolean;
 }
 
 export const useAdminApplications = (statusFilter: string, contestFilter: string) => {
@@ -57,6 +59,32 @@ export const useAdminApplications = (statusFilter: string, contestFilter: string
     }
   };
 
+  const toggleEditingLock = async (applicationId: number, locked: boolean) => {
+    try {
+      const response = await fetch(
+        'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            application_id: applicationId,
+            editing_locked: locked,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        loadApplications();
+        return data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Ошибка изменения блокировки редактирования:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     loadApplications();
     const interval = setInterval(loadApplications, 15000);
@@ -67,6 +95,7 @@ export const useAdminApplications = (statusFilter: string, contestFilter: string
     applications,
     loading,
     updateStatus,
+    toggleEditingLock,
     loadApplications
   };
 };

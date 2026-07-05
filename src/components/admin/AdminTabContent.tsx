@@ -28,6 +28,8 @@ interface AdminTabContentProps {
   contests: any[];
   handleUpdateStatus: (id: number, status: string) => Promise<void>;
   handleDeleteApplication: (id: number) => Promise<void>;
+  handleToggleEditingLock: (id: number, locked: boolean) => Promise<void>;
+  handleToggleContestLock: (contestId: number, locked: boolean) => Promise<void>;
 
   handleCreateClick: () => void;
   openEditModal: (contest: any) => void;
@@ -78,6 +80,8 @@ const AdminTabContent = ({
   contests,
   handleUpdateStatus,
   handleDeleteApplication,
+  handleToggleEditingLock,
+  handleToggleContestLock,
   handleCreateClick,
   openEditModal,
   handleDeleteContest,
@@ -130,6 +134,8 @@ const AdminTabContent = ({
           contests={contests}
           onUpdateStatus={handleUpdateStatus}
           onDeleteApplication={handleDeleteApplication}
+          onToggleEditingLock={handleToggleEditingLock}
+          onToggleContestLock={handleToggleContestLock}
         />
       );
 

@@ -183,12 +183,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         a.experience,
                         a.achievements,
                         a.additional_info,
+                        a.custom_fields,
                         a.status,
                         a.submitted_at,
+                        a.editing_locked,
                         c.title as contest_title,
                         c.start_date,
                         c.end_date,
-                        c.status as contest_status
+                        c.status as contest_status,
+                        c.applications_locked
                     FROM applications a
                     JOIN contests c ON a.contest_id = c.id
                     WHERE a.participant_id = %s
@@ -205,6 +208,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         app['start_date'] = app['start_date'].isoformat()
                     if app.get('end_date'):
                         app['end_date'] = app['end_date'].isoformat()
+                    app['is_editable'] = not app.get('editing_locked') and not app.get('applications_locked')
                 
                 participant_data = dict(participant)
                 del participant_data['password_hash']

@@ -40,6 +40,8 @@ interface Application {
   custom_fields?: Record<string, string>;
   status: string;
   submitted_at: string;
+  editing_locked?: boolean;
+  applications_locked?: boolean;
   files?: Array<{
     file_name: string;
     file_type: string;
@@ -60,6 +62,8 @@ interface ApplicationsTabProps {
   contests: any[];
   onUpdateStatus: (applicationId: number, newStatus: string) => void;
   onDeleteApplication: (applicationId: number) => void;
+  onToggleEditingLock: (applicationId: number, locked: boolean) => void;
+  onToggleContestLock: (contestId: number, locked: boolean) => void;
 }
 
 const ApplicationsTab = ({
@@ -74,6 +78,8 @@ const ApplicationsTab = ({
   contests,
   onUpdateStatus,
   onDeleteApplication,
+  onToggleEditingLock,
+  onToggleContestLock,
 }: ApplicationsTabProps) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [fieldDefsByContest, setFieldDefsByContest] = useState<Record<number, CustomFieldDef[]>>({});
@@ -172,6 +178,28 @@ const ApplicationsTab = ({
             </Select>
           </div>
         </div>
+
+        {contestFilter !== 'all' && (() => {
+          const contestId = Number(contestFilter);
+          const appOfContest = applications.find(a => a.contest_id === contestId);
+          const isContestLocked = Boolean(appOfContest?.applications_locked);
+          return (
+            <div className="mt-4 pt-4 border-t flex items-center justify-between flex-wrap gap-2">
+              <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                <Icon name={isContestLocked ? 'Lock' : 'LockOpen'} size={14} />
+                Редактирование заявок этого конкурса {isContestLocked ? 'закрыто для участников' : 'открыто для участников'}
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onToggleContestLock(contestId, !isContestLocked)}
+              >
+                <Icon name={isContestLocked ? 'LockOpen' : 'Lock'} size={14} className="mr-1.5" />
+                {isContestLocked ? 'Открыть редактирование всем' : 'Закрыть редактирование всем'}
+              </Button>
+            </div>
+          );
+        })()}
       </Card>
 
       {loading ? (
@@ -261,6 +289,16 @@ const ApplicationsTab = ({
                         Отклонить
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className={app.editing_locked ? 'text-secondary hover:bg-secondary/10' : 'text-gray-600 hover:bg-muted'}
+                      onClick={() => onToggleEditingLock(app.id, !app.editing_locked)}
+                      title={app.editing_locked ? 'Разрешить участнику редактировать заявку' : 'Закрыть редактирование заявки участником'}
+                    >
+                      <Icon name={app.editing_locked ? 'Lock' : 'LockOpen'} size={16} className="mr-1" />
+                      {app.editing_locked ? 'Закрыто' : 'Открыто'}
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"

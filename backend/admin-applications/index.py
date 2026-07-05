@@ -264,13 +264,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         a.custom_fields,
                         a.status,
                         a.submitted_at,
+                        a.editing_locked,
                         p.full_name,
                         p.contact_position,
                         p.email,
                         p.phone,
                         p.vk_link,
                         p.city,
-                        c.title as contest_title
+                        c.title as contest_title,
+                        c.applications_locked
                     FROM applications a
                     JOIN participants p ON a.participant_id = p.id
                     JOIN contests c ON a.contest_id = c.id
@@ -319,12 +321,44 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 }
         
         elif endpoint != 'gallery' and method == 'PUT':
-            # Обновление статуса заявки
+            # Обновление статуса заявки или заморозка/разморозка редактирования
             body = json.loads(event.get('body', '{}'))
             app_id = body.get('application_id')
             new_status = body.get('status')
-            
-            if not app_id or not new_status:
+            editing_locked = body.get('editing_locked')
+
+            if not app_id:
+                return {
+                    'statusCode': 400,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    'body': json.dumps({'error': 'application_id обязателен'}),
+                    'isBase64Encoded': False
+                }
+
+            # Заморозка/разморозка редактирования конкретной заявки (без изменения статуса)
+            if editing_locked is not None and new_status is None:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "UPDATE applications SET editing_locked = %s WHERE id = %s",
+                        (bool(editing_locked), app_id)
+                    )
+                return {
+                    'statusCode': 200,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    'body': json.dumps({
+                        'success': True,
+                        'message': 'Редактирование заявки закрыто' if editing_locked else 'Редактирование заявки открыто'
+                    }),
+                    'isBase64Encoded': False
+                }
+
+            if not new_status:
                 return {
                     'statusCode': 400,
                     'headers': {

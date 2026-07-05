@@ -9,12 +9,15 @@ import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import NewApplicationModal from '@/components/participant/NewApplicationModal';
+import EditApplicationModal from '@/components/participant/EditApplicationModal';
 
 const DIPLOMA_URL = 'https://functions.poehali.dev/1806f979-38b3-442e-b8ef-fa6827104251';
 const AUTH_URL = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
+const CONTESTS_URL = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
 
 interface Application {
   id: number;
+  contest_id: number;
   contest_title: string;
   category: string;
   performance_title: string | null;
@@ -25,6 +28,10 @@ interface Application {
   start_date: string;
   end_date: string;
   contest_status: string;
+  custom_fields?: Record<string, string>;
+  editing_locked?: boolean;
+  applications_locked?: boolean;
+  is_editable?: boolean;
 }
 
 interface Participant {
@@ -76,6 +83,8 @@ const ParticipantCabinetPage = () => {
   const [diplomas, setDiplomas] = useState<Diploma[]>([]);
   const [diplomasLoading, setDiplomasLoading] = useState(false);
   const [showNewApp, setShowNewApp] = useState(false);
+  const [editingApplication, setEditingApplication] = useState<Application | null>(null);
+  const [fieldLabelsByContest, setFieldLabelsByContest] = useState<Record<number, Record<string, string>>>({});
   const [tab, setTab] = useState<Tab>('applications');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -107,6 +116,29 @@ const ParticipantCabinetPage = () => {
       setShowNewApp(true);
     }
   }, [participant, applyContestId]);
+
+  // Загружаем подписи дополнительных вопросов для отображения ответов в заявках
+  useEffect(() => {
+    const contestIds = Array.from(new Set(applications.map(a => a.contest_id).filter(Boolean)));
+    const toLoad = contestIds.filter(id => !fieldLabelsByContest[id]);
+    if (toLoad.length === 0) return;
+    const load = async () => {
+      for (const contestId of toLoad) {
+        try {
+          const res = await fetch(`${CONTESTS_URL}?action=contest_form&contest_id=${contestId}`);
+          const data = await res.json();
+          const labels: Record<string, string> = {};
+          (data.fields || []).forEach((f: { field_name: string; field_label: string }) => {
+            labels[f.field_name] = f.field_label;
+          });
+          setFieldLabelsByContest(prev => ({ ...prev, [contestId]: labels }));
+        } catch {
+          setFieldLabelsByContest(prev => ({ ...prev, [contestId]: {} }));
+        }
+      }
+    };
+    load();
+  }, [applications, fieldLabelsByContest]);
 
   const handleCloseNewApp = () => {
     setShowNewApp(false);
@@ -346,7 +378,9 @@ const ParticipantCabinetPage = () => {
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {applications.map((app) => (
+                  {applications.map((app) => {
+                    const isLocked = !app.is_editable;
+                    return (
                     <Card key={app.id}>
                       <CardHeader>
                         <div className="flex items-start justify-between">
@@ -359,7 +393,20 @@ const ParticipantCabinetPage = () => {
                               })}
                             </CardDescription>
                           </div>
-                          {getStatusBadge(app.status)}
+                          <div className="flex flex-col items-end gap-2">
+                            {getStatusBadge(app.status)}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              disabled={isLocked}
+                              onClick={() => setEditingApplication(app)}
+                              title={isLocked ? 'Редактирование закрыто организатором' : 'Редактировать заявку'}
+                            >
+                              <Icon name={isLocked ? 'Lock' : 'Pencil'} size={14} />
+                              {isLocked ? 'Закрыто' : 'Редактировать'}
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent>
@@ -389,6 +436,22 @@ const ParticipantCabinetPage = () => {
                             </div>
                           )}
                         </div>
+                        {app.custom_fields && Object.keys(app.custom_fields).length > 0 && (
+                          <div className="mt-4 pt-4 border-t">
+                            <p className="text-sm text-muted-foreground mb-2">Ответы на вопросы организатора</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {Object.entries(app.custom_fields).map(([key, value]) => {
+                                const label = fieldLabelsByContest[app.contest_id]?.[key] || key;
+                                return (
+                                  <div key={key}>
+                                    <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+                                    <p className="text-sm font-medium">{value === 'true' ? 'Да' : value === 'false' ? 'Нет' : (value || '—')}</p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                         {app.start_date && app.end_date && (
                           <div className="mt-4 pt-4 border-t">
                             <p className="text-sm text-muted-foreground mb-1">Даты конкурса</p>
@@ -397,9 +460,16 @@ const ParticipantCabinetPage = () => {
                             </p>
                           </div>
                         )}
+                        {isLocked && (
+                          <div className="mt-4 pt-4 border-t flex items-center gap-2 text-sm text-muted-foreground">
+                            <Icon name="Lock" size={14} />
+                            Организатор закрыл редактирование этой заявки
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </>
@@ -569,6 +639,21 @@ const ParticipantCabinetPage = () => {
           onClose={handleCloseNewApp}
           onSuccess={() => {
             handleCloseNewApp();
+            const data = localStorage.getItem('participantData');
+            if (data) {
+              const parsed = JSON.parse(data);
+              setApplications(parsed.applications);
+            }
+          }}
+        />
+      )}
+
+      {editingApplication && (
+        <EditApplicationModal
+          application={editingApplication}
+          onClose={() => setEditingApplication(null)}
+          onSuccess={() => {
+            setEditingApplication(null);
             const data = localStorage.getItem('participantData');
             if (data) {
               const parsed = JSON.parse(data);

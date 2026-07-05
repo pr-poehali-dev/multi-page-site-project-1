@@ -108,7 +108,8 @@ def get_contests(conn) -> Dict[str, Any]:
                 application_form_url,
                 logo_url,
                 form_template_id,
-                application_type
+                application_type,
+                applications_locked
             FROM contests
             WHERE status IS NOT NULL
             ORDER BY start_date
@@ -272,6 +273,9 @@ def update_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
         if 'form_template_id' in body:
             updates.append('form_template_id = %s')
             values.append(body['form_template_id'])
+        if 'applications_locked' in body:
+            updates.append('applications_locked = %s')
+            values.append(bool(body['applications_locked']))
         
         if not updates:
             return {

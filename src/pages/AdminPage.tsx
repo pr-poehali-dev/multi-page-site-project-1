@@ -56,8 +56,36 @@ const AdminPage = () => {
     setShowEditModal: setShowEditConcertModal,
   } = useAdminConcerts();
 
-  const { applications, loading: applicationsLoading, updateStatus } = useAdminApplications(statusFilter, contestFilter);
-  
+  const { applications, loading: applicationsLoading, updateStatus, toggleEditingLock } = useAdminApplications(statusFilter, contestFilter);
+
+  const handleToggleEditingLock = async (applicationId: number, locked: boolean) => {
+    const result = await toggleEditingLock(applicationId, locked);
+    if (result) {
+      toast({
+        title: locked ? 'Редактирование закрыто' : 'Редактирование открыто',
+        description: locked ? 'Участник больше не сможет менять эту заявку' : 'Участник снова может редактировать заявку',
+      });
+    }
+  };
+
+  const handleToggleContestLock = async (contestId: number, locked: boolean) => {
+    try {
+      const response = await fetch('https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: contestId, applications_locked: locked }),
+      });
+      if (response.ok) {
+        toast({
+          title: locked ? 'Заявки конкурса закрыты для редактирования' : 'Заявки конкурса снова открыты для редактирования',
+        });
+        loadContests();
+      }
+    } catch {
+      toast({ title: 'Ошибка', description: 'Не удалось изменить блокировку конкурса', variant: 'destructive' });
+    }
+  };
+
   const handleUpdateStatus = async (applicationId: number, newStatus: string) => {
     const result = await updateStatus(applicationId, newStatus);
     if (result) {
@@ -248,6 +276,8 @@ const AdminPage = () => {
             contests={contests}
             handleUpdateStatus={handleUpdateStatus}
             handleDeleteApplication={handleDeleteApplication}
+            handleToggleEditingLock={handleToggleEditingLock}
+            handleToggleContestLock={handleToggleContestLock}
             handleCreateClick={handleCreateClick}
             openEditModal={openEditModal}
             handleDeleteContest={handleDeleteContest}
