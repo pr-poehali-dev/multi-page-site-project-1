@@ -53,7 +53,18 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-white/10 text-center text-sm opacity-75">© 2025 "ИНДИГО". Все права защищены</div>
+        <div className="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center text-sm opacity-75">
+          <span>© 2025 "ИНДИГО". Все права защищены</span>
+          <span className="hidden sm:inline opacity-50">·</span>
+          <a
+            href="https://cdn.poehali.dev/projects/ecdaf1c5-6d12-4487-8a18-89243ebbcc9e/bucket/c4d750a4-9bb5-41e4-8f14-48cde212cdbe.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:opacity-100 transition-opacity"
+          >
+            Политика конфиденциальности
+          </a>
+        </div>
       </div>
     </footer>
   );
