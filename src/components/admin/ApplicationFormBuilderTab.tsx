@@ -44,6 +44,7 @@ interface FormField {
   options: string;
   is_required: boolean;
   sort_order: number;
+  system_key?: string | null;
   _uid: string;
 }
 
@@ -75,9 +76,10 @@ const SortableFieldItem = ({ field: f, index: i, updateField, removeField }: Sor
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+  const isSystem = Boolean(f.system_key);
 
   return (
-    <div ref={setNodeRef} style={style} className="border rounded-lg p-3 space-y-2 bg-background">
+    <div ref={setNodeRef} style={style} className={`border rounded-lg p-3 space-y-2 ${isSystem ? 'bg-secondary/5 border-secondary/30' : 'bg-background'}`}>
       <div className="grid grid-cols-12 gap-2 items-end">
         <div className="col-span-1 flex justify-center">
           <button
@@ -91,30 +93,44 @@ const SortableFieldItem = ({ field: f, index: i, updateField, removeField }: Sor
           </button>
         </div>
         <div className="col-span-3">
-          <label className="text-xs text-muted-foreground mb-1 block">Название вопроса</label>
+          <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+            Название вопроса
+            {isSystem && <Icon name="Lock" size={11} className="text-secondary" />}
+          </label>
           <Input value={f.field_label} onChange={e => updateField(i, 'field_label', e.target.value)} placeholder="Например: Название номера" />
         </div>
         <div className="col-span-3">
           <label className="text-xs text-muted-foreground mb-1 block">Тип поля</label>
-          <Select value={f.field_type} onValueChange={v => updateField(i, 'field_type', v)}>
+          <Select value={f.field_type} onValueChange={v => updateField(i, 'field_type', v)} disabled={isSystem}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{FIELD_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="col-span-3">
           <label className="text-xs text-muted-foreground mb-1 block">Системное имя</label>
-          <Input value={f.field_name} onChange={e => updateField(i, 'field_name', e.target.value)} placeholder="field_name" />
+          <Input value={f.field_name} onChange={e => updateField(i, 'field_name', e.target.value)} placeholder="field_name" disabled={isSystem} />
         </div>
         <div className="col-span-1 flex flex-col items-center gap-1">
           <label className="text-xs text-muted-foreground">Обяз.</label>
-          <input type="checkbox" checked={f.is_required} onChange={e => updateField(i, 'is_required', e.target.checked)} className="w-4 h-4 cursor-pointer" />
+          <input type="checkbox" checked={f.is_required} onChange={e => updateField(i, 'is_required', e.target.checked)} className="w-4 h-4 cursor-pointer disabled:cursor-not-allowed" disabled={isSystem} />
         </div>
         <div className="col-span-1 flex justify-center">
-          <Button variant="ghost" size="sm" onClick={() => removeField(i)} className="text-destructive hover:text-destructive">
-            <Icon name="Trash2" size={14} />
-          </Button>
+          {isSystem ? (
+            <span title="Обязательное системное поле — нельзя удалить">
+              <Icon name="Lock" size={16} className="text-muted-foreground" />
+            </span>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => removeField(i)} className="text-destructive hover:text-destructive">
+              <Icon name="Trash2" size={14} />
+            </Button>
+          )}
         </div>
       </div>
+      {isSystem && (
+        <p className="text-xs text-secondary flex items-center gap-1">
+          <Icon name="Info" size={12} /> Обязательное системное поле. Его значение автоматически попадает в программу конкурса
+        </p>
+      )}
       {f.field_type === 'select' && (
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Варианты (через запятую)</label>
@@ -221,11 +237,15 @@ const ApplicationFormBuilderTab = ({ contests }: Props) => {
   };
 
   const updateField = (i: number, key: keyof FormField, val: string | boolean | number) => {
-    setFields(fs => fs.map((f, idx) => idx === i ? { ...f, [key]: val } : f));
+    setFields(fs => fs.map((f, idx) => {
+      if (idx !== i) return f;
+      if (f.system_key && (key === 'field_type' || key === 'field_name' || key === 'is_required')) return f;
+      return { ...f, [key]: val };
+    }));
   };
 
   const removeField = (i: number) => {
-    setFields(fs => fs.filter((_, idx) => idx !== i));
+    setFields(fs => fs.filter((f, idx) => idx !== i || Boolean(f.system_key)));
   };
 
   const saveFields = async () => {

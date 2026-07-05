@@ -95,7 +95,7 @@ def get_program(conn, event: Dict[str, Any]) -> Dict[str, Any]:
 
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(f'''
-            SELECT id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name
+            SELECT id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name, participation_format
             FROM {SCHEMA}.contest_program
             WHERE contest_id = %s
             ORDER BY order_number
@@ -138,9 +138,9 @@ def create_row(conn, event: Dict[str, Any]) -> Dict[str, Any]:
 
         cur.execute(f'''
             INSERT INTO {SCHEMA}.contest_program
-              (contest_id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name
+              (contest_id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name, participation_format)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name, participation_format
         ''', (
             contest_id,
             order_number,
@@ -152,7 +152,8 @@ def create_row(conn, event: Dict[str, Any]) -> Dict[str, Any]:
             body.get('piece_title', ''),
             body.get('duration', ''),
             diploma_number,
-            body.get('director_name', '')
+            body.get('director_name', ''),
+            body.get('participation_format', '')
         ))
         row = dict(cur.fetchone())
 
@@ -171,7 +172,7 @@ def update_row(conn, event: Dict[str, Any]) -> Dict[str, Any]:
     if not row_id:
         return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'id строки обязателен'}), 'isBase64Encoded': False}
 
-    fields = ['order_number', 'region', 'directing_party', 'participant_name', 'age', 'nomination', 'piece_title', 'duration', 'diploma_number', 'director_name']
+    fields = ['order_number', 'region', 'directing_party', 'participant_name', 'age', 'nomination', 'piece_title', 'duration', 'diploma_number', 'director_name', 'participation_format']
     updates = []
     values = []
     for f in fields:

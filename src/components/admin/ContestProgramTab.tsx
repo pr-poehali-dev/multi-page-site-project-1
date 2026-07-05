@@ -21,6 +21,7 @@ interface ProgramRow {
   duration: string;
   diploma_number: string;
   director_name: string;
+  participation_format: string;
 }
 
 interface Contest {
@@ -45,6 +46,7 @@ const emptyRow = (): Omit<ProgramRow, 'id' | 'order_number'> => ({
   duration: '',
   diploma_number: '',
   director_name: '',
+  participation_format: '',
 });
 
 const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
@@ -91,6 +93,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
             nomination: String(row[6] ?? ''),
             piece_title: String(row[7] ?? ''),
             duration: String(row[8] ?? ''),
+            participation_format: String(row[9] ?? ''),
           };
           const res = await fetch(API_URL, {
             method: 'POST',
@@ -117,14 +120,14 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
     const contestName = contests.find(c => String(c.id) === selectedContestId)?.title || 'программа';
 
     const wsData = [
-      ['№', 'Регион', 'Направляющая сторона', 'ФИО / Коллектив', 'ФИО руководителя', 'Возраст', 'Номинация', 'Произведение / номер', 'Хронометраж'],
-      ...rows.map(r => [r.order_number, r.region, r.directing_party, r.participant_name, r.director_name, r.age, r.nomination, r.piece_title, r.duration]),
+      ['№', 'Регион', 'Направляющая сторона', 'ФИО / Коллектив', 'ФИО руководителя', 'Возраст', 'Номинация', 'Произведение / номер', 'Хронометраж', 'Формат участия'],
+      ...rows.map(r => [r.order_number, r.region, r.directing_party, r.participant_name, r.director_name, r.age, r.nomination, r.piece_title, r.duration, r.participation_format]),
     ];
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-    ws['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 30 }, { wch: 10 }, { wch: 20 }, { wch: 35 }, { wch: 12 }];
+    ws['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 30 }, { wch: 10 }, { wch: 20 }, { wch: 35 }, { wch: 12 }, { wch: 15 }];
 
     XLSX.utils.book_append_sheet(wb, ws, 'Программа');
     XLSX.writeFile(wb, `${contestName}_программа.xlsx`);
@@ -210,6 +213,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
     { key: 'nomination', label: 'Номинация', width: 'w-32' },
     { key: 'piece_title', label: 'Произведение / номер', width: 'w-40' },
     { key: 'duration', label: 'Хронометраж', width: 'w-28' },
+    { key: 'participation_format', label: 'Формат участия', width: 'w-28' },
   ] as const;
 
   const now = new Date();
@@ -335,6 +339,10 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
                   <div>
                     <label className="text-xs font-medium mb-1 block">Хронометраж</label>
                     <Input value={newRow.duration} onChange={e => setNewRow(p => ({ ...p, duration: e.target.value }))} placeholder="мм:сс" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium mb-1 block">Формат участия</label>
+                    <Input value={newRow.participation_format} onChange={e => setNewRow(p => ({ ...p, participation_format: e.target.value }))} placeholder="Очно / Заочно / Онлайн" />
                   </div>
                 </div>
                 <div className="flex gap-2">

@@ -365,6 +365,33 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 
                 # Если заявка одобрена - обновляем участника для системы оценивания
                 if new_status == 'approved':
+                    # Достаём значения системных полей формы заявки (custom_fields -> system_key)
+                    custom_fields = application.get('custom_fields') or {}
+                    if isinstance(custom_fields, str):
+                        custom_fields = json.loads(custom_fields)
+
+                    system_values = {}
+                    cur.execute(f'''
+                        SELECT f.system_key, f.field_name
+                        FROM {SCHEMA}.application_form_fields f
+                        JOIN {SCHEMA}.contests c ON c.form_template_id = f.template_id
+                        WHERE c.id = %s AND f.system_key IS NOT NULL
+                    ''', (application['contest_id'],))
+                    for row in cur.fetchall():
+                        value = custom_fields.get(row['field_name'], '')
+                        if value:
+                            system_values[row['system_key']] = value
+
+                    participant_name = system_values.get('participant_name') or application['full_name']
+                    nomination = system_values.get('nomination') or application.get('nomination', '')
+                    piece_title = system_values.get('piece_title') or application.get('performance_title', '')
+                    participation_format = system_values.get('participation_format') or application.get('participation_format', '')
+                    region = system_values.get('region') or application.get('city', '')
+                    directing_party = system_values.get('directing_party', '')
+                    duration = system_values.get('duration', '')
+                    director_name = system_values.get('director_name') or application.get('contact_position', '')
+                    age_category = system_values.get('age_category', '')
+
                     # Обновляем участника: добавляем contest_id, category, performance_title, participation_format, nomination, status
                     cur.execute(
                         '''UPDATE participants 
@@ -372,9 +399,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                                participation_format = %s, nomination = %s, status = 'approved'
                            WHERE id = %s''',
                         (application['contest_id'], application['category'], 
-                         application.get('performance_title', 'Не указано'),
-                         application.get('participation_format', ''),
-                         application.get('nomination', ''),
+                         piece_title or 'Не указано',
+                         participation_format,
+                         nomination,
                          application['participant_id'])
                     )
 
@@ -394,21 +421,22 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
                         cur.execute(f'''
                             INSERT INTO {SCHEMA}.contest_program
-                              (contest_id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name, application_id)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                              (contest_id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name, application_id, participation_format)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ''', (
                             application['contest_id'],
                             next_num,
-                            application.get('city', ''),
-                            '',
-                            application['full_name'],
-                            '',
-                            application.get('nomination', ''),
-                            application.get('performance_title', ''),
-                            '',
+                            region,
+                            directing_party,
+                            participant_name,
+                            age_category,
+                            nomination,
+                            piece_title,
+                            duration,
                             diploma_number,
-                            application.get('contact_position', ''),
-                            app_id
+                            director_name,
+                            app_id,
+                            participation_format
                         ))
             
             return {

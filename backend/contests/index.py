@@ -356,6 +356,21 @@ def _resp(status, body):
     return {'statusCode': status, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps(body), 'isBase64Encoded': False}
 
 
+# Системные поля, обязательные для всех шаблонов формы заявки.
+# Значения этих полей переносятся в программу конкурса (contest_program) по system_key.
+SYSTEM_FIELDS = [
+    {'system_key': 'participant_name', 'field_label': 'Название коллектива / ФИО участника', 'field_type': 'text', 'options': ''},
+    {'system_key': 'age_category', 'field_label': 'Возрастная категория', 'field_type': 'text', 'options': ''},
+    {'system_key': 'region', 'field_label': 'Регион проживания', 'field_type': 'text', 'options': ''},
+    {'system_key': 'nomination', 'field_label': 'Номинация', 'field_type': 'text', 'options': ''},
+    {'system_key': 'piece_title', 'field_label': 'Название номера', 'field_type': 'text', 'options': ''},
+    {'system_key': 'directing_party', 'field_label': 'Направляющая сторона', 'field_type': 'text', 'options': ''},
+    {'system_key': 'participation_format', 'field_label': 'Формат участия', 'field_type': 'select', 'options': 'Очно,Заочно,Онлайн'},
+    {'system_key': 'duration', 'field_label': 'Хронометраж (точное время исполнения)', 'field_type': 'text', 'options': ''},
+    {'system_key': 'director_name', 'field_label': 'ФИО руководителя', 'field_type': 'text', 'options': ''},
+]
+
+
 def list_templates(conn) -> Dict[str, Any]:
     '''Список всех шаблонов форм заявок с количеством полей'''
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -379,7 +394,7 @@ def list_template_fields(conn, template_id) -> Dict[str, Any]:
         return _resp(400, {'error': 'Укажите template_id'})
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute('''
-            SELECT id, field_name, field_label, field_type, options, is_required, sort_order
+            SELECT id, field_name, field_label, field_type, options, is_required, sort_order, system_key
             FROM application_form_fields
             WHERE template_id = %s
             ORDER BY sort_order ASC, id ASC
@@ -388,7 +403,7 @@ def list_template_fields(conn, template_id) -> Dict[str, Any]:
 
 
 def create_template(conn, event) -> Dict[str, Any]:
-    '''Создание нового шаблона формы заявки'''
+    '''Создание нового шаблона формы заявки с обязательным набором системных полей'''
     body = json.loads(event.get('body', '{}'))
     name = (body.get('name') or '').strip()
     if not name:
@@ -396,6 +411,22 @@ def create_template(conn, event) -> Dict[str, Any]:
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute('INSERT INTO application_form_templates (name) VALUES (%s) RETURNING id', (name,))
         template_id = cur.fetchone()['id']
+
+        for i, sf in enumerate(SYSTEM_FIELDS):
+            cur.execute('''
+                INSERT INTO application_form_fields
+                (template_id, field_name, field_label, field_type, options, is_required, sort_order, system_key)
+                VALUES (%s, %s, %s, %s, %s, TRUE, %s, %s)
+            ''', (
+                template_id,
+                f"sys_{sf['system_key']}",
+                sf['field_label'],
+                sf['field_type'],
+                sf['options'],
+                i,
+                sf['system_key'],
+            ))
+
         return _resp(201, {'id': template_id})
 
 
@@ -411,28 +442,57 @@ def delete_template(conn, template_id) -> Dict[str, Any]:
 
 
 def save_template_fields(conn, event) -> Dict[str, Any]:
-    '''Полная замена полей шаблона (удаление старых + вставка новых)'''
+    '''Полная замена полей шаблона (удаление старых + вставка новых).
+    Системные поля (SYSTEM_FIELDS) всегда обязательны и не могут быть удалены -
+    если их нет в переданном списке, они будут добавлены автоматически.'''
     body = json.loads(event.get('body', '{}'))
     template_id = body.get('template_id')
     fields = body.get('fields', [])
     if not template_id:
         return _resp(400, {'error': 'Укажите template_id'})
+
+    present_system_keys = {f.get('system_key') for f in fields if f.get('system_key')}
+    missing_system_fields = [sf for sf in SYSTEM_FIELDS if sf['system_key'] not in present_system_keys]
+
     with conn.cursor() as cur:
         cur.execute('DELETE FROM application_form_fields WHERE template_id = %s', (template_id,))
+
+        next_order = len(fields) + len(missing_system_fields)
+
         for i, f in enumerate(fields):
+            is_system = bool(f.get('system_key'))
             cur.execute('''
                 INSERT INTO application_form_fields
-                (template_id, field_name, field_label, field_type, options, is_required, sort_order)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                (template_id, field_name, field_label, field_type, options, is_required, sort_order, system_key)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
                 template_id,
                 f.get('field_name') or f"field_{i}",
                 f.get('field_label', ''),
                 f.get('field_type', 'text'),
                 f.get('options', ''),
-                bool(f.get('is_required', False)),
+                True if is_system else bool(f.get('is_required', False)),
                 f.get('sort_order', i),
+                f.get('system_key') or None,
             ))
+
+        # Восстанавливаем случайно удалённые системные поля
+        for sf in missing_system_fields:
+            next_order -= 1
+            cur.execute('''
+                INSERT INTO application_form_fields
+                (template_id, field_name, field_label, field_type, options, is_required, sort_order, system_key)
+                VALUES (%s, %s, %s, %s, %s, TRUE, %s, %s)
+            ''', (
+                template_id,
+                f"sys_{sf['system_key']}",
+                sf['field_label'],
+                sf['field_type'],
+                sf['options'],
+                next_order,
+                sf['system_key'],
+            ))
+
         return _resp(200, {'success': True})
 
 
@@ -458,7 +518,7 @@ def get_contest_form(conn, contest_id) -> Dict[str, Any]:
         if not row or not row['form_template_id']:
             return _resp(200, {'fields': []})
         cur.execute('''
-            SELECT id, field_name, field_label, field_type, options, is_required, sort_order
+            SELECT id, field_name, field_label, field_type, options, is_required, sort_order, system_key
             FROM application_form_fields
             WHERE template_id = %s
             ORDER BY sort_order ASC, id ASC
