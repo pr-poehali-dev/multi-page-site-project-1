@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import * as XLSX from 'xlsx';
 
 const API = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
 
@@ -106,6 +107,29 @@ const ParticipantsTab = () => {
     p.city?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleExportExcel = () => {
+    const wsData = [
+      ['ФИО', 'Должность', 'Email', 'Телефон', 'VK', 'Город', 'Дата регистрации', 'Заявок'],
+      ...filtered.map(p => [
+        p.full_name || '',
+        p.contact_position || '',
+        p.email || '',
+        p.phone || '',
+        p.vk_link || '',
+        p.city || '',
+        p.created_at ? new Date(p.created_at).toLocaleDateString('ru-RU') : '',
+        p.applications_count || 0,
+      ]),
+    ];
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{ wch: 28 }, { wch: 20 }, { wch: 28 }, { wch: 18 }, { wch: 25 }, { wch: 18 }, { wch: 16 }, { wch: 10 }];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Участники');
+    XLSX.writeFile(wb, `участники_${new Date().toLocaleDateString('ru-RU').replace(/\./g, '-')}.xlsx`);
+  };
+
   const totalUnread = participants.reduce((s, p) => s + (p.unread_count || 0), 0);
 
   // ── Чат открыт ──
@@ -176,9 +200,14 @@ const ParticipantsTab = () => {
           </h2>
           <p className="text-sm text-muted-foreground mt-1">Всего: {participants.length}</p>
         </div>
-        <Button variant="outline" onClick={loadParticipants}>
-          <Icon name="RefreshCw" size={15} className="mr-2" /> Обновить
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExportExcel} disabled={filtered.length === 0}>
+            <Icon name="Download" size={15} className="mr-2" /> Экспорт в Excel
+          </Button>
+          <Button variant="outline" onClick={loadParticipants}>
+            <Icon name="RefreshCw" size={15} className="mr-2" /> Обновить
+          </Button>
+        </div>
       </div>
 
       <div className="mb-4">
