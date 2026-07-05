@@ -36,7 +36,7 @@ interface NewApplicationModalProps {
 const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId }: NewApplicationModalProps) => {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
-  const [contests, setContests] = useState<Array<{ id: number; title: string }>>([]);
+  const [contests, setContests] = useState<Array<{ id: number; title: string; location?: string; event_date?: string }>>([]);
   const [loadingContests, setLoadingContests] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -200,6 +200,27 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
                   </SelectContent>
                 </Select>
               </div>
+
+              {contestId && (() => {
+                const selected = contests.find(c => String(c.id) === contestId);
+                if (!selected || (!selected.location && !selected.event_date)) return null;
+                return (
+                  <div className="flex flex-wrap gap-4 p-3 rounded-lg bg-muted/50 text-sm">
+                    {selected.location && (
+                      <div className="flex items-center gap-2">
+                        <Icon name="MapPin" size={16} className="text-muted-foreground" />
+                        <span>{selected.location}</span>
+                      </div>
+                    )}
+                    {selected.event_date && (
+                      <div className="flex items-center gap-2">
+                        <Icon name="Calendar" size={16} className="text-muted-foreground" />
+                        <span>{selected.event_date}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
