@@ -57,6 +57,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
   const [editingRow, setEditingRow] = useState<ProgramRow | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newRow, setNewRow] = useState(emptyRow());
+  const [formatFilter, setFormatFilter] = useState<string>('all');
 
   const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -121,7 +122,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
 
     const wsData = [
       ['№', 'Регион', 'Направляющая сторона', 'ФИО / Коллектив', 'ФИО руководителя', 'Возраст', 'Номинация', 'Произведение / номер', 'Хронометраж', 'Формат участия'],
-      ...rows.map(r => [r.order_number, r.region, r.directing_party, r.participant_name, r.director_name, r.age, r.nomination, r.piece_title, r.duration, r.participation_format]),
+      ...filteredRows.map(r => [r.order_number, r.region, r.directing_party, r.participant_name, r.director_name, r.age, r.nomination, r.piece_title, r.duration, r.participation_format]),
     ];
 
     const wb = XLSX.utils.book_new();
@@ -148,9 +149,13 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
 
   useEffect(() => {
     if (selectedContestId) {
+      setFormatFilter('all');
       loadProgram(selectedContestId);
     }
   }, [selectedContestId, loadProgram]);
+
+  const availableFormats = Array.from(new Set(rows.map(r => r.participation_format).filter(Boolean)));
+  const filteredRows = formatFilter === 'all' ? rows : rows.filter(r => r.participation_format === formatFilter);
 
   const handleAddRow = async () => {
     if (!selectedContestId) return;
@@ -299,6 +304,27 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
         )}
       </div>
 
+      {selectedContestId && availableFormats.length > 0 && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Формат участия:</span>
+          <div className="w-56">
+            <Select value={formatFilter} onValueChange={setFormatFilter}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все ({rows.length})</SelectItem>
+                {availableFormats.map(fmt => (
+                  <SelectItem key={fmt} value={fmt}>
+                    {fmt} ({rows.filter(r => r.participation_format === fmt).length})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+
       {selectedContestId && (
         <>
           <Card className="p-4">
@@ -356,6 +382,8 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
               <div className="text-center py-8 text-muted-foreground">Загрузка...</div>
             ) : rows.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">Программа пуста. Добавьте первую строку.</div>
+            ) : filteredRows.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">Нет строк с выбранным форматом участия.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -368,7 +396,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map(row => (
+                    {filteredRows.map(row => (
                       <tr key={row.id} className="border-b hover:bg-muted/30">
                         {editingRow?.id === row.id ? (
                           <>
