@@ -203,6 +203,11 @@ const ApplicationFormBuilderTab = ({ contests }: Props) => {
                     <Input value={f.options} onChange={e => updateField(i, 'options', e.target.value)} placeholder="Вокал, Танцы, Театр" />
                   </div>
                 )}
+                {f.field_type === 'file' && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Icon name="Info" size={12} /> Участник сможет загрузить файл размером до 15 МБ
+                  </p>
+                )}
               </div>
             ))}
             {fields.length === 0 && <p className="text-muted-foreground text-center py-6">Нет полей. Добавьте первый вопрос.</p>}

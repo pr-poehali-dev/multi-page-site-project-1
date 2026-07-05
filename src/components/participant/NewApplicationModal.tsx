@@ -51,7 +51,10 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
   const [files, setFiles] = useState<File[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
+  const [customFileValues, setCustomFileValues] = useState<Record<string, File>>({});
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
+
+  const CUSTOM_FILE_MAX_SIZE = 15 * 1024 * 1024;
 
   const totalSteps = customFields.length > 0 ? 4 : 3;
 
@@ -77,6 +80,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
         const data = await res.json();
         setCustomFields(data.fields || []);
         setCustomValues({});
+        setCustomFileValues({});
       } catch { setCustomFields([]); }
       finally { setLoadingCustomFields(false); }
     };
@@ -86,6 +90,33 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
+      // Загружаем файлы из кастомных полей и получаем их URL перед отправкой заявки
+      let finalCustomValues = customValues;
+      const fileEntries = Object.entries(customFileValues);
+      if (fileEntries.length > 0) {
+        const uploadedUrls: Record<string, string> = {};
+        for (const [fieldName, file] of fileEntries) {
+          const fileData = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve((reader.result as string).split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          const uploadRes = await fetch(UPLOAD_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              files: [{ fileName: file.name, fileType: file.type, fileSize: file.size, fileData }],
+            }),
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadData.files?.[0]?.fileUrl) {
+            uploadedUrls[fieldName] = uploadData.files[0].fileUrl;
+          }
+        }
+        finalCustomValues = { ...customValues, ...uploadedUrls };
+      }
+
       const res = await fetch(APPLICATIONS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,7 +134,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
           nomination,
           additionalInfo,
           filesCount: files.length,
-          customFields: customValues,
+          customFields: finalCustomValues,
         }),
       });
       const result = await res.json();
@@ -273,9 +304,37 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
                           />
                           <span className="text-sm text-muted-foreground">Да</span>
                         </div>
+                      ) : f.field_type === 'file' ? (
+                        <div>
+                          <input
+                            type="file"
+                            id={`custom-file-${f.id}`}
+                            className="hidden"
+                            onChange={e => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              if (file.size > CUSTOM_FILE_MAX_SIZE) {
+                                toast({ title: 'Файл слишком большой', description: `${file.name} превышает 15 МБ`, variant: 'destructive' });
+                                e.target.value = '';
+                                return;
+                              }
+                              setCustomFileValues(v => ({ ...v, [f.field_name]: file }));
+                              setCustomValues(v => ({ ...v, [f.field_name]: file.name }));
+                            }}
+                          />
+                          <label htmlFor={`custom-file-${f.id}`}>
+                            <Button type="button" variant="outline" className="w-full cursor-pointer" asChild>
+                              <span>
+                                <Icon name="Upload" size={16} className="mr-2" />
+                                {customFileValues[f.field_name] ? customFileValues[f.field_name].name : 'Выбрать файл'}
+                              </span>
+                            </Button>
+                          </label>
+                          <p className="text-xs text-muted-foreground mt-1">Максимум 15 МБ</p>
+                        </div>
                       ) : (
                         <Input
-                          type={f.field_type === 'file' ? 'text' : f.field_type}
+                          type={f.field_type}
                           value={customValues[f.field_name] || ''}
                           onChange={e => setCustomValues(v => ({ ...v, [f.field_name]: e.target.value }))}
                         />
