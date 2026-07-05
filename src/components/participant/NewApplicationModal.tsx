@@ -32,16 +32,17 @@ interface NewApplicationModalProps {
   participant: Participant;
   onClose: () => void;
   onSuccess: () => void;
+  initialContestId?: string;
 }
 
-const NewApplicationModal = ({ participant, onClose, onSuccess }: NewApplicationModalProps) => {
+const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId }: NewApplicationModalProps) => {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [contests, setContests] = useState<Array<{ id: number; title: string }>>([]);
   const [loadingContests, setLoadingContests] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const [contestId, setContestId] = useState('');
+  const [contestId, setContestId] = useState(initialContestId || '');
   const [category, setCategory] = useState('');
   const [performanceTitle, setPerformanceTitle] = useState('');
   const [participationFormat, setParticipationFormat] = useState('');

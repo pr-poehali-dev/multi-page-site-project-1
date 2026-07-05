@@ -32,7 +32,7 @@ const ContestDetailHero = ({ contest, isPast, isActive, isFuture, daysUntilStart
 
   const handleApply = () => {
     if (isInternal) {
-      navigate(`/register?contest=${contest.id}`);
+      navigate(`/participant-login?contest=${contest.id}`);
     } else if (contest.application_form_url) {
       window.open(contest.application_form_url, '_blank');
     }

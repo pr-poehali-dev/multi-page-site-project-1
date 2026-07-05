@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,8 @@ const ParticipantLoginPage = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const contestId = searchParams.get('contest');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +46,7 @@ const ParticipantLoginPage = () => {
         localStorage.setItem('participantEmail', email);
         localStorage.setItem('participantData', JSON.stringify(data));
         toast({ title: 'Вход выполнен', description: `Добро пожаловать, ${data.participant.full_name}!` });
-        navigate('/participant-cabinet');
+        navigate(contestId ? `/participant-cabinet?apply=${contestId}` : '/participant-cabinet');
       } else if (response.status === 403) {
         const error = await response.json();
         toast({ title: 'Пароль не установлен', description: error.message || 'Для входа необходимо подать новую заявку с установкой пароля', variant: 'destructive', duration: 7000 });
@@ -158,15 +160,24 @@ const ParticipantLoginPage = () => {
                       Забыли пароль?
                     </Button>
                   </div>
-                  <div className="text-center text-sm text-muted-foreground">
-                    <p>Еще не участвовали?</p>
-                    <Button type="button" variant="link" className="text-secondary" onClick={() => navigate('/register')}>
-                      Подать заявку
-                    </Button>
-                  </div>
                 </form>
               </CardContent>
             </Card>
+          )}
+
+          {mode === 'login' && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground mb-3">Еще нет аккаунта?</p>
+              <Button
+                type="button"
+                size="lg"
+                className="w-full bg-secondary hover:bg-secondary/90 text-lg"
+                onClick={() => navigate(contestId ? `/register?contest=${contestId}` : '/register')}
+              >
+                <Icon name="UserPlus" size={20} className="mr-2" />
+                Зарегистрироваться
+              </Button>
+            </div>
           )}
 
           {/* ── Запрос кода ── */}

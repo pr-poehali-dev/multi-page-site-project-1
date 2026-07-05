@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -84,6 +84,8 @@ const ParticipantCabinetPage = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const applyContestId = searchParams.get('apply') || undefined;
 
   useEffect(() => {
     const email = localStorage.getItem('participantEmail');
@@ -97,6 +99,21 @@ const ParticipantCabinetPage = () => {
       navigate('/participant-login');
     }
   }, [navigate]);
+
+  // Автоматически открываем форму подачи заявки, если пришли по ссылке "Подать заявку" с конкурса
+  useEffect(() => {
+    if (participant && applyContestId) {
+      setShowNewApp(true);
+    }
+  }, [participant, applyContestId]);
+
+  const handleCloseNewApp = () => {
+    setShowNewApp(false);
+    if (applyContestId) {
+      searchParams.delete('apply');
+      setSearchParams(searchParams, { replace: true });
+    }
+  };
 
   // Загружаем дипломы когда переходим на вкладку наград
   useEffect(() => {
@@ -535,9 +552,10 @@ const ParticipantCabinetPage = () => {
       {showNewApp && participant && (
         <NewApplicationModal
           participant={participant}
-          onClose={() => setShowNewApp(false)}
+          initialContestId={applyContestId}
+          onClose={handleCloseNewApp}
           onSuccess={() => {
-            setShowNewApp(false);
+            handleCloseNewApp();
             const data = localStorage.getItem('participantData');
             if (data) {
               const parsed = JSON.parse(data);

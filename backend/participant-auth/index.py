@@ -60,6 +60,44 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             action = params.get('action')
             body_data = json.loads(event.get('body', '{}'))
 
+            # Регистрация нового аккаунта участника (без подачи заявки на конкурс)
+            if action == 'register':
+                full_name = (body_data.get('fullName') or '').strip()
+                email = (body_data.get('email') or '').strip().lower()
+                phone = (body_data.get('phone') or '').strip()
+                birth_date = body_data.get('birthDate')
+                city = (body_data.get('city') or '').strip()
+                password = body_data.get('password') or ''
+
+                if not full_name or not email or not phone or not birth_date or not city or not password:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Заполните все поля'}), 'isBase64Encoded': False}
+                if len(password) < 6:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Пароль должен содержать минимум 6 символов'}), 'isBase64Encoded': False}
+
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(f'SELECT id, password_hash FROM {SCHEMA}.participants WHERE email = %s', (email,))
+                    existing = cur.fetchone()
+                    if existing and existing.get('password_hash'):
+                        return {'statusCode': 409, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Аккаунт с таким email уже существует. Войдите в личный кабинет.'}), 'isBase64Encoded': False}
+
+                    password_hash = hash_password(password)
+
+                    cur.execute(
+                        f'''
+                        INSERT INTO {SCHEMA}.participants (full_name, email, phone, birth_date, city, password_hash)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (email)
+                        DO UPDATE SET full_name = EXCLUDED.full_name, phone = EXCLUDED.phone, birth_date = EXCLUDED.birth_date, city = EXCLUDED.city, password_hash = EXCLUDED.password_hash
+                        RETURNING id, full_name, email, phone, birth_date, city
+                        ''',
+                        (full_name, email, phone, birth_date, city, password_hash)
+                    )
+                    participant = dict(cur.fetchone())
+                    if participant.get('birth_date'):
+                        participant['birth_date'] = participant['birth_date'].isoformat()
+
+                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True, 'participant': participant, 'applications': []}), 'isBase64Encoded': False}
+
             # Отправка сообщения в чат
             if action == 'send':
                 pid = body_data.get('participant_id')

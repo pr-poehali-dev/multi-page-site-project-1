@@ -1,29 +1,20 @@
 import { Input } from '@/components/ui/input';
 
-type FormData = {
+type PersonalData = {
   fullName: string;
   email: string;
   phone: string;
   birthDate: string;
   city: string;
   password: string;
-  contestId: string;
-  category: string;
-  performanceTitle: string;
-  participationFormat: string;
-  nomination: string;
-  experience: string;
-  files: File[];
-  achievements: string;
-  additionalInfo: string;
 };
 
-interface RegisterStepPersonalProps {
-  formData: FormData;
-  setFormData: (data: FormData) => void;
+interface RegisterStepPersonalProps<T extends PersonalData> {
+  formData: T;
+  setFormData: (data: T) => void;
 }
 
-const RegisterStepPersonal = ({ formData, setFormData }: RegisterStepPersonalProps) => {
+const RegisterStepPersonal = <T extends PersonalData,>({ formData, setFormData }: RegisterStepPersonalProps<T>) => {
   return (
     <div className="space-y-6 animate-fade-in">
       <h2 className="text-2xl font-heading font-bold mb-6">Личные данные</h2>
