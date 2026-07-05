@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
@@ -10,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import NewApplicationModal from '@/components/participant/NewApplicationModal';
 
 const DIPLOMA_URL = 'https://functions.poehali.dev/1806f979-38b3-442e-b8ef-fa6827104251';
+const AUTH_URL = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
 
 interface Application {
   id: number;
@@ -26,11 +28,19 @@ interface Application {
 }
 
 interface Participant {
+  id: number;
   full_name: string;
   email: string;
   phone: string;
   birth_date: string;
   city: string;
+}
+
+interface ChatMessage {
+  id: number;
+  sender: 'admin' | 'user';
+  message: string;
+  created_at: string;
 }
 
 interface Diploma {
@@ -57,7 +67,7 @@ const AWARD_COLORS: Record<string, string> = {
   'Участник': 'bg-gray-100 text-gray-700 border-gray-300',
 };
 
-type Tab = 'applications' | 'awards' | 'shop';
+type Tab = 'applications' | 'awards' | 'shop' | 'chat';
 
 const ParticipantCabinetPage = () => {
   const [participant, setParticipant] = useState<Participant | null>(null);
@@ -66,6 +76,11 @@ const ParticipantCabinetPage = () => {
   const [diplomasLoading, setDiplomasLoading] = useState(false);
   const [showNewApp, setShowNewApp] = useState(false);
   const [tab, setTab] = useState<Tab>('applications');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [msgText, setMsgText] = useState('');
+  const [sendingMsg, setSendingMsg] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -102,6 +117,48 @@ const ParticipantCabinetPage = () => {
     };
     load();
   }, [tab, participant, diplomas.length]);
+
+  // Загружаем чат при переходе на вкладку
+  useEffect(() => {
+    if (tab !== 'chat' || !participant) return;
+    const load = async () => {
+      setMessagesLoading(true);
+      try {
+        const res = await fetch(`${AUTH_URL}?action=chat&participant_id=${participant.id}`);
+        const data = await res.json();
+        setMessages(data.messages || []);
+      } catch { setMessages([]); }
+      finally { setMessagesLoading(false); }
+    };
+    load();
+    const interval = setInterval(load, 8000);
+    return () => clearInterval(interval);
+  }, [tab, participant]);
+
+  useEffect(() => {
+    if (tab === 'chat') messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, tab]);
+
+  const sendMessage = async () => {
+    if (!msgText.trim() || !participant) return;
+    setSendingMsg(true);
+    try {
+      const res = await fetch(`${AUTH_URL}?action=send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participant_id: participant.id, message: msgText.trim(), sender: 'user' }),
+      });
+      const data = await res.json();
+      if (data.message) {
+        setMessages(ms => [...ms, data.message]);
+        setMsgText('');
+      }
+    } catch {
+      toast({ title: 'Ошибка отправки', variant: 'destructive' });
+    } finally {
+      setSendingMsg(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('participantEmail');
@@ -204,6 +261,13 @@ const ParticipantCabinetPage = () => {
               className="gap-2"
             >
               <Icon name="ShoppingBag" size={16} /> Магазин
+            </Button>
+            <Button
+              variant={tab === 'chat' ? 'default' : 'outline'}
+              onClick={() => setTab('chat')}
+              className="gap-2"
+            >
+              <Icon name="MessageSquare" size={16} /> Чат с организаторами
             </Button>
           </div>
 
@@ -386,6 +450,57 @@ const ParticipantCabinetPage = () => {
                 <Icon name="ShoppingBag" size={18} /> Перейти в магазин
               </Button>
             </div>
+          )}
+
+          {/* ── Вкладка: Чат ── */}
+          {tab === 'chat' && (
+            <Card className="flex flex-col h-[65vh]">
+              <CardHeader className="border-b shrink-0">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Icon name="MessageSquare" size={20} /> Чат с организаторами
+                </CardTitle>
+              </CardHeader>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {messagesLoading ? (
+                  <div className="text-center py-8">
+                    <Icon name="Loader2" size={28} className="mx-auto animate-spin text-muted-foreground" />
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Icon name="MessageSquare" size={40} className="mx-auto mb-3 opacity-30" />
+                    <p>Нет сообщений. Напишите нам, если есть вопросы!</p>
+                  </div>
+                ) : messages.map((m) => (
+                  <div key={m.id} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm ${
+                      m.sender === 'user'
+                        ? 'bg-secondary text-secondary-foreground rounded-br-sm'
+                        : 'bg-muted rounded-bl-sm'
+                    }`}>
+                      <p>{m.message}</p>
+                      <p className={`text-xs mt-1 ${m.sender === 'user' ? 'text-secondary-foreground/70' : 'text-muted-foreground'}`}>
+                        {new Date(m.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                        {' · '}
+                        {new Date(m.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+              <div className="flex gap-2 p-4 border-t shrink-0">
+                <Input
+                  value={msgText}
+                  onChange={(e) => setMsgText(e.target.value)}
+                  placeholder="Написать сообщение..."
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                  disabled={sendingMsg}
+                />
+                <Button onClick={sendMessage} disabled={sendingMsg || !msgText.trim()} className="bg-secondary hover:bg-secondary/90">
+                  {sendingMsg ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="Send" size={16} />}
+                </Button>
+              </div>
+            </Card>
           )}
 
         </div>
