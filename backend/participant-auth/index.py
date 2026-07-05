@@ -258,6 +258,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         FROM {SCHEMA}.participants p
                         LEFT JOIN {SCHEMA}.applications a ON a.participant_id = p.id
                         LEFT JOIN {SCHEMA}.chat_messages cm ON cm.participant_id = p.id
+                        WHERE p.full_name != '[удалён]'
                         GROUP BY p.id ORDER BY p.created_at DESC
                     ''')
                     rows = cur.fetchall()
