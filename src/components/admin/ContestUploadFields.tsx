@@ -1,8 +1,17 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { ContestFormData } from './ContestModalTypes';
+
+const CONTESTS_API = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
+
+interface Template {
+  id: number;
+  name: string;
+  fields_count: number;
+}
 
 const APPLICATION_TYPES = [
   { value: 'external', label: 'Внешняя ссылка', description: 'Кнопка «Подать заявку» откроет ссылку, указанную ниже (Google Forms, Яндекс Формы и т.д.)' },
@@ -41,6 +50,15 @@ const ContestUploadFields = ({
   const posterInputRef = useRef<HTMLInputElement>(null);
   const formFileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const [templates, setTemplates] = useState<Template[]>([]);
+
+  useEffect(() => {
+    if (formData.application_type !== 'internal') return;
+    fetch(`${CONTESTS_API}?action=templates`)
+      .then(res => res.json())
+      .then(data => setTemplates(data.templates || []))
+      .catch(() => setTemplates([]));
+  }, [formData.application_type]);
 
   return (
     <>
@@ -133,6 +151,30 @@ const ContestUploadFields = ({
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-1">Вставьте ссылку на Google Forms, Яндекс Формы или любую другую форму</p>
+        </div>
+      )}
+
+      {formData.application_type === 'internal' && (
+        <div>
+          <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+            <Icon name="ListChecks" size={16} />
+            Дополнительные вопросы в форме заявки
+          </label>
+          <Select
+            value={formData.form_template_id ? String(formData.form_template_id) : 'none'}
+            onValueChange={(v) => setFormData({ ...formData, form_template_id: v === 'none' ? null : Number(v) })}
+          >
+            <SelectTrigger><SelectValue placeholder="Без доп. вопросов" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Без доп. вопросов</SelectItem>
+              {templates.map(t => (
+                <SelectItem key={t.id} value={String(t.id)}>{t.name} ({t.fields_count} полей)</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            Шаблоны создаются во вкладке «Конструктор заявок». Выбранный шаблон добавит свои поля в форму подачи заявки на этот конкурс.
+          </p>
         </div>
       )}
 

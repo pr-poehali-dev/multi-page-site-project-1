@@ -160,6 +160,7 @@ def create_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
     application_form_url = body.get('application_form_url')
     logo_url = body.get('logo_url')
     application_type = body.get('application_type', 'external')
+    form_template_id = body.get('form_template_id')
     
     if not title or not start_date or not end_date:
         return {
@@ -179,10 +180,10 @@ def create_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
         contest_key = hashlib.md5(f"{title}{time.time()}".encode()).hexdigest()[:16]
         
         cur.execute('''
-            INSERT INTO contests (contest_key, title, description, start_date, end_date, status, pdf_url, rules, prizes, categories, poster_url, ticket_link, details_link, location, event_date, application_form_url, logo_url, application_type)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO contests (contest_key, title, description, start_date, end_date, status, pdf_url, rules, prizes, categories, poster_url, ticket_link, details_link, location, event_date, application_form_url, logo_url, application_type, form_template_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
-        ''', (contest_key, title, description, start_date, end_date, status, pdf_url, rules, prizes, categories, poster_url, ticket_link, details_link, location, event_date, application_form_url, logo_url, application_type))
+        ''', (contest_key, title, description, start_date, end_date, status, pdf_url, rules, prizes, categories, poster_url, ticket_link, details_link, location, event_date, application_form_url, logo_url, application_type, form_template_id))
         
         result = cur.fetchone()
         
@@ -268,6 +269,9 @@ def update_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
         if 'application_type' in body:
             updates.append('application_type = %s')
             values.append(body['application_type'])
+        if 'form_template_id' in body:
+            updates.append('form_template_id = %s')
+            values.append(body['form_template_id'])
         
         if not updates:
             return {

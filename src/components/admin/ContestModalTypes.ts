@@ -16,4 +16,5 @@ export interface ContestFormData {
   application_form_url?: string;
   logo_url?: string;
   application_type?: 'external' | 'internal';
+  form_template_id?: number | null;
 }

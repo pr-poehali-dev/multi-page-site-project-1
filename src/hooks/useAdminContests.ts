@@ -40,6 +40,7 @@ interface ContestFormData {
   details_link?: string;
   logo_url?: string;
   application_type?: 'external' | 'internal';
+  form_template_id?: number | null;
 }
 
 export const useAdminContests = () => {
@@ -150,7 +151,8 @@ export const useAdminContests = () => {
       ticket_link: contest.ticket_link || '',
       details_link: contest.details_link || '',
       logo_url: contest.logo_url || '',
-      application_type: contest.application_type || 'external'
+      application_type: contest.application_type || 'external',
+      form_template_id: contest.form_template_id ?? null
     });
     setShowEditModal(true);
   };
