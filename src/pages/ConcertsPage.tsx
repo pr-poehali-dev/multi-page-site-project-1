@@ -85,7 +85,7 @@ const ConcertsPage = () => {
               >
                 <div className="md:flex min-h-[320px]">
                   {concert.poster_url ? (
-                    <div className="md:w-2/5 min-h-[280px] md:min-h-full">
+                    <div className="md:w-1/5 min-h-[140px] md:min-h-full">
                       <img 
                         src={concert.poster_url} 
                         alt={concert.title}
@@ -93,15 +93,15 @@ const ConcertsPage = () => {
                       />
                     </div>
                   ) : (
-                    <div className="md:w-2/5 bg-gradient-to-br from-primary to-secondary p-16 flex flex-col justify-center items-center text-white">
-                      <div className="text-8xl mb-6">🎵</div>
+                    <div className="md:w-1/5 bg-gradient-to-br from-primary to-secondary p-8 flex flex-col justify-center items-center text-white">
+                      <div className="text-4xl mb-3">🎵</div>
                       <div className="text-center">
                         {eventDate && (
                           <>
-                            <div className="text-5xl font-heading font-bold mb-2">
+                            <div className="text-2xl font-heading font-bold mb-1">
                               {eventDate.getDate()}
                             </div>
-                            <div className="text-xl opacity-90">
+                            <div className="text-sm opacity-90">
                               {eventDate.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
                             </div>
                           </>
@@ -110,7 +110,7 @@ const ConcertsPage = () => {
                     </div>
                   )}
 
-                  <div className="md:w-3/5 p-10 md:p-14 flex flex-col justify-center">
+                  <div className="md:w-4/5 p-10 md:p-14 flex flex-col justify-center">
                     <h3 className="text-3xl md:text-4xl font-heading font-bold mb-5">{concert.title}</h3>
                     
                     {concert.description && (
