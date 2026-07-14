@@ -2,6 +2,10 @@ import json
 import os
 import random
 import string
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.header import Header
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
@@ -10,6 +14,59 @@ import uuid
 import boto3
 
 SCHEMA = 't_p73771717_multi_page_site_proj'
+CABINET_URL = 'https://индиго-арт.рф/participant-cabinet'
+SUPPORT_EMAIL = 'indigo_fest@mail.ru'
+
+STATUS_LABELS = {
+    'approved': 'одобрена',
+    'rejected': 'отклонена',
+    'pending': 'снова на рассмотрении',
+}
+
+
+def send_status_update_email(to_email: str, full_name: str, contest_title: str, new_status: str) -> None:
+    '''Отправляет участнику письмо об изменении статуса его заявки'''
+    smtp_host = os.environ.get('SMTP_HOST')
+    smtp_port = os.environ.get('SMTP_PORT')
+    smtp_user = os.environ.get('SMTP_USER')
+    smtp_password = os.environ.get('SMTP_PASSWORD')
+    if not all([smtp_host, smtp_port, smtp_user, smtp_password, to_email]):
+        return
+
+    status_label = STATUS_LABELS.get(new_status, new_status)
+    status_color = '#16a34a' if new_status == 'approved' else ('#dc2626' if new_status == 'rejected' else '#6d28d9')
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = Header(f'Статус заявки на конкурс «{contest_title}» изменён — ИНДИГО', 'utf-8')
+    msg['From'] = smtp_user
+    msg['To'] = to_email
+
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color: #6d28d9;">Статус заявки обновлён</h2>
+      <p>Здравствуйте, {full_name}!</p>
+      <p>Статус вашей заявки на участие в конкурсе «<b>{contest_title}</b>» изменён:</p>
+      <p style="font-size: 20px; font-weight: bold; color: {status_color};">Заявка {status_label}</p>
+      <p>Подробности можно посмотреть в <a href="{CABINET_URL}" style="color:#6d28d9;">личном кабинете участника</a>.</p>
+      <p style="color:#6b7280; font-size: 14px; margin-top: 24px;">
+        Если у вас есть вопросы, напишите нам в чат поддержки личного кабинета
+        или на почту <a href="mailto:{SUPPORT_EMAIL}" style="color:#6d28d9;">{SUPPORT_EMAIL}</a>.
+      </p>
+    </div>
+    """
+    msg.attach(MIMEText(html, 'html'))
+
+    if int(smtp_port) == 465:
+        with smtplib.SMTP_SSL(smtp_host, int(smtp_port)) as server:
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, to_email, msg.as_string())
+    else:
+        with smtplib.SMTP(smtp_host, int(smtp_port)) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, to_email, msg.as_string())
 
 
 def generate_diploma_number(conn) -> str:
@@ -372,9 +429,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # Получаем данные заявки
                 cur.execute(
-                    '''SELECT a.*, p.full_name, p.contact_position, p.email, p.phone, p.vk_link, p.city
+                    '''SELECT a.*, p.full_name, p.contact_position, p.email, p.phone, p.vk_link, p.city, c.title as contest_title
                        FROM applications a
                        JOIN participants p ON a.participant_id = p.id
+                       JOIN contests c ON a.contest_id = c.id
                        WHERE a.id = %s''',
                     (app_id,)
                 )
@@ -472,6 +530,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                             app_id,
                             participation_format
                         ))
+            
+            try:
+                send_status_update_email(application['email'], application['full_name'], application['contest_title'], new_status)
+            except Exception as email_err:
+                print(f'[EMAIL ERROR] {email_err}')
             
             return {
                 'statusCode': 200,

@@ -1,10 +1,17 @@
 import json
 import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.header import Header
 from typing import Dict, Any
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
 import hashlib
+
+CABINET_URL = 'https://индиго-арт.рф/participant-cabinet'
+SUPPORT_EMAIL = 'indigo_fest@mail.ru'
 
 
 def hash_password(password: str) -> str:
@@ -15,6 +22,47 @@ def get_db_connection():
     '''Создает подключение к базе данных'''
     dsn = os.environ.get('DATABASE_URL')
     return psycopg2.connect(dsn, cursor_factory=RealDictCursor)
+
+def send_application_received_email(to_email: str, full_name: str, contest_title: str) -> None:
+    '''Отправляет участнику письмо о том, что заявка принята к рассмотрению'''
+    smtp_host = os.environ.get('SMTP_HOST')
+    smtp_port = os.environ.get('SMTP_PORT')
+    smtp_user = os.environ.get('SMTP_USER')
+    smtp_password = os.environ.get('SMTP_PASSWORD')
+    if not all([smtp_host, smtp_port, smtp_user, smtp_password, to_email]):
+        return
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = Header(f'Заявка на конкурс «{contest_title}» принята к рассмотрению — ИНДИГО', 'utf-8')
+    msg['From'] = smtp_user
+    msg['To'] = to_email
+
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color: #6d28d9;">Заявка получена!</h2>
+      <p>Здравствуйте, {full_name}!</p>
+      <p>Ваша заявка на участие в конкурсе «<b>{contest_title}</b>» успешно отправлена и находится на рассмотрении организаторов.</p>
+      <p>Как только заявка будет одобрена, мы пришлём вам уведомление на эту электронную почту.</p>
+      <p>Статус заявки в любой момент можно проверить в <a href="{CABINET_URL}" style="color:#6d28d9;">личном кабинете участника</a>.</p>
+      <p style="color:#6b7280; font-size: 14px; margin-top: 24px;">
+        Если статус заявки не обновится в течение 24 часов, пожалуйста, напишите нам в чат поддержки личного кабинета
+        или на почту <a href="mailto:{SUPPORT_EMAIL}" style="color:#6d28d9;">{SUPPORT_EMAIL}</a>.
+      </p>
+    </div>
+    """
+    msg.attach(MIMEText(html, 'html'))
+
+    if int(smtp_port) == 465:
+        with smtplib.SMTP_SSL(smtp_host, int(smtp_port)) as server:
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, to_email, msg.as_string())
+    else:
+        with smtplib.SMTP(smtp_host, int(smtp_port)) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, to_email, msg.as_string())
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
@@ -253,6 +301,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         'isBase64Encoded': False
                     }
                 
+                cur.execute('SELECT title FROM contests WHERE id = %s', (contest_id,))
+                contest_title = cur.fetchone()['title']
+                
                 # Создаем новую заявку (каждая подача - отдельная запись, включая повторные)
                 cur.execute(
                     '''
@@ -266,6 +317,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 application = cur.fetchone()
                 
                 conn.commit()
+                
+                try:
+                    send_application_received_email(email, full_name, contest_title)
+                except Exception as email_err:
+                    print(f'[EMAIL ERROR] {email_err}')
                 
                 return {
                     'statusCode': 200,
