@@ -26,7 +26,7 @@ interface AdminTabContentProps {
   contestFilter: string;
   setContestFilter: (filter: string) => void;
   contests: any[];
-  handleUpdateStatus: (id: number, status: string) => Promise<void>;
+  handleUpdateStatus: (id: number, status: string, adminComment?: string) => Promise<void>;
   handleDeleteApplication: (id: number) => Promise<void>;
   handleToggleEditingLock: (id: number, locked: boolean) => Promise<void>;
   handleToggleContestLock: (contestId: number, locked: boolean) => Promise<void>;

@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import RejectApplicationDialog from './RejectApplicationDialog';
 
 const CONTESTS_API = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
 
@@ -42,6 +43,7 @@ interface Application {
   submitted_at: string;
   editing_locked?: boolean;
   applications_locked?: boolean;
+  admin_comment?: string;
   files?: Array<{
     file_name: string;
     file_type: string;
@@ -60,7 +62,7 @@ interface ApplicationsTabProps {
   contestFilter: string;
   setContestFilter: (filter: string) => void;
   contests: any[];
-  onUpdateStatus: (applicationId: number, newStatus: string) => void;
+  onUpdateStatus: (applicationId: number, newStatus: string, adminComment?: string) => void;
   onDeleteApplication: (applicationId: number) => void;
   onToggleEditingLock: (applicationId: number, locked: boolean) => void;
   onToggleContestLock: (contestId: number, locked: boolean) => void;
@@ -83,6 +85,7 @@ const ApplicationsTab = ({
 }: ApplicationsTabProps) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [fieldDefsByContest, setFieldDefsByContest] = useState<Record<number, CustomFieldDef[]>>({});
+  const [rejectDialog, setRejectDialog] = useState<{ appId: number; status: 'rejected' | 'pending' } | null>(null);
 
   const loadFieldDefs = useCallback(async (contestId: number) => {
     if (fieldDefsByContest[contestId]) return;
@@ -278,12 +281,23 @@ const ApplicationsTab = ({
                         Одобрить
                       </Button>
                     )}
+                    {app.status !== 'pending' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-amber-600 hover:bg-amber-50"
+                        onClick={() => setRejectDialog({ appId: app.id, status: 'pending' })}
+                      >
+                        <Icon name="RotateCcw" size={16} className="mr-1" />
+                        На доработку
+                      </Button>
+                    )}
                     {app.status !== 'rejected' && (
                       <Button
                         size="sm"
                         variant="outline"
                         className="text-red-600 hover:bg-red-50"
-                        onClick={() => onUpdateStatus(app.id, 'rejected')}
+                        onClick={() => setRejectDialog({ appId: app.id, status: 'rejected' })}
                       >
                         <Icon name="X" size={16} className="mr-1" />
                         Отклонить
@@ -361,6 +375,14 @@ const ApplicationsTab = ({
 
                 {expandedId === app.id && (
                   <div className="mt-4 pt-4 border-t border-border space-y-3 animate-fade-in">
+                    {app.admin_comment && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                        <p className="text-sm font-medium text-amber-800 mb-1 flex items-center gap-1.5">
+                          <Icon name="MessageSquare" size={14} /> Комментарий организатора
+                        </p>
+                        <p className="text-sm text-amber-900 whitespace-pre-wrap">{app.admin_comment}</p>
+                      </div>
+                    )}
                     {app.achievements && (
                       <div>
                         <p className="text-sm font-medium mb-1">Достижения:</p>
@@ -444,6 +466,18 @@ const ApplicationsTab = ({
       <div className="mt-6 text-center text-sm text-muted-foreground">
         Показано заявок: {filteredApplications.length} из {applications.length}
       </div>
+
+      <RejectApplicationDialog
+        open={rejectDialog !== null}
+        status={rejectDialog?.status ?? null}
+        onClose={() => setRejectDialog(null)}
+        onConfirm={(comment) => {
+          if (rejectDialog) {
+            onUpdateStatus(rejectDialog.appId, rejectDialog.status, comment);
+          }
+          setRejectDialog(null);
+        }}
+      />
     </>
   );
 };

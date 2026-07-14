@@ -8,6 +8,7 @@ interface Application {
   submitted_at: string;
   editing_locked?: boolean;
   applications_locked?: boolean;
+  admin_comment?: string;
 }
 
 export const useAdminApplications = (statusFilter: string, contestFilter: string) => {
@@ -33,7 +34,7 @@ export const useAdminApplications = (statusFilter: string, contestFilter: string
     }
   };
 
-  const updateStatus = async (applicationId: number, newStatus: string) => {
+  const updateStatus = async (applicationId: number, newStatus: string, adminComment?: string) => {
     try {
       const response = await fetch(
         'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b',
@@ -43,6 +44,7 @@ export const useAdminApplications = (statusFilter: string, contestFilter: string
           body: JSON.stringify({
             application_id: applicationId,
             status: newStatus,
+            admin_comment: adminComment || '',
           }),
         }
       );

@@ -20,11 +20,11 @@ SUPPORT_EMAIL = 'indigo_fest@mail.ru'
 STATUS_LABELS = {
     'approved': 'одобрена',
     'rejected': 'отклонена',
-    'pending': 'снова на рассмотрении',
+    'pending': 'возвращена на доработку',
 }
 
 
-def send_status_update_email(to_email: str, full_name: str, contest_title: str, new_status: str) -> None:
+def send_status_update_email(to_email: str, full_name: str, contest_title: str, new_status: str, admin_comment: str = '') -> None:
     '''Отправляет участнику письмо об изменении статуса его заявки'''
     smtp_host = os.environ.get('SMTP_HOST')
     smtp_port = os.environ.get('SMTP_PORT')
@@ -34,7 +34,16 @@ def send_status_update_email(to_email: str, full_name: str, contest_title: str, 
         return
 
     status_label = STATUS_LABELS.get(new_status, new_status)
-    status_color = '#16a34a' if new_status == 'approved' else ('#dc2626' if new_status == 'rejected' else '#6d28d9')
+    status_color = '#16a34a' if new_status == 'approved' else ('#dc2626' if new_status in ('rejected', 'pending') else '#6d28d9')
+
+    comment_html = ''
+    if admin_comment and new_status in ('rejected', 'pending'):
+        comment_html = f"""
+      <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+        <p style="margin: 0 0 4px 0; font-weight: bold; color: #991b1b;">Комментарий организатора:</p>
+        <p style="margin: 0; white-space: pre-wrap;">{admin_comment}</p>
+      </div>
+        """
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = Header(f'Статус заявки на конкурс «{contest_title}» изменён — ИНДИГО', 'utf-8')
@@ -47,6 +56,7 @@ def send_status_update_email(to_email: str, full_name: str, contest_title: str, 
       <p>Здравствуйте, {full_name}!</p>
       <p>Статус вашей заявки на участие в конкурсе «<b>{contest_title}</b>» изменён:</p>
       <p style="font-size: 20px; font-weight: bold; color: {status_color};">Заявка {status_label}</p>
+      {comment_html}
       <p>Подробности можно посмотреть в <a href="{CABINET_URL}" style="color:#6d28d9;">личном кабинете участника</a>.</p>
       <p style="color:#6b7280; font-size: 14px; margin-top: 24px;">
         Если у вас есть вопросы, напишите нам в чат поддержки личного кабинета
@@ -322,6 +332,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         a.status,
                         a.submitted_at,
                         a.editing_locked,
+                        a.admin_comment,
                         p.full_name,
                         p.contact_position,
                         p.email,
@@ -383,6 +394,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             app_id = body.get('application_id')
             new_status = body.get('status')
             editing_locked = body.get('editing_locked')
+            admin_comment = body.get('admin_comment', '')
 
             if not app_id:
                 return {
@@ -449,10 +461,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         'isBase64Encoded': False
                     }
                 
-                # Обновляем статус заявки
+                # Обновляем статус заявки (комментарий сохраняем только для rejected/pending, при approved — очищаем)
                 cur.execute(
-                    "UPDATE applications SET status = %s WHERE id = %s",
-                    (new_status, app_id)
+                    "UPDATE applications SET status = %s, admin_comment = %s WHERE id = %s",
+                    (new_status, admin_comment if new_status in ('rejected', 'pending') else None, app_id)
                 )
                 
                 # Если заявка одобрена - обновляем участника для системы оценивания
@@ -532,7 +544,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         ))
             
             try:
-                send_status_update_email(application['email'], application['full_name'], application['contest_title'], new_status)
+                send_status_update_email(application['email'], application['full_name'], application['contest_title'], new_status, admin_comment)
             except Exception as email_err:
                 print(f'[EMAIL ERROR] {email_err}')
             

@@ -187,6 +187,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         a.status,
                         a.submitted_at,
                         a.editing_locked,
+                        a.admin_comment,
                         c.title as contest_title,
                         c.start_date,
                         c.end_date,

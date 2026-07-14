@@ -86,8 +86,8 @@ const AdminPage = () => {
     }
   };
 
-  const handleUpdateStatus = async (applicationId: number, newStatus: string) => {
-    const result = await updateStatus(applicationId, newStatus);
+  const handleUpdateStatus = async (applicationId: number, newStatus: string, adminComment?: string) => {
+    const result = await updateStatus(applicationId, newStatus, adminComment);
     if (result) {
       if (newStatus === 'approved') {
         toast({
@@ -97,8 +97,13 @@ const AdminPage = () => {
       } else if (newStatus === 'rejected') {
         toast({
           title: 'Заявка отклонена',
-          description: 'Статус заявки успешно обновлен',
+          description: 'Участнику отправлено письмо с комментарием',
           variant: 'destructive'
+        });
+      } else if (newStatus === 'pending') {
+        toast({
+          title: 'Заявка возвращена на доработку',
+          description: 'Участнику отправлено письмо с комментарием',
         });
       }
     }
