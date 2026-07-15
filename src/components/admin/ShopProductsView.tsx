@@ -81,7 +81,7 @@ const ShopProductsView = ({
                   {p.is_active ? 'Активен' : 'Скрыт'}
                 </span>
               </div>
-              {p.description && <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{p.description}</p>}
+              {p.description && <p className="text-sm text-muted-foreground mb-2 line-clamp-2 whitespace-pre-wrap">{p.description}</p>}
               <p className="font-bold text-lg mb-3">{p.price.toLocaleString('ru-RU')} ₽</p>
               <div className="flex gap-2 flex-wrap">
                 <Button size="sm" variant="outline" onClick={() => onOpenEdit(p)}><Icon name="Pencil" size={13} className="mr-1" /> Изм.</Button>

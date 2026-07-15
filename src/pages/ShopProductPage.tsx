@@ -218,7 +218,7 @@ const ShopProductPage = () => {
               )}
               <h1 className="text-3xl font-heading font-bold mb-2">{product.name}</h1>
               {product.description && (
-                <p className="text-muted-foreground mb-4">{product.description}</p>
+                <p className="text-muted-foreground mb-4 whitespace-pre-wrap">{product.description}</p>
               )}
               <p className="text-2xl font-bold text-secondary mb-6">
                 {product.price > 0 ? `${product.price.toLocaleString('ru-RU')} ₽` : 'Бесплатно'}
