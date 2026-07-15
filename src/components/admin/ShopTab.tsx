@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 import ShopFieldsEditor from './ShopFieldsEditor';
@@ -12,7 +13,7 @@ import ShopOrdersView from './ShopOrdersView';
 const PRODUCTS_URL = 'https://functions.poehali.dev/eddcb40d-3bae-4f75-9c69-390ad1190d83';
 const ORDERS_URL = 'https://functions.poehali.dev/b020db38-8100-400d-9e53-2dbfcafd5f48';
 
-interface Category { id: number; name: string; sort_order: number; }
+interface Category { id: number; name: string; sort_order: number; is_active: boolean; }
 interface FormField {
   id?: number;
   field_name: string;
@@ -163,6 +164,22 @@ const ShopTab = () => {
     setCategories(cs => cs.filter(c => c.id !== cat.id));
     if (selectedCatId === String(cat.id)) setSelectedCatId('');
     toast({ title: 'Раздел удалён' });
+  };
+
+  const toggleCategoryActive = async (cat: Category) => {
+    const nextActive = !cat.is_active;
+    setCategories(cs => cs.map(c => c.id === cat.id ? { ...c, is_active: nextActive } : c));
+    try {
+      const res = await fetch(`${PRODUCTS_URL}?action=category_update&id=${cat.id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: nextActive }),
+      });
+      if (!res.ok) throw new Error();
+      toast({ title: nextActive ? 'Раздел показан на витрине' : 'Раздел скрыт с витрины' });
+    } catch {
+      setCategories(cs => cs.map(c => c.id === cat.id ? { ...c, is_active: !nextActive } : c));
+      toast({ title: 'Ошибка изменения видимости', variant: 'destructive' });
+    }
   };
 
   // ── product CRUD ───────────────────────────────────────────────────────────
@@ -393,7 +410,7 @@ const ShopTab = () => {
       {/* ── CATEGORIES ── */}
       {view === 'categories' && (
         <div className="max-w-xl">
-          <p className="text-sm text-muted-foreground mb-4">Разделы отображаются на странице магазина в виде раскрывающегося списка.</p>
+          <p className="text-sm text-muted-foreground mb-4">Разделы отображаются на странице магазина в виде раскрывающегося списка. Переключателем можно скрыть раздел с товарами от посетителей, не удаляя его.</p>
           {catsLoading ? (
             <div className="text-center py-10"><Icon name="Loader" size={28} className="mx-auto animate-spin text-muted-foreground" /></div>
           ) : (
@@ -415,7 +432,15 @@ const ShopTab = () => {
                   ) : (
                     <>
                       <Icon name="GripVertical" size={16} className="text-muted-foreground/40 shrink-0" />
-                      <span className="flex-1 font-medium">{cat.name}</span>
+                      <span className={`flex-1 font-medium ${cat.is_active === false ? 'text-muted-foreground' : ''}`}>
+                        {cat.name}
+                        {cat.is_active === false && <span className="ml-2 text-xs font-normal text-muted-foreground">(скрыт)</span>}
+                      </span>
+                      <Switch
+                        checked={cat.is_active !== false}
+                        onCheckedChange={() => toggleCategoryActive(cat)}
+                        title={cat.is_active === false ? 'Показать раздел на витрине' : 'Скрыть раздел с витрины'}
+                      />
                       <Button size="sm" variant="ghost" onClick={() => setEditingCat({ ...cat })}>
                         <Icon name="Pencil" size={14} />
                       </Button>

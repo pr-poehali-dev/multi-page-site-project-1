@@ -10,7 +10,7 @@ import { useSEO } from '@/hooks/useSEO';
 
 const PRODUCTS_URL = 'https://functions.poehali.dev/eddcb40d-3bae-4f75-9c69-390ad1190d83';
 
-interface Category { id: number; name: string; sort_order: number; }
+interface Category { id: number; name: string; sort_order: number; is_active?: boolean; }
 interface Product {
   id: number;
   category_id: number | null;
@@ -38,7 +38,7 @@ const ShopPage = () => {
     fetch(`${PRODUCTS_URL}?action=categories`)
       .then(r => r.json())
       .then(d => {
-        const list: Category[] = (d.categories || []).filter((c: Category & { name: string }) => c.name !== '__deleted__');
+        const list: Category[] = (d.categories || []).filter((c: Category & { name: string }) => c.name !== '__deleted__' && c.is_active !== false);
         setCategories(list);
         if (list.length > 0) setSelectedCatId(String(list[0].id));
       })
@@ -48,8 +48,8 @@ const ShopPage = () => {
   useEffect(() => {
     setLoading(true);
     const url = selectedCatId
-      ? `${PRODUCTS_URL}?action=list&category_id=${selectedCatId}`
-      : `${PRODUCTS_URL}?action=list`;
+      ? `${PRODUCTS_URL}?action=list&category_id=${selectedCatId}&public=true`
+      : `${PRODUCTS_URL}?action=list&public=true`;
     fetch(url)
       .then(r => r.json())
       .then(d => setProducts((d.products || []).filter((p: Product) => p.is_active)))

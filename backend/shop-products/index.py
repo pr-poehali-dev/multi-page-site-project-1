@@ -98,6 +98,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     sets.append('name = %s'); vals.append(body['name'])
                 if 'sort_order' in body:
                     sets.append('sort_order = %s'); vals.append(body['sort_order'])
+                if 'is_active' in body:
+                    sets.append('is_active = %s'); vals.append(body['is_active'])
                 if not sets:
                     return {'statusCode': 400, 'headers': CORS,
                             'body': json.dumps({'error': 'nothing to update'})}
@@ -129,15 +131,27 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
             if method == 'GET' and action == 'list':
                 category_id = params.get('category_id')
+                public_only = params.get('public') == 'true'
                 if category_id:
+                    cat_filter = "AND (sc.id IS NULL OR sc.is_active = true)" if public_only else ""
                     cur.execute(f'''
                         SELECT p.*, sc.name AS category_name
                         FROM {SCHEMA}.shop_products p
                         LEFT JOIN {SCHEMA}.shop_categories sc ON sc.id = p.category_id
                         WHERE p.category_id = %s
                           AND p.name NOT IN ('__hidden__', '__deleted__')
+                          {cat_filter}
                         ORDER BY p.sort_order, p.id
                     ''', (category_id,))
+                elif public_only:
+                    cur.execute(f'''
+                        SELECT p.*, sc.name AS category_name
+                        FROM {SCHEMA}.shop_products p
+                        LEFT JOIN {SCHEMA}.shop_categories sc ON sc.id = p.category_id
+                        WHERE p.name NOT IN ('__hidden__', '__deleted__')
+                          AND (sc.id IS NULL OR sc.is_active = true)
+                        ORDER BY p.sort_order, p.id
+                    ''')
                 else:
                     cur.execute(f'''
                         SELECT p.*, sc.name AS category_name
