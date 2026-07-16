@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas';
 
 interface AdminTabNavigationProps {
   activeTab: TabType;
@@ -121,6 +121,13 @@ const AdminTabNavigation = ({ activeTab, onTabChange, onLogout }: AdminTabNaviga
         >
           <Icon name="ListChecks" className="mr-2 h-4 w-4" />
           Конструктор заявок
+        </Button>
+        <Button
+          variant={activeTab === 'diplomas' ? 'default' : 'outline'}
+          onClick={() => onTabChange('diplomas')}
+        >
+          <Icon name="FileBadge" className="mr-2 h-4 w-4" />
+          Дипломы
         </Button>
       </div>
     </div>

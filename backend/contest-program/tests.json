@@ -8,6 +8,18 @@
       "bodyMatcher": "partial"
     },
     {
+      "name": "GET templates returns 200",
+      "method": "GET",
+      "path": "/?action=templates",
+      "expectedStatus": 200
+    },
+    {
+      "name": "GET fonts returns 200",
+      "method": "GET",
+      "path": "/?action=fonts",
+      "expectedStatus": 200
+    },
+    {
       "name": "OPTIONS returns 200",
       "method": "OPTIONS",
       "path": "/",

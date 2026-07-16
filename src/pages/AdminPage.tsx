@@ -18,7 +18,7 @@ import AdminModalsContainer from '@/components/admin/AdminModalsContainer';
 const AdminPage = () => {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas'>('applications');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [contestFilter, setContestFilter] = useState('all');
@@ -228,6 +228,7 @@ const AdminPage = () => {
       case 'shop': return false;
       case 'participants': return false;
       case 'form-builder': return contestsLoading;
+      case 'diplomas': return false;
       default: return juryLoading;
     }
   }, [activeTab, applicationsLoading, contestsLoading, concertsLoading, scoringLoading, galleryLoading, resultsLoading, partnersLoading, juryLoading]);

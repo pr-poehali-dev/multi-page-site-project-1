@@ -1,10 +1,13 @@
 import json
 import os
+import base64
 import random
 import string
+import boto3
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
+from datetime import datetime, date
 
 SCHEMA = 't_p73771717_multi_page_site_proj'
 
@@ -22,14 +25,54 @@ for n in JURY_COUNTS:
     DEFAULT_SCORING[f'jury_count_{n}_diplom_3_min'] = n * 35
 
 
+def json_serial(obj):
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError(f'Object of type {type(obj)} is not JSON serializable')
+
+
+def _resp(status: int, data: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        'statusCode': status,
+        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+        'body': json.dumps(data, default=json_serial),
+        'isBase64Encoded': False,
+    }
+
+
+def upload_to_s3(file_b64: str, key: str, content_type: str) -> str:
+    file_data = base64.b64decode(file_b64)
+    s3 = boto3.client(
+        's3',
+        endpoint_url='https://bucket.poehali.dev',
+        aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+        aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
+    )
+    s3.put_object(Bucket='files', Key=key, Body=file_data, ContentType=content_type)
+    return f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
-    Управление программой конкурса и системой оценивания
-    GET /?contest_id=X - получить программу и правила оценивания конкурса
-    POST / - создать строку программы
-    PUT / - обновить строку программы
-    DELETE / - удалить строку программы
-    POST /?action=scoring - сохранить систему оценивания конкурса
+    Управление программой конкурса, системой оценивания и конструктором дипломов.
+    --- Программа ---
+    GET  /?contest_id=X                     — получить программу и правила оценивания конкурса
+    POST /                                  — создать строку программы
+    PUT  /                                  — обновить строку программы
+    DELETE /                                — удалить строку программы
+    POST /?action=scoring                   — сохранить систему оценивания конкурса
+    --- Конструктор дипломов: шаблоны ---
+    GET  /?action=templates                 — список всех шаблонов
+    GET  /?action=template&id=X             — шаблон + его поля
+    POST /?action=template_create           — создать { name, template_type, orientation }
+    PUT  /?action=template_update&id=X      — обновить { name, template_type, orientation, background_url }
+    DELETE /?action=template_delete&id=X    — удалить шаблон
+    POST /?action=upload_background&id=X    — загрузить фон { file_base64, file_name }
+    POST /?action=save_fields&template_id=X — сохранить поля шаблона (полная замена)
+    --- Конструктор дипломов: шрифты ---
+    GET  /?action=fonts                     — список загруженных шрифтов
+    POST /?action=upload_font               — загрузить шрифт { name, file_base64, file_name }
+    DELETE /?action=delete_font&id=X        — удалить шрифт
     '''
     method = event.get('httpMethod', 'GET')
 
@@ -55,15 +98,39 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     try:
         if method == 'GET':
-            return get_program(conn, event)
-        elif method == 'POST' and action == 'scoring':
-            return save_scoring(conn, event)
+            if action == 'templates':
+                return list_templates(conn)
+            elif action == 'template':
+                return get_template(conn, params.get('id'))
+            elif action == 'fonts':
+                return list_fonts(conn)
+            else:
+                return get_program(conn, event)
         elif method == 'POST':
-            return create_row(conn, event)
+            if action == 'scoring':
+                return save_scoring(conn, event)
+            elif action == 'template_create':
+                return create_template(conn, event)
+            elif action == 'upload_background':
+                return upload_background(conn, params.get('id'), event)
+            elif action == 'save_fields':
+                return save_fields(conn, params.get('template_id'), event)
+            elif action == 'upload_font':
+                return upload_font(conn, event)
+            else:
+                return create_row(conn, event)
         elif method == 'PUT':
-            return update_row(conn, event)
+            if action == 'template_update':
+                return update_template(conn, params.get('id'), event)
+            else:
+                return update_row(conn, event)
         elif method == 'DELETE':
-            return delete_row(conn, event)
+            if action == 'template_delete':
+                return delete_template(conn, params.get('id'))
+            elif action == 'delete_font':
+                return delete_font(conn, params.get('id'))
+            else:
+                return delete_row(conn, event)
         else:
             return {'statusCode': 405, 'headers': {'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Метод не поддерживается'}), 'isBase64Encoded': False}
     finally:
@@ -214,33 +281,189 @@ def delete_row(conn, event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def save_scoring(conn, event: Dict[str, Any]) -> Dict[str, Any]:
-    '''Сохранение системы оценивания конкурса (upsert) для 1-5 судей'''
+    '''Сохранение системы оценивания (пороговых значений) конкурса'''
     body = json.loads(event.get('body', '{}'))
     contest_id = body.get('contest_id')
     if not contest_id:
-        return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'contest_id обязателен'}), 'isBase64Encoded': False}
+        return _resp(400, {'error': 'contest_id обязателен'})
 
-    all_cols = [f'jury_count_{n}_{lvl}' for n in JURY_COUNTS for lvl in LEVELS]
-    values_dict = {col: body.get(col, DEFAULT_SCORING.get(col, 0)) for col in all_cols}
-
-    set_clause = ', '.join([f'{col} = %s' for col in all_cols])
-    insert_cols = ', '.join(['contest_id'] + all_cols)
-    insert_placeholders = ', '.join(['%s'] * (1 + len(all_cols)))
-    insert_values = [contest_id] + [values_dict[col] for col in all_cols]
-    update_values = [values_dict[col] for col in all_cols]
+    cols = [f'jury_count_{n}_{lvl}' for n in JURY_COUNTS for lvl in LEVELS]
+    values = [body.get(c, DEFAULT_SCORING[c]) for c in cols]
 
     with conn.cursor() as cur:
-        cur.execute(f'''
-            INSERT INTO {SCHEMA}.contest_scoring_rules ({insert_cols})
-            VALUES ({insert_placeholders})
-            ON CONFLICT (contest_id) DO UPDATE SET
-              {set_clause},
-              updated_at = NOW()
-        ''', insert_values + update_values)
+        cur.execute(f'SELECT id FROM {SCHEMA}.contest_scoring_rules WHERE contest_id = %s', (contest_id,))
+        exists = cur.fetchone()
+        if exists:
+            sets = ', '.join([f'{c} = %s' for c in cols])
+            cur.execute(f'UPDATE {SCHEMA}.contest_scoring_rules SET {sets}, updated_at = NOW() WHERE contest_id = %s', values + [contest_id])
+        else:
+            placeholders = ', '.join(['%s'] * (len(cols) + 1))
+            cur.execute(f'INSERT INTO {SCHEMA}.contest_scoring_rules (contest_id, {", ".join(cols)}) VALUES ({placeholders})', [contest_id] + values)
 
-    return {
-        'statusCode': 200,
-        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'success': True}),
-        'isBase64Encoded': False
-    }
+    return _resp(200, {'success': True})
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# КОНСТРУКТОР ДИПЛОМОВ: ШАБЛОНЫ
+# ══════════════════════════════════════════════════════════════════════════════
+
+def list_templates(conn) -> Dict[str, Any]:
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'''
+            SELECT t.*, COUNT(f.id) AS fields_count
+            FROM {SCHEMA}.diploma_templates t
+            LEFT JOIN {SCHEMA}.diploma_template_fields f ON f.template_id = t.id
+            GROUP BY t.id
+            ORDER BY t.created_at DESC
+        ''')
+        templates = [dict(r) for r in cur.fetchall()]
+    return _resp(200, {'templates': templates})
+
+
+def get_template(conn, tid) -> Dict[str, Any]:
+    if not tid:
+        return _resp(400, {'error': 'id required'})
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'SELECT * FROM {SCHEMA}.diploma_templates WHERE id = %s', (tid,))
+        template = cur.fetchone()
+        if not template:
+            return _resp(404, {'error': 'not found'})
+        cur.execute(f'''
+            SELECT * FROM {SCHEMA}.diploma_template_fields
+            WHERE template_id = %s ORDER BY sort_order, id
+        ''', (tid,))
+        fields = [dict(f) for f in cur.fetchall()]
+    return _resp(200, {'template': dict(template), 'fields': fields})
+
+
+def create_template(conn, event) -> Dict[str, Any]:
+    body = json.loads(event.get('body') or '{}')
+    name = (body.get('name') or '').strip()
+    if not name:
+        return _resp(400, {'error': 'name required'})
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'''
+            INSERT INTO {SCHEMA}.diploma_templates (name, template_type, orientation)
+            VALUES (%s, %s, %s) RETURNING *
+        ''', (name, body.get('template_type', 'diploma'), body.get('orientation', 'portrait')))
+        template = dict(cur.fetchone())
+    return _resp(200, {'template': template})
+
+
+def update_template(conn, tid, event) -> Dict[str, Any]:
+    body = json.loads(event.get('body') or '{}')
+    if not tid:
+        return _resp(400, {'error': 'id required'})
+    sets, vals = [], []
+    for f in ['name', 'template_type', 'orientation', 'background_url']:
+        if f in body:
+            sets.append(f'{f} = %s')
+            vals.append(body[f])
+    if not sets:
+        return _resp(400, {'error': 'nothing to update'})
+    sets.append('updated_at = NOW()')
+    vals.append(tid)
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'''
+            UPDATE {SCHEMA}.diploma_templates SET {', '.join(sets)}
+            WHERE id = %s RETURNING *
+        ''', vals)
+        template = cur.fetchone()
+    return _resp(200, {'template': dict(template) if template else None})
+
+
+def delete_template(conn, tid) -> Dict[str, Any]:
+    if not tid:
+        return _resp(400, {'error': 'id required'})
+    with conn.cursor() as cur:
+        cur.execute(f'DELETE FROM {SCHEMA}.diploma_template_fields WHERE template_id = %s', (tid,))
+        cur.execute(f'DELETE FROM {SCHEMA}.diploma_templates WHERE id = %s', (tid,))
+    return _resp(200, {'ok': True})
+
+
+def upload_background(conn, tid, event) -> Dict[str, Any]:
+    body = json.loads(event.get('body') or '{}')
+    file_b64 = body.get('file_base64', '')
+    file_name = body.get('file_name', 'bg.jpg')
+    if not tid or not file_b64:
+        return _resp(400, {'error': 'id and file_base64 required'})
+    ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else 'jpg'
+    content_type = f'image/{ext}' if ext != 'jpg' else 'image/jpeg'
+    url = upload_to_s3(file_b64, f'diploma-templates/{tid}/background.{ext}', content_type)
+    with conn.cursor() as cur:
+        cur.execute(f'UPDATE {SCHEMA}.diploma_templates SET background_url = %s, updated_at = NOW() WHERE id = %s', (url, tid))
+    return _resp(200, {'background_url': url})
+
+
+def save_fields(conn, tid, event) -> Dict[str, Any]:
+    body = json.loads(event.get('body') or '{}')
+    fields = body.get('fields', [])
+    if not tid:
+        return _resp(400, {'error': 'template_id required'})
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'SELECT id FROM {SCHEMA}.diploma_templates WHERE id = %s', (tid,))
+        if not cur.fetchone():
+            return _resp(404, {'error': 'template not found'})
+        cur.execute(f'DELETE FROM {SCHEMA}.diploma_template_fields WHERE template_id = %s', (tid,))
+        saved = []
+        for i, f in enumerate(fields):
+            cur.execute(f'''
+                INSERT INTO {SCHEMA}.diploma_template_fields
+                  (template_id, data_key, custom_text, pos_x, pos_y, width, height,
+                   font_family, font_size, font_color, font_weight, line_height, text_align, sort_order)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                RETURNING *
+            ''', (
+                tid,
+                f.get('data_key', 'custom'),
+                f.get('custom_text', ''),
+                f.get('pos_x', 10),
+                f.get('pos_y', 10),
+                f.get('width', 30),
+                f.get('height', 10),
+                f.get('font_family', 'Montserrat'),
+                f.get('font_size', 16),
+                f.get('font_color', '#000000'),
+                f.get('font_weight', 'normal'),
+                f.get('line_height', 1.2),
+                f.get('text_align', 'center'),
+                i,
+            ))
+            saved.append(dict(cur.fetchone()))
+    return _resp(200, {'fields': saved})
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# КОНСТРУКТОР ДИПЛОМОВ: ШРИФТЫ
+# ══════════════════════════════════════════════════════════════════════════════
+
+def list_fonts(conn) -> Dict[str, Any]:
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'SELECT * FROM {SCHEMA}.diploma_fonts ORDER BY name')
+        fonts = [dict(r) for r in cur.fetchall()]
+    return _resp(200, {'fonts': fonts})
+
+
+def upload_font(conn, event) -> Dict[str, Any]:
+    body = json.loads(event.get('body') or '{}')
+    name = (body.get('name') or '').strip()
+    file_b64 = body.get('file_base64', '')
+    file_name = body.get('file_name', 'font.ttf')
+    if not name or not file_b64:
+        return _resp(400, {'error': 'name and file_base64 required'})
+    ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else 'ttf'
+    content_type = 'font/ttf' if ext == 'ttf' else 'font/otf' if ext == 'otf' else 'application/octet-stream'
+    safe_name = name.replace(' ', '_')
+    url = upload_to_s3(file_b64, f'diploma-fonts/{safe_name}.{ext}', content_type)
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'INSERT INTO {SCHEMA}.diploma_fonts (name, font_url) VALUES (%s, %s) RETURNING *', (name, url))
+        font = dict(cur.fetchone())
+    return _resp(200, {'font': font})
+
+
+def delete_font(conn, fid) -> Dict[str, Any]:
+    if not fid:
+        return _resp(400, {'error': 'id required'})
+    with conn.cursor() as cur:
+        cur.execute(f'DELETE FROM {SCHEMA}.diploma_fonts WHERE id = %s', (fid,))
+    return _resp(200, {'ok': True})

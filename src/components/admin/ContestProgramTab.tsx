@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 import * as XLSX from 'xlsx';
+import DiplomaPrintModal from './diploma/DiplomaPrintModal';
 
 const API_URL = 'https://functions.poehali.dev/9fcbf70c-fd6d-4489-bc77-1e4bcd6f1cb1';
 
@@ -58,6 +59,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newRow, setNewRow] = useState(emptyRow());
   const [formatFilter, setFormatFilter] = useState<string>('all');
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -291,6 +293,10 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
               <Icon name="Download" className="mr-2 h-4 w-4" />
               Экспорт Excel
             </Button>
+            <Button variant="outline" onClick={() => setShowPrintModal(true)} disabled={rows.length === 0}>
+              <Icon name="Printer" className="mr-2 h-4 w-4" />
+              Напечатать дипломы
+            </Button>
             <label>
               <Button variant="outline" asChild>
                 <span className="cursor-pointer">
@@ -446,6 +452,18 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
           </Card>
         </>
       )}
+
+      {showPrintModal && selectedContestId && (() => {
+        const contest = contests.find(c => String(c.id) === selectedContestId);
+        if (!contest) return null;
+        return (
+          <DiplomaPrintModal
+            contest={contest}
+            rows={filteredRows}
+            onClose={() => setShowPrintModal(false)}
+          />
+        );
+      })()}
     </div>
   );
 };
