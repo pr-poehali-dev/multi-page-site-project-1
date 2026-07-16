@@ -31,7 +31,6 @@ const emptyField = (): DiplomaTemplateField => ({
 });
 
 const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProps) => {
-  const { toast } = useToast();
   const { loadTemplate, updateTemplate, uploadBackground, saveFields, fonts, uploadFont, deleteFont } = useDiplomaTemplates();
   const [template, setTemplate] = useState<DiplomaTemplate | null>(null);
   const [fields, setFields] = useState<DiplomaTemplateField[]>([]);
