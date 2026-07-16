@@ -10,14 +10,14 @@ import { useSEO } from '@/hooks/useSEO';
 const DIPLOMA_CHECK_URL = 'https://functions.poehali.dev/1806f979-38b3-442e-b8ef-fa6827104251';
 
 const AWARD_COLORS: Record<string, string> = {
-  'Гран-При': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-  'Лауреат I': 'bg-amber-100 text-amber-800 border-amber-300',
-  'Лауреат II': 'bg-orange-100 text-orange-800 border-orange-300',
-  'Лауреат III': 'bg-blue-100 text-blue-800 border-blue-300',
-  'Дипломант I': 'bg-teal-100 text-teal-800 border-teal-300',
-  'Дипломант II': 'bg-cyan-100 text-cyan-800 border-cyan-300',
-  'Дипломант III': 'bg-sky-100 text-sky-800 border-sky-300',
-  'Участник': 'bg-gray-100 text-gray-700 border-gray-300',
+  'ОБЛАДАТЕЛЬ ГРАН-ПРИ': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+  'ЛАУРЕАТ I СТЕПЕНИ': 'bg-amber-100 text-amber-800 border-amber-300',
+  'ЛАУРЕАТ II СТЕПЕНИ': 'bg-orange-100 text-orange-800 border-orange-300',
+  'ЛАУРЕАТ III СТЕПЕНИ': 'bg-blue-100 text-blue-800 border-blue-300',
+  'ДИПЛОМАНТ I СТЕПЕНИ': 'bg-teal-100 text-teal-800 border-teal-300',
+  'ДИПЛОМАНТ II СТЕПЕНИ': 'bg-cyan-100 text-cyan-800 border-cyan-300',
+  'ДИПЛОМАНТ III СТЕПЕНИ': 'bg-sky-100 text-sky-800 border-sky-300',
+  'УЧАСТНИК': 'bg-gray-100 text-gray-700 border-gray-300',
 };
 
 interface DiplomaResult {

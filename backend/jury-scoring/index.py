@@ -427,20 +427,20 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     return ''
                 t = thresholds.get(jury_count, default_thresholds.get(jury_count, {}))
                 if total >= t.get('grand_prix', 9999):
-                    return 'Гран-При'
+                    return 'ОБЛАДАТЕЛЬ ГРАН-ПРИ'
                 elif total >= t.get('laureate_1', 9999):
-                    return 'Лауреат I'
+                    return 'ЛАУРЕАТ I СТЕПЕНИ'
                 elif total >= t.get('laureate_2', 9999):
-                    return 'Лауреат II'
+                    return 'ЛАУРЕАТ II СТЕПЕНИ'
                 elif total >= t.get('laureate_3', 9999):
-                    return 'Лауреат III'
+                    return 'ЛАУРЕАТ III СТЕПЕНИ'
                 elif total >= t.get('diplom_1', 9999):
-                    return 'Дипломант I'
+                    return 'ДИПЛОМАНТ I СТЕПЕНИ'
                 elif total >= t.get('diplom_2', 9999):
-                    return 'Дипломант II'
+                    return 'ДИПЛОМАНТ II СТЕПЕНИ'
                 elif total >= t.get('diplom_3', 9999):
-                    return 'Дипломант III'
-                return 'Участник'
+                    return 'ДИПЛОМАНТ III СТЕПЕНИ'
+                return 'УЧАСТНИК'
 
             result = []
             for row in program_rows:
