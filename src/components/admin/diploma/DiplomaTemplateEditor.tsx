@@ -38,6 +38,7 @@ const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProp
   const [saving, setSaving] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
   const [showFontsManager, setShowFontsManager] = useState(false);
+  const [, setFontsVersion] = useState(0);
 
   const load = useCallback(async () => {
     const data = await loadTemplate(templateId);
@@ -49,7 +50,7 @@ const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProp
   }, [templateId]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { loadCustomFonts(fonts); }, [fonts]);
+  useEffect(() => { loadCustomFonts(fonts).then(() => setFontsVersion(v => v + 1)); }, [fonts]);
 
   const addField = () => {
     setFields(prev => [...prev, emptyField()]);

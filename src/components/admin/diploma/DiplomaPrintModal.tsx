@@ -54,8 +54,9 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [previewRow, setPreviewRow] = useState<ProgramRow | null>(rows[0] || null);
+  const [, setFontsVersion] = useState(0);
 
-  useEffect(() => { loadCustomFonts(fonts); }, [fonts]);
+  useEffect(() => { loadCustomFonts(fonts).then(() => setFontsVersion(v => v + 1)); }, [fonts]);
 
   useEffect(() => {
     fetch(`${RESULTS_API}?action=results_table&contest_id=${contest.id}`)
@@ -138,6 +139,8 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
     if (!templateId || selectedRows.length === 0) return;
     setGenerating(true);
     try {
+      await loadCustomFonts(fonts);
+      await document.fonts.ready;
       const container = document.createElement('div');
       container.style.position = 'fixed';
       container.style.left = '-9999px';
