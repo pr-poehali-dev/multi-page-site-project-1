@@ -113,7 +113,7 @@ const SortableFieldItem = ({ field: f, index: i, updateField, removeField }: Sor
         </div>
         <div className="col-span-1 flex flex-col items-center gap-1">
           <label className="text-xs text-muted-foreground">Обяз.</label>
-          <input type="checkbox" checked={f.is_required} onChange={e => updateField(i, 'is_required', e.target.checked)} className="w-4 h-4 cursor-pointer disabled:cursor-not-allowed" disabled={isSystem} />
+          <input type="checkbox" checked={f.is_required} onChange={e => updateField(i, 'is_required', e.target.checked)} className="w-4 h-4 cursor-pointer" />
         </div>
         <div className="col-span-1 flex justify-center">
           {isSystem ? (
@@ -129,7 +129,7 @@ const SortableFieldItem = ({ field: f, index: i, updateField, removeField }: Sor
       </div>
       {isSystem && (
         <p className="text-xs text-secondary flex items-center gap-1">
-          <Icon name="Info" size={12} /> Обязательное системное поле. Его значение автоматически попадает в программу конкурса
+          <Icon name="Info" size={12} /> Системное поле — его значение автоматически попадает в программу конкурса. Обязательность можно менять
         </p>
       )}
       {f.field_type === 'select' && (
@@ -245,7 +245,7 @@ const ApplicationFormBuilderTab = ({ contests }: Props) => {
   const updateField = (i: number, key: keyof FormField, val: string | boolean | number) => {
     setFields(fs => fs.map((f, idx) => {
       if (idx !== i) return f;
-      if (f.system_key && (key === 'field_type' || key === 'field_name' || key === 'is_required')) return f;
+      if (f.system_key && (key === 'field_type' || key === 'field_name')) return f;
       return { ...f, [key]: val };
     }));
   };

@@ -447,8 +447,9 @@ def delete_template(conn, template_id) -> Dict[str, Any]:
 
 def save_template_fields(conn, event) -> Dict[str, Any]:
     '''Полная замена полей шаблона (удаление старых + вставка новых).
-    Системные поля (SYSTEM_FIELDS) всегда обязательны и не могут быть удалены -
-    если их нет в переданном списке, они будут добавлены автоматически.'''
+    Системные поля (SYSTEM_FIELDS) не могут быть удалены -
+    если их нет в переданном списке, они будут добавлены автоматически (обязательными по умолчанию).
+    Признак is_required для системных полей теперь редактируется администратором так же, как и для обычных.'''
     body = json.loads(event.get('body', '{}'))
     template_id = body.get('template_id')
     fields = body.get('fields', [])
@@ -464,7 +465,6 @@ def save_template_fields(conn, event) -> Dict[str, Any]:
         next_order = len(fields) + len(missing_system_fields)
 
         for i, f in enumerate(fields):
-            is_system = bool(f.get('system_key'))
             cur.execute('''
                 INSERT INTO application_form_fields
                 (template_id, field_name, field_label, field_type, options, is_required, sort_order, system_key)
@@ -475,7 +475,7 @@ def save_template_fields(conn, event) -> Dict[str, Any]:
                 f.get('field_label', ''),
                 f.get('field_type', 'text'),
                 f.get('options', ''),
-                True if is_system else bool(f.get('is_required', False)),
+                bool(f.get('is_required', False)),
                 f.get('sort_order', i),
                 f.get('system_key') or None,
             ))
