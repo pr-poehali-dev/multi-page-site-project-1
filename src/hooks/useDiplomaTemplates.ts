@@ -33,7 +33,7 @@ export const useDiplomaTemplates = () => {
 
   useEffect(() => { loadTemplates(); loadFonts(); }, [loadTemplates, loadFonts]);
 
-  const createTemplate = async (name: string, templateType: string, orientation: string): Promise<DiplomaTemplate | null> => {
+  const createTemplate = useCallback(async (name: string, templateType: string, orientation: string): Promise<DiplomaTemplate | null> => {
     try {
       const res = await fetch(`${API}?action=template_create`, {
         method: 'POST',
@@ -49,9 +49,9 @@ export const useDiplomaTemplates = () => {
       toast({ title: 'Ошибка создания шаблона', variant: 'destructive' });
       return null;
     }
-  };
+  }, [toast]);
 
-  const deleteTemplate = async (id: number) => {
+  const deleteTemplate = useCallback(async (id: number) => {
     if (!confirm('Удалить шаблон? Это действие необратимо.')) return;
     try {
       await fetch(`${API}?action=template_delete&id=${id}`, { method: 'DELETE' });
@@ -60,9 +60,9 @@ export const useDiplomaTemplates = () => {
     } catch {
       toast({ title: 'Ошибка удаления', variant: 'destructive' });
     }
-  };
+  }, [toast]);
 
-  const loadTemplate = async (id: number): Promise<{ template: DiplomaTemplate; fields: DiplomaTemplateField[] } | null> => {
+  const loadTemplate = useCallback(async (id: number): Promise<{ template: DiplomaTemplate; fields: DiplomaTemplateField[] } | null> => {
     try {
       const res = await fetch(`${API}?action=template&id=${id}`);
       const data = await res.json();
@@ -72,9 +72,9 @@ export const useDiplomaTemplates = () => {
       toast({ title: 'Ошибка загрузки шаблона', variant: 'destructive' });
       return null;
     }
-  };
+  }, [toast]);
 
-  const updateTemplate = async (id: number, updates: Partial<DiplomaTemplate>) => {
+  const updateTemplate = useCallback(async (id: number, updates: Partial<DiplomaTemplate>) => {
     try {
       const res = await fetch(`${API}?action=template_update&id=${id}`, {
         method: 'PUT',
@@ -86,9 +86,9 @@ export const useDiplomaTemplates = () => {
     } catch {
       toast({ title: 'Ошибка сохранения', variant: 'destructive' });
     }
-  };
+  }, [toast]);
 
-  const uploadBackground = async (id: number, file: File): Promise<string | null> => {
+  const uploadBackground = useCallback(async (id: number, file: File): Promise<string | null> => {
     try {
       const b64 = await new Promise<string>((resolve, reject) => {
         const r = new FileReader();
@@ -109,9 +109,9 @@ export const useDiplomaTemplates = () => {
       toast({ title: 'Ошибка загрузки подложки', variant: 'destructive' });
       return null;
     }
-  };
+  }, [toast]);
 
-  const saveFields = async (templateId: number, fields: DiplomaTemplateField[]): Promise<DiplomaTemplateField[] | null> => {
+  const saveFields = useCallback(async (templateId: number, fields: DiplomaTemplateField[]): Promise<DiplomaTemplateField[] | null> => {
     try {
       const res = await fetch(`${API}?action=save_fields&template_id=${templateId}`, {
         method: 'POST',
@@ -126,9 +126,9 @@ export const useDiplomaTemplates = () => {
       toast({ title: 'Ошибка сохранения полей', variant: 'destructive' });
       return null;
     }
-  };
+  }, [toast]);
 
-  const uploadFont = async (name: string, file: File): Promise<DiplomaFont | null> => {
+  const uploadFont = useCallback(async (name: string, file: File): Promise<DiplomaFont | null> => {
     try {
       const b64 = await new Promise<string>((resolve, reject) => {
         const r = new FileReader();
@@ -150,9 +150,9 @@ export const useDiplomaTemplates = () => {
       toast({ title: 'Ошибка загрузки шрифта', variant: 'destructive' });
       return null;
     }
-  };
+  }, [toast]);
 
-  const deleteFont = async (id: number) => {
+  const deleteFont = useCallback(async (id: number) => {
     try {
       await fetch(`${API}?action=delete_font&id=${id}`, { method: 'DELETE' });
       setFonts(prev => prev.filter(f => f.id !== id));
@@ -160,7 +160,7 @@ export const useDiplomaTemplates = () => {
     } catch {
       toast({ title: 'Ошибка удаления шрифта', variant: 'destructive' });
     }
-  };
+  }, [toast]);
 
   return {
     templates, loading, fonts,

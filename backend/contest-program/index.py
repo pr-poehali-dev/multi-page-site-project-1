@@ -8,6 +8,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
 from datetime import datetime, date
+from decimal import Decimal
 
 SCHEMA = 't_p73771717_multi_page_site_proj'
 
@@ -28,6 +29,8 @@ for n in JURY_COUNTS:
 def json_serial(obj):
     if isinstance(obj, (datetime, date)):
         return obj.isoformat()
+    if isinstance(obj, Decimal):
+        return float(obj)
     raise TypeError(f'Object of type {type(obj)} is not JSON serializable')
 
 
