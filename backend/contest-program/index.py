@@ -3,6 +3,7 @@ import os
 import base64
 import random
 import string
+import uuid
 import boto3
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -457,7 +458,10 @@ def upload_font(conn, event) -> Dict[str, Any]:
     ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else 'ttf'
     content_type = 'font/ttf' if ext == 'ttf' else 'font/otf' if ext == 'otf' else 'application/octet-stream'
     safe_name = name.replace(' ', '_')
-    url = upload_to_s3(file_b64, f'diploma-fonts/{safe_name}.{ext}', content_type)
+    # Уникальный суффикс в ключе файла — чтобы при повторной загрузке шрифта с тем же именем
+    # получался новый URL и браузер/CDN не отдавали закэшированную старую версию файла.
+    version = uuid.uuid4().hex[:8]
+    url = upload_to_s3(file_b64, f'diploma-fonts/{safe_name}_{version}.{ext}', content_type)
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(f'INSERT INTO {SCHEMA}.diploma_fonts (name, font_url) VALUES (%s, %s) RETURNING *', (name, url))
         font = dict(cur.fetchone())
