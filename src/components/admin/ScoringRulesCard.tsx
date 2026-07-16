@@ -5,13 +5,13 @@ import Icon from '@/components/ui/icon';
 
 const JURY_COUNTS = [1, 2, 3, 4, 5];
 const LEVELS = [
-  { key: 'grand_prix_min', label: 'ОБЛАДАТЕЛЬ ГРАН-ПРИ' },
-  { key: 'laureate_1_min', label: 'ЛАУРЕАТ I СТЕПЕНИ' },
-  { key: 'laureate_2_min', label: 'ЛАУРЕАТ II СТЕПЕНИ' },
-  { key: 'laureate_3_min', label: 'ЛАУРЕАТ III СТЕПЕНИ' },
-  { key: 'diplom_1_min', label: 'ДИПЛОМАНТ I СТЕПЕНИ' },
-  { key: 'diplom_2_min', label: 'ДИПЛОМАНТ II СТЕПЕНИ' },
-  { key: 'diplom_3_min', label: 'ДИПЛОМАНТ III СТЕПЕНИ' },
+  { key: 'grand_prix_min', label: 'ОБЛАДАТЕЛЯ ГРАН-ПРИ' },
+  { key: 'laureate_1_min', label: 'ЛАУРЕАТА I СТЕПЕНИ' },
+  { key: 'laureate_2_min', label: 'ЛАУРЕАТА II СТЕПЕНИ' },
+  { key: 'laureate_3_min', label: 'ЛАУРЕАТА III СТЕПЕНИ' },
+  { key: 'diplom_1_min', label: 'ДИПЛОМАНТА I СТЕПЕНИ' },
+  { key: 'diplom_2_min', label: 'ДИПЛОМАНТА II СТЕПЕНИ' },
+  { key: 'diplom_3_min', label: 'ДИПЛОМАНТА III СТЕПЕНИ' },
 ] as const;
 
 type ScoringKey = `jury_count_${1|2|3|4|5}_${'grand_prix_min'|'laureate_1_min'|'laureate_2_min'|'laureate_3_min'|'diplom_1_min'|'diplom_2_min'|'diplom_3_min'}`;

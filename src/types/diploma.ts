@@ -52,7 +52,7 @@ export const DIPLOMA_DATA_FIELDS: DataFieldOption[] = [
   { key: 'duration', label: 'Хронометраж' },
   { key: 'participation_format', label: 'Формат участия' },
   { key: 'diploma_number', label: 'Номер диплома' },
-  { key: 'award', label: 'Звание (ЛАУРЕАТ I СТЕПЕНИ, ДИПЛОМАНТ и т.д.)' },
+  { key: 'award', label: 'Звание (ЛАУРЕАТА I СТЕПЕНИ, ДИПЛОМАНТА и т.д.)' },
   { key: 'contest_title', label: 'Название конкурса' },
   { key: 'contest_location', label: 'Город конкурса' },
   { key: 'contest_event_date', label: 'Дата конкурса' },

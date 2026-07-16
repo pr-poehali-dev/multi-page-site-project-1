@@ -17,14 +17,14 @@ export interface Diploma {
 }
 
 const AWARD_COLORS: Record<string, string> = {
-  'ОБЛАДАТЕЛЬ ГРАН-ПРИ': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-  'ЛАУРЕАТ I СТЕПЕНИ': 'bg-amber-100 text-amber-800 border-amber-300',
-  'ЛАУРЕАТ II СТЕПЕНИ': 'bg-orange-100 text-orange-800 border-orange-300',
-  'ЛАУРЕАТ III СТЕПЕНИ': 'bg-blue-100 text-blue-800 border-blue-300',
-  'ДИПЛОМАНТ I СТЕПЕНИ': 'bg-teal-100 text-teal-800 border-teal-300',
-  'ДИПЛОМАНТ II СТЕПЕНИ': 'bg-cyan-100 text-cyan-800 border-cyan-300',
-  'ДИПЛОМАНТ III СТЕПЕНИ': 'bg-sky-100 text-sky-800 border-sky-300',
-  'УЧАСТНИК': 'bg-gray-100 text-gray-700 border-gray-300',
+  'ОБЛАДАТЕЛЯ ГРАН-ПРИ': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+  'ЛАУРЕАТА I СТЕПЕНИ': 'bg-amber-100 text-amber-800 border-amber-300',
+  'ЛАУРЕАТА II СТЕПЕНИ': 'bg-orange-100 text-orange-800 border-orange-300',
+  'ЛАУРЕАТА III СТЕПЕНИ': 'bg-blue-100 text-blue-800 border-blue-300',
+  'ДИПЛОМАНТА I СТЕПЕНИ': 'bg-teal-100 text-teal-800 border-teal-300',
+  'ДИПЛОМАНТА II СТЕПЕНИ': 'bg-cyan-100 text-cyan-800 border-cyan-300',
+  'ДИПЛОМАНТА III СТЕПЕНИ': 'bg-sky-100 text-sky-800 border-sky-300',
+  'УЧАСТНИКА': 'bg-gray-100 text-gray-700 border-gray-300',
 };
 
 interface CabinetAwardsTabProps {

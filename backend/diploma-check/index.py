@@ -143,14 +143,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             award = ''
             if all_scored and jury_count > 0:
                 t = thresholds.get(jury_count, DEFAULT_THRESHOLDS.get(jury_count, {}))
-                if total >= t.get('grand_prix', 9999): award = 'ОБЛАДАТЕЛЬ ГРАН-ПРИ'
-                elif total >= t.get('laureate_1', 9999): award = 'ЛАУРЕАТ I СТЕПЕНИ'
-                elif total >= t.get('laureate_2', 9999): award = 'ЛАУРЕАТ II СТЕПЕНИ'
-                elif total >= t.get('laureate_3', 9999): award = 'ЛАУРЕАТ III СТЕПЕНИ'
-                elif total >= t.get('diplom_1', 9999): award = 'ДИПЛОМАНТ I СТЕПЕНИ'
-                elif total >= t.get('diplom_2', 9999): award = 'ДИПЛОМАНТ II СТЕПЕНИ'
-                elif total >= t.get('diplom_3', 9999): award = 'ДИПЛОМАНТ III СТЕПЕНИ'
-                else: award = 'УЧАСТНИК'
+                if total >= t.get('grand_prix', 9999): award = 'ОБЛАДАТЕЛЯ ГРАН-ПРИ'
+                elif total >= t.get('laureate_1', 9999): award = 'ЛАУРЕАТА I СТЕПЕНИ'
+                elif total >= t.get('laureate_2', 9999): award = 'ЛАУРЕАТА II СТЕПЕНИ'
+                elif total >= t.get('laureate_3', 9999): award = 'ЛАУРЕАТА III СТЕПЕНИ'
+                elif total >= t.get('diplom_1', 9999): award = 'ДИПЛОМАНТА I СТЕПЕНИ'
+                elif total >= t.get('diplom_2', 9999): award = 'ДИПЛОМАНТА II СТЕПЕНИ'
+                elif total >= t.get('diplom_3', 9999): award = 'ДИПЛОМАНТА III СТЕПЕНИ'
+                else: award = 'УЧАСТНИКА'
 
             # Фото жюри
             cur.execute(f'''
