@@ -20,6 +20,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import ApplicationFieldOptionsEditor from './ApplicationFieldOptionsEditor';
 
 const API = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
 
@@ -133,10 +134,7 @@ const SortableFieldItem = ({ field: f, index: i, updateField, removeField }: Sor
         </p>
       )}
       {f.field_type === 'select' && (
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Варианты (через запятую)</label>
-          <Input value={f.options} onChange={e => updateField(i, 'options', e.target.value)} placeholder="Вокал, Танцы, Театр" />
-        </div>
+        <ApplicationFieldOptionsEditor options={f.options} onChange={v => updateField(i, 'options', v)} />
       )}
       {f.field_type === 'file' && (
         <p className="text-xs text-muted-foreground flex items-center gap-1">
