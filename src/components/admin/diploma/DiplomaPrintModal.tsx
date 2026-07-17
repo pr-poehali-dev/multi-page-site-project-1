@@ -20,6 +20,27 @@ const RESULTS_API = 'https://functions.poehali.dev/e399905c-0871-434d-90ae-850d1
 const sanitizeFileName = (name: string): string =>
   name.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
 
+// Проверяет, что холст не оказался полностью чёрным/белым/прозрачным (признак "заражения"
+// canvas кросс-доменным содержимым, при котором браузер стирает результат). Смотрим на
+// разброс цветов по выборке пикселей — у настоящего диплома с текстом и/или подложкой
+// он всегда есть, а у "заражённого" холста все пиксели идентичны.
+const isCanvasBlank = (canvas: HTMLCanvasElement): boolean => {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return false;
+  try {
+    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const first = `${data[0]},${data[1]},${data[2]},${data[3]}`;
+    const step = Math.max(4, Math.floor(data.length / 4 / 500) * 4);
+    for (let i = 0; i < data.length; i += step) {
+      const px = `${data[i]},${data[i + 1]},${data[i + 2]},${data[i + 3]}`;
+      if (px !== first) return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 interface ProgramRow {
   id: number;
   participant_name: string;
@@ -169,16 +190,26 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
     }
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-    // Подложка уже конвертирована в data-URL (см. useEffect выше), поэтому кросс-доменного
-    // контента в кадре нет и заражение canvas исключено. foreignObjectRendering не используем —
-    // он ненадёжен даже с CORS и может стереть результат в чёрный лист. Наложение строк текста
-    // при переносе лечится тем, что line-height у полей всегда в px (см. DiplomaTemplateCanvas) —
-    // unitless line-height именно там, где html2canvas некорректно считает интервал между строками.
-    const canvas = await html2canvas(container.firstElementChild as HTMLElement, {
+    // Подложка уже конвертирована в data-URL (см. useEffect выше) — в кадре нет кросс-доменного
+    // контента, поэтому foreignObjectRendering теперь безопасен (раньше он "заражал" canvas
+    // именно из-за внешней картинки подложки, а не из-за самого режима). Он делегирует вёрстку
+    // текста (перенос строк, межстрочный интервал, центрирование) настоящему движку браузера
+    // через SVG <foreignObject> — это единственный способ получить в PDF точно ту же раскладку
+    // текста, что и в живом предпросмотре, потому что собственный алгоритм html2canvas
+    // систематически неверно считает высоту строк и накладывает их друг на друга.
+    const target = container.firstElementChild as HTMLElement;
+    let canvas = await html2canvas(target, {
       scale: 2,
       useCORS: true,
       backgroundColor: '#ffffff',
+      foreignObjectRendering: true,
     });
+    // Подстраховка: если по какой-то причине (например, редкий шрифт не успел встроиться
+    // в SVG) foreignObjectRendering всё же вернул пустой/чёрный кадр — перерисовываем
+    // обычным способом html2canvas, чтобы пользователь никогда не получил пустой диплом.
+    if (isCanvasBlank(canvas)) {
+      canvas = await html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    }
     root.unmount();
     return canvas;
   };
