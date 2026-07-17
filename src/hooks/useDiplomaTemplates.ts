@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { DiplomaTemplate, DiplomaTemplateField, DiplomaFont } from '@/types/diploma';
+import { compressImage } from '@/lib/compressImage';
 
 const API = 'https://functions.poehali.dev/9fcbf70c-fd6d-4489-bc77-1e4bcd6f1cb1';
 
@@ -90,16 +91,17 @@ export const useDiplomaTemplates = () => {
 
   const uploadBackground = useCallback(async (id: number, file: File): Promise<string | null> => {
     try {
+      const compressed = await compressImage(file, { maxSizeBytes: 5 * 1024 * 1024 });
       const b64 = await new Promise<string>((resolve, reject) => {
         const r = new FileReader();
         r.onload = e => resolve((e.target!.result as string).split(',')[1]);
         r.onerror = reject;
-        r.readAsDataURL(file);
+        r.readAsDataURL(compressed);
       });
       const res = await fetch(`${API}?action=upload_background&id=${id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_base64: b64, file_name: file.name }),
+        body: JSON.stringify({ file_base64: b64, file_name: compressed.name }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);

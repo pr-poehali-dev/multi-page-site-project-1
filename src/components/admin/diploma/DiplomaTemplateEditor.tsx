@@ -17,7 +17,7 @@ interface DiplomaTemplateEditorProps {
   onBack: () => void;
 }
 
-const MAX_BACKGROUND_SIZE = 20 * 1024 * 1024; // 20 МБ
+const MAX_BACKGROUND_SIZE = 100 * 1024 * 1024; // 100 МБ — исходный файл до сжатия на клиенте
 
 const emptyField = (): DiplomaTemplateField => ({
   data_key: 'custom',
@@ -94,7 +94,7 @@ const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProp
   const handleUploadBackground = async (file: File) => {
     if (!template) return;
     if (file.size > MAX_BACKGROUND_SIZE) {
-      toast({ title: 'Файл слишком большой', description: `Максимальный размер подложки — 20 МБ. Ваш файл: ${(file.size / 1024 / 1024).toFixed(1)} МБ`, variant: 'destructive' });
+      toast({ title: 'Файл слишком большой', description: `Максимальный размер файла — 100 МБ. Ваш файл: ${(file.size / 1024 / 1024).toFixed(1)} МБ`, variant: 'destructive' });
       return;
     }
     setUploadingBg(true);
@@ -176,7 +176,7 @@ const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProp
           </SelectContent>
         </Select>
 
-        <label title="Максимальный размер файла — 20 МБ">
+        <label title="Изображение автоматически сожмётся перед загрузкой">
           <Button variant="outline" asChild disabled={uploadingBg}>
             <span className="cursor-pointer">
               <Icon name={uploadingBg ? 'Loader' : 'Image'} size={16} className={`mr-2 ${uploadingBg ? 'animate-spin' : ''}`} />
