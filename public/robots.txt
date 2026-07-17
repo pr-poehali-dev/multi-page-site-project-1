@@ -1,13 +1,8 @@
 User-agent: *
 Allow: /
 Disallow: /admin
-Disallow: /jury-login
 Disallow: /jury-panel
-Disallow: /participant-login
 Disallow: /participant-cabinet
 Disallow: /profile
-Disallow: /vk-poster
-Disallow: /shop/success
-Disallow: /shop/fail
 
-Sitemap: https://индиго-арт.рф/sitemap.xml
+Sitemap: https://xn----8sbhdtb7aluu.xn--p1ai/sitemap.xml
