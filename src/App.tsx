@@ -29,6 +29,11 @@ import ShopPage from "./pages/ShopPage";
 import ShopProductPage from "./pages/ShopProductPage";
 import ShopSuccessPage from "./pages/ShopSuccessPage";
 import ShopFailPage from "./pages/ShopFailPage";
+import VocalPage from "./pages/nominations/VocalPage";
+import ChoreographyPage from "./pages/nominations/ChoreographyPage";
+import TheatrePage from "./pages/nominations/TheatrePage";
+import InstrumentalPage from "./pages/nominations/InstrumentalPage";
+import MultiGenrePage from "./pages/nominations/MultiGenrePage";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +49,11 @@ const App = () => (
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contests" element={<ContestsPage />} />
           <Route path="/contests/:id" element={<ContestDetailPage />} />
+          <Route path="/vocal" element={<VocalPage />} />
+          <Route path="/choreography" element={<ChoreographyPage />} />
+          <Route path="/theatre" element={<TheatrePage />} />
+          <Route path="/instrumental" element={<InstrumentalPage />} />
+          <Route path="/multi-genre" element={<MultiGenrePage />} />
           <Route path="/concerts" element={<ConcertsPage />} />
           <Route path="/jury" element={<JuryPage />} />
           <Route path="/gallery" element={<GalleryPage />} />

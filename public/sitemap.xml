@@ -16,6 +16,31 @@
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://xn----8sbhdtb7aluu.xn--p1ai/vocal</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://xn----8sbhdtb7aluu.xn--p1ai/choreography</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://xn----8sbhdtb7aluu.xn--p1ai/theatre</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://xn----8sbhdtb7aluu.xn--p1ai/instrumental</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://xn----8sbhdtb7aluu.xn--p1ai/multi-genre</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://xn----8sbhdtb7aluu.xn--p1ai/concerts</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>

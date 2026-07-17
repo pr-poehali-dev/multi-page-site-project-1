@@ -5,7 +5,7 @@ const Footer = () => {
   return (
     <footer className="bg-primary text-primary-foreground py-16">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
           <div>
             <img 
               src="https://cdn.poehali.dev/projects/ecdaf1c5-6d12-4487-8a18-89243ebbcc9e/bucket/cbb5a490-057b-4588-af89-0e013dfbf827.png" 
@@ -22,6 +22,17 @@ const Footer = () => {
               <li><Link to="/about" className="opacity-90 hover:opacity-100 transition-opacity">О нас</Link></li>
               <li><Link to="/contests" className="opacity-90 hover:opacity-100 transition-opacity">Конкурсы</Link></li>
               <li><Link to="/contacts" className="opacity-90 hover:opacity-100 transition-opacity">Контакты</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-heading font-semibold mb-4">Номинации</h4>
+            <ul className="space-y-2 text-sm">
+              <li><Link to="/vocal" className="opacity-90 hover:opacity-100 transition-opacity">Вокал</Link></li>
+              <li><Link to="/choreography" className="opacity-90 hover:opacity-100 transition-opacity">Хореография</Link></li>
+              <li><Link to="/theatre" className="opacity-90 hover:opacity-100 transition-opacity">Театр</Link></li>
+              <li><Link to="/instrumental" className="opacity-90 hover:opacity-100 transition-opacity">Инструментальная музыка</Link></li>
+              <li><Link to="/multi-genre" className="opacity-90 hover:opacity-100 transition-opacity">Многожанровые конкурсы</Link></li>
             </ul>
           </div>
 
