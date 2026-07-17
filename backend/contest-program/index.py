@@ -468,6 +468,30 @@ def list_fonts(conn) -> Dict[str, Any]:
     return _resp(200, {'fonts': fonts})
 
 
+def repair_font_bytes(file_data: bytes, ext: str) -> bytes:
+    '''
+    Многие редакторы шрифтов (FontForge, экспорт из старых конвертеров) сохраняют
+    TTF/OTF с неверными контрольными суммами таблиц (checkSum). Спецификация OpenType
+    требует точных checksum — браузеры (через встроенный OTS-санитайзер) молча
+    отклоняют такие файлы с ошибкой "Invalid font data". Пересохраняем файл через
+    fontTools, который всегда пересчитывает корректные checksum и структуру таблиц.
+    Если файл повреждён настолько, что fontTools не может его прочитать — возвращаем
+    исходные байты как есть (пусть браузер сам решает).
+    '''
+    if ext not in ('ttf', 'otf'):
+        return file_data
+    try:
+        from fontTools.ttLib import TTFont
+        import io
+        buf_in = io.BytesIO(file_data)
+        font = TTFont(buf_in, fontNumber=0)
+        buf_out = io.BytesIO()
+        font.save(buf_out)
+        return buf_out.getvalue()
+    except Exception:
+        return file_data
+
+
 def upload_font(conn, event) -> Dict[str, Any]:
     body = json.loads(event.get('body') or '{}')
     name = (body.get('name') or '').strip()
@@ -478,10 +502,15 @@ def upload_font(conn, event) -> Dict[str, Any]:
     ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else 'ttf'
     content_type = 'font/ttf' if ext == 'ttf' else 'font/otf' if ext == 'otf' else 'application/octet-stream'
     safe_name = name.replace(' ', '_')
+
+    file_data = base64.b64decode(file_b64)
+    file_data = repair_font_bytes(file_data, ext)
+    file_b64_fixed = base64.b64encode(file_data).decode()
+
     # Уникальный суффикс в ключе файла — чтобы при повторной загрузке шрифта с тем же именем
     # получался новый URL и браузер/CDN не отдавали закэшированную старую версию файла.
     version = uuid.uuid4().hex[:8]
-    url = upload_to_s3(file_b64, f'diploma-fonts/{safe_name}_{version}.{ext}', content_type)
+    url = upload_to_s3(file_b64_fixed, f'diploma-fonts/{safe_name}_{version}.{ext}', content_type)
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(f'INSERT INTO {SCHEMA}.diploma_fonts (name, font_url) VALUES (%s, %s) RETURNING *', (name, url))
         font = dict(cur.fetchone())
