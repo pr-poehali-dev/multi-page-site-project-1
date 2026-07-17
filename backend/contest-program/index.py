@@ -470,26 +470,54 @@ def list_fonts(conn) -> Dict[str, Any]:
 
 def repair_font_bytes(file_data: bytes, ext: str) -> bytes:
     '''
-    Многие редакторы шрифтов (FontForge, экспорт из старых конвертеров) сохраняют
-    TTF/OTF с неверными контрольными суммами таблиц (checkSum). Спецификация OpenType
-    требует точных checksum — браузеры (через встроенный OTS-санитайзер) молча
-    отклоняют такие файлы с ошибкой "Invalid font data". Пересохраняем файл через
-    fontTools, который всегда пересчитывает корректные checksum и структуру таблиц.
+    Чиним и облегчаем TTF/OTF файлы перед сохранением, чтобы их гарантированно
+    принимал строгий OTS-санитайзер, встроенный в браузеры (Chrome и др.).
+    Он отклоняет файл с ошибкой "Invalid font data", если:
+      1) неверные контрольные суммы таблиц (частая проблема у старых/самодельных шрифтов) —
+         чинится простым пересохранением через fontTools;
+      2) нестандартный TrueType-байткод хинтинга в таблицах fpgm/prep/cvt/glyf
+         (типично для шрифтов, сделанных в старых редакторах вроде FontForge/старых
+         конвертеров 1990-2000х) — OTS может не суметь провалидировать такой байткод
+         и просто отбраковывает весь файл. Убираем хинтинг через fontTools.subset —
+         это безопасно и не портит начертание глифов, просто убирает пиксельные
+         подсказки для мелких размеров на старых экранах.
     Если файл повреждён настолько, что fontTools не может его прочитать — возвращаем
     исходные байты как есть (пусть браузер сам решает).
     '''
     if ext not in ('ttf', 'otf'):
         return file_data
+    import io
     try:
         from fontTools.ttLib import TTFont
-        import io
+        from fontTools import subset
+
         buf_in = io.BytesIO(file_data)
         font = TTFont(buf_in, fontNumber=0)
+
+        options = subset.Options()
+        options.hinting = False
+        options.notdef_outline = True
+        options.name_IDs = ['*']
+        options.name_legacy = True
+        options.glyph_names = True
+        options.recalc_bounds = True
+        options.recalc_timestamp = True
+        subsetter = subset.Subsetter(options)
+        subsetter.populate(glyphs=font.getGlyphOrder())
+        subsetter.subset(font)
+
         buf_out = io.BytesIO()
         font.save(buf_out)
         return buf_out.getvalue()
     except Exception:
-        return file_data
+        try:
+            buf_in = io.BytesIO(file_data)
+            font = TTFont(buf_in, fontNumber=0)
+            buf_out = io.BytesIO()
+            font.save(buf_out)
+            return buf_out.getvalue()
+        except Exception:
+            return file_data
 
 
 def upload_font(conn, event) -> Dict[str, Any]:
