@@ -111,6 +111,18 @@ export const useDiplomaTemplates = () => {
     }
   }, [toast]);
 
+  const deleteBackground = useCallback(async (id: number): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API}?action=delete_background&id=${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      toast({ title: 'Подложка удалена' });
+      return true;
+    } catch {
+      toast({ title: 'Ошибка удаления подложки', variant: 'destructive' });
+      return false;
+    }
+  }, [toast]);
+
   const saveFields = useCallback(async (templateId: number, fields: DiplomaTemplateField[]): Promise<DiplomaTemplateField[] | null> => {
     try {
       const res = await fetch(`${API}?action=save_fields&template_id=${templateId}`, {
@@ -165,6 +177,6 @@ export const useDiplomaTemplates = () => {
   return {
     templates, loading, fonts,
     loadTemplates, createTemplate, deleteTemplate, loadTemplate, updateTemplate,
-    uploadBackground, saveFields, uploadFont, deleteFont,
+    uploadBackground, deleteBackground, saveFields, uploadFont, deleteFont,
   };
 };

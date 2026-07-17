@@ -11,6 +11,7 @@ interface DiplomaFieldPanelProps {
   onChange: (updates: Partial<DiplomaTemplateField>) => void;
   onRemove: () => void;
   onClose: () => void;
+  onUngroup?: () => void;
 }
 
 const ALIGN_OPTIONS: { value: DiplomaTemplateField['text_align']; icon: string; label: string }[] = [
@@ -20,7 +21,7 @@ const ALIGN_OPTIONS: { value: DiplomaTemplateField['text_align']; icon: string; 
   { value: 'justify', icon: 'AlignJustify', label: 'По ширине' },
 ];
 
-const DiplomaFieldPanel = ({ field, customFonts, onChange, onRemove, onClose }: DiplomaFieldPanelProps) => {
+const DiplomaFieldPanel = ({ field, customFonts, onChange, onRemove, onClose, onUngroup }: DiplomaFieldPanelProps) => {
   const allFonts = [...FONT_OPTIONS, ...customFonts.map(f => f.name)];
 
   return (
@@ -59,7 +60,7 @@ const DiplomaFieldPanel = ({ field, customFonts, onChange, onRemove, onClose }: 
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Размер, пт</label>
+          <label className="text-xs text-muted-foreground mb-1 block">Размер, пт{field.auto_fit !== false ? ' (макс.)' : ''}</label>
           <Input type="number" min={6} max={200} value={field.font_size} onChange={e => onChange({ font_size: Number(e.target.value) })} />
         </div>
         <div>
@@ -67,6 +68,16 @@ const DiplomaFieldPanel = ({ field, customFonts, onChange, onRemove, onClose }: 
           <Input type="number" step={0.1} min={0.5} max={4} value={field.line_height} onChange={e => onChange({ line_height: Number(e.target.value) })} />
         </div>
       </div>
+
+      <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+        <input
+          type="checkbox"
+          checked={field.auto_fit !== false}
+          onChange={e => onChange({ auto_fit: e.target.checked })}
+          className="w-3.5 h-3.5"
+        />
+        Уменьшать шрифт, чтобы текст помещался в поле
+      </label>
 
       <div>
         <label className="text-xs text-muted-foreground mb-1 block">Цвет текста</label>
@@ -107,6 +118,12 @@ const DiplomaFieldPanel = ({ field, customFonts, onChange, onRemove, onClose }: 
           ))}
         </div>
       </div>
+
+      {field.group_id != null && onUngroup && (
+        <Button variant="outline" className="w-full" onClick={onUngroup}>
+          <Icon name="Ungroup" fallback="Group" size={14} className="mr-2" /> Разгруппировать
+        </Button>
+      )}
 
       <Button variant="outline" className="w-full text-destructive hover:text-destructive" onClick={onRemove}>
         <Icon name="Trash2" size={14} className="mr-2" /> Удалить поле

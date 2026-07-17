@@ -1,9 +1,16 @@
+export interface DiplomaGuide {
+  id: string;
+  orientation: 'h' | 'v'; // h = горизонтальная (тянется по Y), v = вертикальная (тянется по X)
+  pos: number; // в % от ширины/высоты страницы
+}
+
 export interface DiplomaTemplate {
   id: number;
   name: string;
   template_type: 'diploma' | 'thanks';
   orientation: 'portrait' | 'landscape';
   background_url: string;
+  guides?: DiplomaGuide[];
   fields_count?: number;
   created_at?: string;
   updated_at?: string;
@@ -25,6 +32,8 @@ export interface DiplomaTemplateField {
   line_height: number;
   text_align: 'left' | 'center' | 'right' | 'justify';
   sort_order?: number;
+  group_id?: number | null;
+  auto_fit?: boolean;
 }
 
 export interface DiplomaFont {
@@ -63,3 +72,4 @@ export const FONT_OPTIONS = ['Montserrat', 'Open Sans', 'Playfair Display', 'Gre
 export const MM_TO_PX = 3.7795275591; // 96 dpi
 export const A4_WIDTH_MM = 210;
 export const A4_HEIGHT_MM = 297;
+export const RULER_SIZE_PX = 22;

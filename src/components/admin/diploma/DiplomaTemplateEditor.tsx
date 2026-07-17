@@ -5,10 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import Icon from '@/components/ui/icon';
 import { useDiplomaTemplates } from '@/hooks/useDiplomaTemplates';
 import { loadCustomFonts } from '@/lib/loadCustomFonts';
-import { DiplomaTemplate, DiplomaTemplateField } from '@/types/diploma';
+import { DiplomaTemplate, DiplomaTemplateField, DiplomaGuide, MM_TO_PX, A4_WIDTH_MM, A4_HEIGHT_MM } from '@/types/diploma';
 import DiplomaTemplateCanvas from './DiplomaTemplateCanvas';
 import DiplomaFieldPanel from './DiplomaFieldPanel';
 import DiplomaFontsManager from './DiplomaFontsManager';
+import DiplomaRulers from './DiplomaRulers';
 
 interface DiplomaTemplateEditorProps {
   templateId: number;
@@ -28,13 +29,15 @@ const emptyField = (): DiplomaTemplateField => ({
   font_weight: 'normal',
   line_height: 1.2,
   text_align: 'center',
+  auto_fit: true,
 });
 
 const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProps) => {
-  const { loadTemplate, updateTemplate, uploadBackground, saveFields, fonts, uploadFont, deleteFont } = useDiplomaTemplates();
+  const { loadTemplate, updateTemplate, uploadBackground, deleteBackground, saveFields, fonts, uploadFont, deleteFont } = useDiplomaTemplates();
   const [template, setTemplate] = useState<DiplomaTemplate | null>(null);
   const [fields, setFields] = useState<DiplomaTemplateField[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [guides, setGuides] = useState<DiplomaGuide[]>([]);
+  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
   const [showFontsManager, setShowFontsManager] = useState(false);
@@ -45,6 +48,7 @@ const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProp
     if (data) {
       setTemplate(data.template);
       setFields(data.fields);
+      setGuides(data.template.guides || []);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateId]);
@@ -54,7 +58,7 @@ const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProp
 
   const addField = () => {
     setFields(prev => [...prev, emptyField()]);
-    setSelectedIndex(fields.length);
+    setSelectedIndices([fields.length]);
   };
 
   const updateField = (index: number, updates: Partial<DiplomaTemplateField>) => {
@@ -63,7 +67,23 @@ const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProp
 
   const removeField = (index: number) => {
     setFields(prev => prev.filter((_, i) => i !== index));
-    setSelectedIndex(null);
+    setSelectedIndices([]);
+  };
+
+  const nextGroupId = () => fields.reduce((max, f) => (f.group_id != null && f.group_id > max ? f.group_id : max), 0) + 1;
+
+  const handleMergeFields = () => {
+    if (selectedIndices.length < 2) return;
+    const gid = nextGroupId();
+    setFields(prev => prev.map((f, i) => (selectedIndices.includes(i) ? { ...f, group_id: gid } : f)));
+  };
+
+  const handleUngroupSelected = () => {
+    if (selectedIndices.length === 0) return;
+    const idx = selectedIndices[0];
+    const gid = fields[idx]?.group_id;
+    if (gid == null) return;
+    setFields(prev => prev.map(f => (f.group_id === gid ? { ...f, group_id: null } : f)));
   };
 
   const handleUploadBackground = async (file: File) => {
@@ -72,6 +92,13 @@ const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProp
     const url = await uploadBackground(template.id, file);
     if (url) setTemplate(prev => prev ? { ...prev, background_url: url } : prev);
     setUploadingBg(false);
+  };
+
+  const handleRemoveBackground = async () => {
+    if (!template || !template.background_url) return;
+    if (!confirm('Удалить подложку?')) return;
+    const ok = await deleteBackground(template.id);
+    if (ok) setTemplate(prev => prev ? { ...prev, background_url: '' } : prev);
   };
 
   const handleOrientationChange = (orientation: string) => {
@@ -88,6 +115,16 @@ const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProp
   const handleNameBlur = () => {
     if (!template) return;
     updateTemplate(template.id, { name: template.name });
+  };
+
+  const handleGuidesChange = (next: DiplomaGuide[]) => {
+    setGuides(next);
+    if (template) updateTemplate(template.id, { guides: next });
+  };
+
+  const addGuide = (orientation: 'h' | 'v', pos: number) => {
+    const guide: DiplomaGuide = { id: `g_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, orientation, pos };
+    handleGuidesChange([...guides, guide]);
   };
 
   const handleSave = async () => {
@@ -107,7 +144,12 @@ const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProp
     );
   }
 
-  const selectedField = selectedIndex !== null ? fields[selectedIndex] : null;
+  const selectedField = selectedIndices.length === 1 ? fields[selectedIndices[0]] : null;
+
+  const widthMm = template.orientation === 'portrait' ? A4_WIDTH_MM : A4_HEIGHT_MM;
+  const heightMm = template.orientation === 'portrait' ? A4_HEIGHT_MM : A4_WIDTH_MM;
+  const pageWidthPx = widthMm * MM_TO_PX;
+  const pageHeightPx = heightMm * MM_TO_PX;
 
   return (
     <div>
@@ -129,7 +171,7 @@ const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProp
           <Button variant="outline" asChild disabled={uploadingBg}>
             <span className="cursor-pointer">
               <Icon name={uploadingBg ? 'Loader' : 'Image'} size={16} className={`mr-2 ${uploadingBg ? 'animate-spin' : ''}`} />
-              Загрузить подложку
+              {template.background_url ? 'Заменить подложку' : 'Загрузить подложку'}
             </span>
           </Button>
           <input type="file" accept="image/*" className="hidden" onChange={e => {
@@ -139,9 +181,21 @@ const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProp
           }} />
         </label>
 
+        {template.background_url && (
+          <Button variant="outline" className="text-destructive hover:text-destructive" onClick={handleRemoveBackground}>
+            <Icon name="ImageOff" size={16} className="mr-2" /> Удалить подложку
+          </Button>
+        )}
+
         <Button variant="outline" onClick={addField}>
           <Icon name="Plus" size={16} className="mr-2" /> Добавить текст
         </Button>
+
+        {selectedIndices.length > 1 && (
+          <Button variant="outline" onClick={handleMergeFields}>
+            <Icon name="Group" size={16} className="mr-2" /> Объединить ({selectedIndices.length})
+          </Button>
+        )}
 
         <Button variant="outline" onClick={() => setShowFontsManager(true)}>
           <Icon name="Type" size={16} className="mr-2" /> Шрифты
@@ -153,25 +207,34 @@ const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProp
         </Button>
       </div>
 
+      <p className="text-xs text-muted-foreground mb-3">
+        Клик по линейке сверху/слева — добавить направляющую. Двойной клик по направляющей — удалить. Shift/Ctrl + клик по полям — выбрать несколько для объединения.
+      </p>
+
       <div className="flex gap-4">
         <div className="flex-1 overflow-auto bg-muted/40 rounded-lg p-6" style={{ maxHeight: '75vh' }}>
-          <DiplomaTemplateCanvas
-            orientation={template.orientation}
-            backgroundUrl={template.background_url}
-            fields={fields}
-            selectedIndex={selectedIndex}
-            onSelect={setSelectedIndex}
-            onUpdateField={updateField}
-          />
+          <DiplomaRulers pageWidthPx={pageWidthPx} pageHeightPx={pageHeightPx} onAddGuide={addGuide}>
+            <DiplomaTemplateCanvas
+              orientation={template.orientation}
+              backgroundUrl={template.background_url}
+              fields={fields}
+              selectedIndices={selectedIndices}
+              onSelect={setSelectedIndices}
+              onUpdateField={updateField}
+              guides={guides}
+              onGuidesChange={handleGuidesChange}
+            />
+          </DiplomaRulers>
         </div>
 
         {selectedField && (
           <DiplomaFieldPanel
             field={selectedField}
             customFonts={fonts}
-            onChange={updates => updateField(selectedIndex!, updates)}
-            onRemove={() => removeField(selectedIndex!)}
-            onClose={() => setSelectedIndex(null)}
+            onChange={updates => updateField(selectedIndices[0], updates)}
+            onRemove={() => removeField(selectedIndices[0])}
+            onClose={() => setSelectedIndices([])}
+            onUngroup={handleUngroupSelected}
           />
         )}
       </div>

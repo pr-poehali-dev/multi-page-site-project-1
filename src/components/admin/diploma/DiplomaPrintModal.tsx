@@ -121,8 +121,6 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
           orientation={orientation}
           backgroundUrl={backgroundUrl}
           fields={fields}
-          selectedIndex={null}
-          onSelect={() => {}}
           onUpdateField={() => {}}
           previewMode
           previewValues={buildPreviewValues(row)}

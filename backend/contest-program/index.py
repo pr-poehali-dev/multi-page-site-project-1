@@ -72,6 +72,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     PUT  /?action=template_update&id=X      — обновить { name, template_type, orientation, background_url }
     DELETE /?action=template_delete&id=X    — удалить шаблон
     POST /?action=upload_background&id=X    — загрузить фон { file_base64, file_name }
+    DELETE /?action=delete_background&id=X  — удалить фон
     POST /?action=save_fields&template_id=X — сохранить поля шаблона (полная замена)
     --- Конструктор дипломов: шрифты ---
     GET  /?action=fonts                     — список загруженных шрифтов
@@ -133,6 +134,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return delete_template(conn, params.get('id'))
             elif action == 'delete_font':
                 return delete_font(conn, params.get('id'))
+            elif action == 'delete_background':
+                return delete_background(conn, params.get('id'))
             else:
                 return delete_row(conn, event)
         else:
@@ -337,7 +340,12 @@ def get_template(conn, tid) -> Dict[str, Any]:
             WHERE template_id = %s ORDER BY sort_order, id
         ''', (tid,))
         fields = [dict(f) for f in cur.fetchall()]
-    return _resp(200, {'template': dict(template), 'fields': fields})
+    template = dict(template)
+    try:
+        template['guides'] = json.loads(template.get('guides') or '[]')
+    except (json.JSONDecodeError, TypeError):
+        template['guides'] = []
+    return _resp(200, {'template': template, 'fields': fields})
 
 
 def create_template(conn, event) -> Dict[str, Any]:
@@ -359,10 +367,10 @@ def update_template(conn, tid, event) -> Dict[str, Any]:
     if not tid:
         return _resp(400, {'error': 'id required'})
     sets, vals = [], []
-    for f in ['name', 'template_type', 'orientation', 'background_url']:
+    for f in ['name', 'template_type', 'orientation', 'background_url', 'guides']:
         if f in body:
             sets.append(f'{f} = %s')
-            vals.append(body[f])
+            vals.append(json.dumps(body[f]) if f == 'guides' else body[f])
     if not sets:
         return _resp(400, {'error': 'nothing to update'})
     sets.append('updated_at = NOW()')
@@ -393,10 +401,19 @@ def upload_background(conn, tid, event) -> Dict[str, Any]:
         return _resp(400, {'error': 'id and file_base64 required'})
     ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else 'jpg'
     content_type = f'image/{ext}' if ext != 'jpg' else 'image/jpeg'
-    url = upload_to_s3(file_b64, f'diploma-templates/{tid}/background.{ext}', content_type)
+    version = uuid.uuid4().hex[:8]
+    url = upload_to_s3(file_b64, f'diploma-templates/{tid}/background_{version}.{ext}', content_type)
     with conn.cursor() as cur:
         cur.execute(f'UPDATE {SCHEMA}.diploma_templates SET background_url = %s, updated_at = NOW() WHERE id = %s', (url, tid))
     return _resp(200, {'background_url': url})
+
+
+def delete_background(conn, tid) -> Dict[str, Any]:
+    if not tid:
+        return _resp(400, {'error': 'id required'})
+    with conn.cursor() as cur:
+        cur.execute(f"UPDATE {SCHEMA}.diploma_templates SET background_url = '', updated_at = NOW() WHERE id = %s", (tid,))
+    return _resp(200, {'ok': True})
 
 
 def save_fields(conn, tid, event) -> Dict[str, Any]:
@@ -414,8 +431,9 @@ def save_fields(conn, tid, event) -> Dict[str, Any]:
             cur.execute(f'''
                 INSERT INTO {SCHEMA}.diploma_template_fields
                   (template_id, data_key, custom_text, pos_x, pos_y, width, height,
-                   font_family, font_size, font_color, font_weight, line_height, text_align, sort_order)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                   font_family, font_size, font_color, font_weight, line_height, text_align, sort_order,
+                   group_id, auto_fit)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 RETURNING *
             ''', (
                 tid,
@@ -432,6 +450,8 @@ def save_fields(conn, tid, event) -> Dict[str, Any]:
                 f.get('line_height', 1.2),
                 f.get('text_align', 'center'),
                 i,
+                f.get('group_id'),
+                f.get('auto_fit', True),
             ))
             saved.append(dict(cur.fetchone()))
     return _resp(200, {'fields': saved})
