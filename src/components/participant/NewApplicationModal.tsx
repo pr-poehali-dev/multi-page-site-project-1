@@ -248,6 +248,14 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
           </div>
         </div>
 
+        {/* Предупреждение о точности заполнения */}
+        <div className="mx-6 mt-4 shrink-0 p-4 rounded-lg border-2 border-red-500 bg-red-50 flex gap-3">
+          <Icon name="AlertTriangle" size={22} className="text-red-600 shrink-0 mt-0.5" />
+          <p className="text-sm font-semibold text-red-700 leading-snug">
+            Просим предельно точно и внимательно заполнять поля заявки! Данные заносятся во все документы автоматически! Стоимость исправления 150р.
+          </p>
+        </div>
+
         {/* Контент */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
 
