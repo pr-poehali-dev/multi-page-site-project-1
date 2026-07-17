@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import jsPDF from 'jspdf';
@@ -54,6 +54,8 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
   const [fields, setFields] = useState<DiplomaTemplateField[]>([]);
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [backgroundUrl, setBackgroundUrl] = useState('');
+  const [bgDataUrl, setBgDataUrl] = useState('');
+  const bgDataUrlRef = useRef('');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set(rows.map(r => r.id)));
   const [awardsById, setAwardsById] = useState<Record<number, string>>({});
   const [loadingTemplate, setLoadingTemplate] = useState(false);
@@ -62,6 +64,28 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
   const [, setFontsVersion] = useState(0);
 
   useEffect(() => { loadCustomFonts(fonts).then(() => setFontsVersion(v => v + 1)); }, [fonts]);
+
+  // Подложка хранится на отдельном CDN-домене. Для html2canvas это кросс-доменное изображение,
+  // и даже при правильных CORS-заголовках браузер может пометить холст «заражённым» и стереть
+  // результат в чёрный лист при экспорте. Конвертируем подложку в data-URL один раз при загрузке
+  // шаблона — тогда для холста это уже локальные данные, заражение технически невозможно.
+  useEffect(() => {
+    if (!backgroundUrl) { setBgDataUrl(''); bgDataUrlRef.current = ''; return; }
+    let cancelled = false;
+    setBgDataUrl('');
+    bgDataUrlRef.current = '';
+    fetch(backgroundUrl)
+      .then(r => r.blob())
+      .then(blob => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      }))
+      .then(dataUrl => { if (!cancelled) { setBgDataUrl(dataUrl); bgDataUrlRef.current = dataUrl; } })
+      .catch(() => { if (!cancelled) { setBgDataUrl(backgroundUrl); bgDataUrlRef.current = backgroundUrl; } });
+    return () => { cancelled = true; };
+  }, [backgroundUrl]);
 
   useEffect(() => {
     fetch(`${RESULTS_API}?action=results_table&contest_id=${contest.id}`)
@@ -124,7 +148,7 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
       root.render(
         <DiplomaTemplateCanvas
           orientation={orientation}
-          backgroundUrl={backgroundUrl}
+          backgroundUrl={bgDataUrlRef.current || backgroundUrl}
           fields={fields}
           onUpdateField={() => {}}
           previewMode
@@ -145,16 +169,15 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
     }
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-    // foreignObjectRendering заставляет html2canvas делегировать вёрстку текста
-    // (flex-центрирование, перенос строк, шрифты) настоящему движку браузера через SVG
-    // <foreignObject>, а не собственной упрощённой реализацией — та плохо считает
-    // межстрочные интервалы для центрированного многострочного текста и накладывает строки
-    // друг на друга. С этой опцией сохранённый PDF выглядит так же, как живой предпросмотр.
+    // Подложка уже конвертирована в data-URL (см. useEffect выше), поэтому кросс-доменного
+    // контента в кадре нет и заражение canvas исключено. foreignObjectRendering не используем —
+    // он ненадёжен даже с CORS и может стереть результат в чёрный лист. Наложение строк текста
+    // при переносе лечится тем, что line-height у полей всегда в px (см. DiplomaTemplateCanvas) —
+    // unitless line-height именно там, где html2canvas некорректно считает интервал между строками.
     const canvas = await html2canvas(container.firstElementChild as HTMLElement, {
       scale: 2,
       useCORS: true,
       backgroundColor: '#ffffff',
-      foreignObjectRendering: true,
     });
     root.unmount();
     return canvas;
@@ -174,6 +197,18 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
     try {
       await loadCustomFonts(fonts);
       await document.fonts.ready;
+      if (backgroundUrl && !bgDataUrlRef.current) {
+        // Подложка ещё конвертируется в data-URL (см. useEffect выше) — ждём, иначе
+        // в кадр может попасть кросс-доменная картинка и заразить canvas.
+        await new Promise<void>(resolve => {
+          const start = Date.now();
+          const check = () => {
+            if (bgDataUrlRef.current || Date.now() - start > 5000) resolve();
+            else setTimeout(check, 100);
+          };
+          check();
+        });
+      }
       const container = document.createElement('div');
       container.style.position = 'fixed';
       container.style.left = '-9999px';

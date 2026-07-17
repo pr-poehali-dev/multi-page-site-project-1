@@ -254,7 +254,11 @@ const DiplomaTemplateCanvas = ({
           fontSize: effectiveFontSize,
           color: field.font_color,
           fontWeight: field.font_weight,
-          lineHeight: field.line_height,
+          // html2canvas некорректно вычисляет межстрочный интервал для unitless line-height
+          // (например 1.2) — строки съезжают и накладываются друг на друга при экспорте в PDF,
+          // хотя в живом браузере (превью) это отображается верно. Переводим в px явно —
+          // это исключает расхождение между рендером браузера и html2canvas.
+          lineHeight: `${effectiveFontSize * field.line_height}px`,
           textAlign: field.text_align,
           width: '100%',
           height: '100%',
