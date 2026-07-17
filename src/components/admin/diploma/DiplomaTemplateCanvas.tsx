@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Rnd } from 'react-rnd';
-import { DiplomaTemplateField, DiplomaGuide, DIPLOMA_DATA_FIELDS, MM_TO_PX, A4_WIDTH_MM, A4_HEIGHT_MM } from '@/types/diploma';
+import { DiplomaTemplateField, DiplomaGuide, MM_TO_PX, A4_WIDTH_MM, A4_HEIGHT_MM } from '@/types/diploma';
 import { computeAutoFitFontSize, measureTextWidth } from '@/lib/autoFitText';
+import { fieldPreviewText, computeGroupLayout } from '@/lib/diplomaLayout';
 
 interface DiplomaTemplateCanvasProps {
   orientation: 'portrait' | 'landscape';
@@ -18,13 +19,6 @@ interface DiplomaTemplateCanvasProps {
 
 const SNAP_THRESHOLD = 6;
 
-const fieldPreviewText = (field: DiplomaTemplateField, previewValues?: Record<string, string>): string => {
-  const prefix = field.prefix_text ? `${field.prefix_text} ` : '';
-  if (field.data_key === 'custom') return prefix + (field.custom_text || 'Текст');
-  if (previewValues && previewValues[field.data_key] !== undefined) return prefix + (previewValues[field.data_key] || '—');
-  return prefix + (DIPLOMA_DATA_FIELDS.find(f => f.key === field.data_key)?.label || field.data_key);
-};
-
 const nearestSnap = (edges: number[], targets: number[]): number | null => {
   for (const edge of edges) {
     for (const t of targets) {
@@ -40,79 +34,6 @@ interface DragOffset {
   dx: number;
   dy: number;
 }
-
-interface GroupLayoutOverride {
-  xPx: number;
-  wPx: number;
-  yPx: number;
-  hPx: number;
-  fontSize: number;
-}
-
-/**
- * Для объединённых (сгруппированных) полей вычисляет авто-раскладку в одну строку:
- * каждое поле сжимается по факту заполнения текстом, а вся строка центрируется
- * в общей области, которую эти поля занимали изначально.
- */
-const computeGroupLayout = (
-  fields: DiplomaTemplateField[],
-  pageWidthPx: number,
-  pageHeightPx: number,
-  previewValues?: Record<string, string>,
-): Map<number, GroupLayoutOverride> => {
-  const overrides = new Map<number, GroupLayoutOverride>();
-  const groupIds = new Set(fields.map(f => f.group_id).filter((g): g is number => g != null));
-
-  groupIds.forEach(gid => {
-    const idxs = fields.reduce<number[]>((acc, f, i) => (f.group_id === gid ? [...acc, i] : acc), []);
-    if (idxs.length < 2) return;
-    const sorted = [...idxs].sort((a, b) => fields[a].pos_x - fields[b].pos_x);
-
-    let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
-    sorted.forEach(idx => {
-      const f = fields[idx];
-      const x = (f.pos_x / 100) * pageWidthPx;
-      const y = (f.pos_y / 100) * pageHeightPx;
-      const w = (f.width / 100) * pageWidthPx;
-      const h = (f.height / 100) * pageHeightPx;
-      left = Math.min(left, x);
-      right = Math.max(right, x + w);
-      top = Math.min(top, y);
-      bottom = Math.max(bottom, y + h);
-    });
-
-    const measured = sorted.map(idx => {
-      const f = fields[idx];
-      const text = fieldPreviewText(f, previewValues);
-      const origWPx = (f.width / 100) * pageWidthPx;
-      const origHPx = (f.height / 100) * pageHeightPx;
-      const fontSize = f.auto_fit !== false
-        ? computeAutoFitFontSize(text, {
-            widthPx: origWPx,
-            heightPx: origHPx,
-            fontFamily: f.font_family,
-            fontWeight: f.font_weight,
-            lineHeight: f.line_height,
-            maxFontSize: f.font_size,
-          })
-        : f.font_size;
-      const measuredWidth = measureTextWidth(text, f.font_family, fontSize, f.font_weight);
-      return { idx, width: (measuredWidth || origWPx) + 8, fontSize };
-    });
-
-    const avgFontSize = measured.reduce((s, m) => s + m.fontSize, 0) / measured.length;
-    const gap = Math.max(4, avgFontSize * 0.35);
-    const totalWidth = measured.reduce((s, m) => s + m.width, 0) + gap * (measured.length - 1);
-    let cursorX = left + Math.max(0, (right - left - totalWidth) / 2);
-
-    measured.forEach(m => {
-      overrides.set(m.idx, { xPx: cursorX, wPx: m.width, yPx: top, hPx: bottom - top, fontSize: m.fontSize });
-      cursorX += m.width + gap;
-    });
-  });
-
-  return overrides;
-};
 
 const DiplomaTemplateCanvas = ({
   orientation,
@@ -134,7 +55,7 @@ const DiplomaTemplateCanvas = ({
   const pageWidthPx = widthMm * MM_TO_PX;
   const pageHeightPx = heightMm * MM_TO_PX;
 
-  const groupLayout = computeGroupLayout(fields, pageWidthPx, pageHeightPx, previewValues);
+  const groupLayout = computeGroupLayout(fields, pageWidthPx, pageHeightPx, previewValues, measureTextWidth, computeAutoFitFontSize);
 
   const computeMoveSet = (index: number): number[] => {
     const field = fields[index];

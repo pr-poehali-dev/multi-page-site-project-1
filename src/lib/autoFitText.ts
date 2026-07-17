@@ -1,5 +1,10 @@
 // Утилита для автоматического подбора размера шрифта, чтобы текст помещался в область поля.
 // Использует offscreen canvas для измерения ширины текста (без реального рендеринга в DOM).
+// Разбивка на строки берётся из diplomaLayout.ts — того же кода, которым при экспорте PDF
+// рисуется финальный текст в Canvas 2D, чтобы подобранный здесь размер шрифта гарантированно
+// совпадал с тем, что реально поместится на сохранённом дипломе.
+
+import { wrapTextLines, canvasFont } from './diplomaLayout';
 
 let measureCtx: CanvasRenderingContext2D | null = null;
 
@@ -12,7 +17,7 @@ const getCtx = (): CanvasRenderingContext2D | null => {
   return measureCtx;
 };
 
-const wrapLines = (
+const countWrappedLines = (
   ctx: CanvasRenderingContext2D,
   text: string,
   maxWidthPx: number,
@@ -20,26 +25,8 @@ const wrapLines = (
   fontFamily: string,
   fontWeight: string,
 ): number => {
-  ctx.font = `${fontWeight === 'bold' ? 'bold' : fontWeight === 'normal' ? 'normal' : fontWeight} ${fontSize}px ${fontFamily}`;
-  const paragraphs = text.split('\n');
-  let totalLines = 0;
-  for (const paragraph of paragraphs) {
-    const words = paragraph.split(' ');
-    let line = '';
-    let lineCount = paragraph === '' ? 1 : 0;
-    for (const word of words) {
-      const testLine = line ? `${line} ${word}` : word;
-      if (ctx.measureText(testLine).width > maxWidthPx && line) {
-        lineCount += 1;
-        line = word;
-      } else {
-        line = testLine;
-      }
-    }
-    if (line) lineCount += 1;
-    totalLines += Math.max(1, lineCount);
-  }
-  return totalLines;
+  ctx.font = canvasFont(fontWeight, fontSize, fontFamily);
+  return wrapTextLines(ctx, text, maxWidthPx).length;
 };
 
 interface AutoFitOptions {
@@ -66,7 +53,7 @@ export const computeAutoFitFontSize = (text: string, opts: AutoFitOptions): numb
   if (!ctx || !text.trim() || availWidth <= 0 || availHeight <= 0) return opts.maxFontSize;
 
   for (let size = opts.maxFontSize; size >= minFontSize; size -= 0.5) {
-    const lines = wrapLines(ctx, text, availWidth, size, opts.fontFamily, opts.fontWeight);
+    const lines = countWrappedLines(ctx, text, availWidth, size, opts.fontFamily, opts.fontWeight);
     const totalHeight = lines * size * opts.lineHeight;
     if (totalHeight <= availHeight) return size;
   }
@@ -81,6 +68,6 @@ export const computeAutoFitFontSize = (text: string, opts: AutoFitOptions): numb
 export const measureTextWidth = (text: string, fontFamily: string, fontSize: number, fontWeight: string): number => {
   const ctx = getCtx();
   if (!ctx || !text) return 0;
-  ctx.font = `${fontWeight === 'bold' ? 'bold' : fontWeight === 'normal' ? 'normal' : fontWeight} ${fontSize}px ${fontFamily}`;
+  ctx.font = canvasFont(fontWeight, fontSize, fontFamily);
   return ctx.measureText(text).width;
 };

@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { createRoot } from 'react-dom/client';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import JSZip from 'jszip';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -11,7 +9,8 @@ import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { useDiplomaTemplates } from '@/hooks/useDiplomaTemplates';
 import { loadCustomFonts } from '@/lib/loadCustomFonts';
-import { DiplomaTemplateField, A4_WIDTH_MM, A4_HEIGHT_MM } from '@/types/diploma';
+import { renderDiplomaToCanvas } from '@/lib/renderDiplomaToCanvas';
+import { DiplomaTemplateField, A4_WIDTH_MM, A4_HEIGHT_MM, MM_TO_PX } from '@/types/diploma';
 import DiplomaTemplateCanvas from './DiplomaTemplateCanvas';
 
 const RESULTS_API = 'https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d';
@@ -19,27 +18,6 @@ const RESULTS_API = 'https://functions.poehali.dev/e399905c-0871-434d-90ae-850d1
 // Убирает символы, недопустимые в именах файлов на Windows/macOS/Linux, и обрезает пробелы по краям.
 const sanitizeFileName = (name: string): string =>
   name.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
-
-// Проверяет, что холст не оказался полностью чёрным/белым/прозрачным (признак "заражения"
-// canvas кросс-доменным содержимым, при котором браузер стирает результат). Смотрим на
-// разброс цветов по выборке пикселей — у настоящего диплома с текстом и/или подложкой
-// он всегда есть, а у "заражённого" холста все пиксели идентичны.
-const isCanvasBlank = (canvas: HTMLCanvasElement): boolean => {
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return false;
-  try {
-    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const first = `${data[0]},${data[1]},${data[2]},${data[3]}`;
-    const step = Math.max(4, Math.floor(data.length / 4 / 500) * 4);
-    for (let i = 0; i < data.length; i += step) {
-      const px = `${data[i]},${data[i + 1]},${data[i + 2]},${data[i + 3]}`;
-      if (px !== first) return false;
-    }
-    return true;
-  } catch {
-    return false;
-  }
-};
 
 interface ProgramRow {
   id: number;
@@ -75,8 +53,8 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
   const [fields, setFields] = useState<DiplomaTemplateField[]>([]);
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [backgroundUrl, setBackgroundUrl] = useState('');
-  const [bgDataUrl, setBgDataUrl] = useState('');
   const bgDataUrlRef = useRef('');
+  const [, setBgReadyTick] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set(rows.map(r => r.id)));
   const [awardsById, setAwardsById] = useState<Record<number, string>>({});
   const [loadingTemplate, setLoadingTemplate] = useState(false);
@@ -86,14 +64,12 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
 
   useEffect(() => { loadCustomFonts(fonts).then(() => setFontsVersion(v => v + 1)); }, [fonts]);
 
-  // Подложка хранится на отдельном CDN-домене. Для html2canvas это кросс-доменное изображение,
-  // и даже при правильных CORS-заголовках браузер может пометить холст «заражённым» и стереть
-  // результат в чёрный лист при экспорте. Конвертируем подложку в data-URL один раз при загрузке
-  // шаблона — тогда для холста это уже локальные данные, заражение технически невозможно.
+  // Подложка хранится на отдельном CDN-домене. Конвертируем её в data-URL один раз при
+  // загрузке шаблона — тогда renderDiplomaToCanvas получает локальные пиксельные данные
+  // и может нарисовать картинку на холсте без кросс-доменных ограничений браузера.
   useEffect(() => {
-    if (!backgroundUrl) { setBgDataUrl(''); bgDataUrlRef.current = ''; return; }
+    if (!backgroundUrl) { bgDataUrlRef.current = ''; return; }
     let cancelled = false;
-    setBgDataUrl('');
     bgDataUrlRef.current = '';
     fetch(backgroundUrl)
       .then(r => r.blob())
@@ -103,8 +79,8 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       }))
-      .then(dataUrl => { if (!cancelled) { setBgDataUrl(dataUrl); bgDataUrlRef.current = dataUrl; } })
-      .catch(() => { if (!cancelled) { setBgDataUrl(backgroundUrl); bgDataUrlRef.current = backgroundUrl; } });
+      .then(dataUrl => { if (!cancelled) { bgDataUrlRef.current = dataUrl; setBgReadyTick(t => t + 1); } })
+      .catch(() => { if (!cancelled) { bgDataUrlRef.current = backgroundUrl; setBgReadyTick(t => t + 1); } });
     return () => { cancelled = true; };
   }, [backgroundUrl]);
 
@@ -163,55 +139,16 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
 
   const selectedRows = useMemo(() => rows.filter(r => selectedIds.has(r.id)), [rows, selectedIds]);
 
-  const renderRowToCanvas = async (row: ProgramRow, container: HTMLDivElement) => {
-    const root = createRoot(container);
-    await new Promise<void>(resolve => {
-      root.render(
-        <DiplomaTemplateCanvas
-          orientation={orientation}
-          backgroundUrl={bgDataUrlRef.current || backgroundUrl}
-          fields={fields}
-          onUpdateField={() => {}}
-          previewMode
-          previewValues={buildPreviewValues(row)}
-        />
-      );
-      setTimeout(resolve, 150);
+  // Рисует диплом для одного участника напрямую через Canvas 2D (см. renderDiplomaToCanvas.ts) —
+  // тем же кодом раскладки, что и живой предпросмотр, поэтому расхождений с превью быть не может.
+  const renderRowToCanvas = async (row: ProgramRow, pageWidthPx: number, pageHeightPx: number) => {
+    return renderDiplomaToCanvas({
+      pageWidthPx,
+      pageHeightPx,
+      backgroundDataUrl: bgDataUrlRef.current,
+      fields,
+      previewValues: buildPreviewValues(row),
     });
-    // Ждём, пока подложка (если есть) реально отрисуется — иначе html2canvas может
-    // захватить кадр до её загрузки при быстрой смене строк в цикле генерации.
-    const bgImg = container.querySelector('img');
-    if (bgImg && !bgImg.complete) {
-      await new Promise<void>(resolve => {
-        bgImg.addEventListener('load', () => resolve(), { once: true });
-        bgImg.addEventListener('error', () => resolve(), { once: true });
-        setTimeout(resolve, 2000);
-      });
-    }
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-    // Подложка уже конвертирована в data-URL (см. useEffect выше) — в кадре нет кросс-доменного
-    // контента, поэтому foreignObjectRendering теперь безопасен (раньше он "заражал" canvas
-    // именно из-за внешней картинки подложки, а не из-за самого режима). Он делегирует вёрстку
-    // текста (перенос строк, межстрочный интервал, центрирование) настоящему движку браузера
-    // через SVG <foreignObject> — это единственный способ получить в PDF точно ту же раскладку
-    // текста, что и в живом предпросмотре, потому что собственный алгоритм html2canvas
-    // систематически неверно считает высоту строк и накладывает их друг на друга.
-    const target = container.firstElementChild as HTMLElement;
-    let canvas = await html2canvas(target, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      foreignObjectRendering: true,
-    });
-    // Подстраховка: если по какой-то причине (например, редкий шрифт не успел встроиться
-    // в SVG) foreignObjectRendering всё же вернул пустой/чёрный кадр — перерисовываем
-    // обычным способом html2canvas, чтобы пользователь никогда не получил пустой диплом.
-    if (isCanvasBlank(canvas)) {
-      canvas = await html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-    }
-    root.unmount();
-    return canvas;
   };
 
   // Строит имя файла по участнику; при совпадении имён у нескольких строк добавляет номер диплома, чтобы файлы не перезаписывали друг друга.
@@ -229,8 +166,8 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
       await loadCustomFonts(fonts);
       await document.fonts.ready;
       if (backgroundUrl && !bgDataUrlRef.current) {
-        // Подложка ещё конвертируется в data-URL (см. useEffect выше) — ждём, иначе
-        // в кадр может попасть кросс-доменная картинка и заразить canvas.
+        // Подложка ещё конвертируется в data-URL (см. useEffect выше) — ждём готовности,
+        // чтобы отрисовать её вместе с текстом на холсте.
         await new Promise<void>(resolve => {
           const start = Date.now();
           const check = () => {
@@ -240,34 +177,29 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
           check();
         });
       }
-      const container = document.createElement('div');
-      container.style.position = 'fixed';
-      container.style.left = '-9999px';
-      container.style.top = '0';
-      document.body.appendChild(container);
 
       const widthMm = orientation === 'portrait' ? A4_WIDTH_MM : A4_HEIGHT_MM;
       const heightMm = orientation === 'portrait' ? A4_HEIGHT_MM : A4_WIDTH_MM;
+      const pageWidthPx = widthMm * MM_TO_PX;
+      const pageHeightPx = heightMm * MM_TO_PX;
 
       if (selectedRows.length === 1) {
         const row = selectedRows[0];
-        const canvas = await renderRowToCanvas(row, container);
+        const canvas = await renderRowToCanvas(row, pageWidthPx, pageHeightPx);
         const imgData = canvas.toDataURL('image/jpeg', 0.95);
         const pdf = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
         pdf.addImage(imgData, 'JPEG', 0, 0, widthMm, heightMm);
-        document.body.removeChild(container);
         pdf.save(`${buildFileName(row, selectedRows)}.pdf`);
       } else {
         const zip = new JSZip();
         for (let i = 0; i < selectedRows.length; i++) {
           const row = selectedRows[i];
-          const canvas = await renderRowToCanvas(row, container);
+          const canvas = await renderRowToCanvas(row, pageWidthPx, pageHeightPx);
           const imgData = canvas.toDataURL('image/jpeg', 0.95);
           const pdf = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
           pdf.addImage(imgData, 'JPEG', 0, 0, widthMm, heightMm);
           zip.file(`${buildFileName(row, selectedRows)}.pdf`, pdf.output('blob'));
         }
-        document.body.removeChild(container);
 
         const zipBlob = await zip.generateAsync({ type: 'blob' });
         const url = URL.createObjectURL(zipBlob);
@@ -340,8 +272,6 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
                   orientation={orientation}
                   backgroundUrl={backgroundUrl}
                   fields={fields}
-                  selectedIndex={null}
-                  onSelect={() => {}}
                   onUpdateField={() => {}}
                   previewMode
                   previewValues={buildPreviewValues(previewRow)}
