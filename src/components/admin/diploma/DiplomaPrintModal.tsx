@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import JSZip from 'jszip';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,6 +15,10 @@ import { DiplomaTemplateField, A4_WIDTH_MM, A4_HEIGHT_MM } from '@/types/diploma
 import DiplomaTemplateCanvas from './DiplomaTemplateCanvas';
 
 const RESULTS_API = 'https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d';
+
+// Убирает символы, недопустимые в именах файлов на Windows/macOS/Linux, и обрезает пробелы по краям.
+const sanitizeFileName = (name: string): string =>
+  name.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
 
 interface ProgramRow {
   id: number;
@@ -133,6 +138,14 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
     return canvas;
   };
 
+  // Строит имя файла по участнику; при совпадении имён у нескольких строк добавляет номер диплома, чтобы файлы не перезаписывали друг друга.
+  const buildFileName = (row: ProgramRow, allRows: ProgramRow[]): string => {
+    const base = sanitizeFileName(row.participant_name) || 'Диплом';
+    const duplicates = allRows.filter(r => sanitizeFileName(r.participant_name) === base);
+    if (duplicates.length > 1 && row.diploma_number) return `${base} (${row.diploma_number})`;
+    return base;
+  };
+
   const handlePrint = async () => {
     if (!templateId || selectedRows.length === 0) return;
     setGenerating(true);
@@ -147,19 +160,36 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
 
       const widthMm = orientation === 'portrait' ? A4_WIDTH_MM : A4_HEIGHT_MM;
       const heightMm = orientation === 'portrait' ? A4_HEIGHT_MM : A4_WIDTH_MM;
-      const pdf = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
 
-      for (let i = 0; i < selectedRows.length; i++) {
-        const canvas = await renderRowToCanvas(selectedRows[i], container);
+      if (selectedRows.length === 1) {
+        const row = selectedRows[0];
+        const canvas = await renderRowToCanvas(row, container);
         const imgData = canvas.toDataURL('image/jpeg', 0.95);
-        if (i > 0) pdf.addPage('a4', orientation);
+        const pdf = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
         pdf.addImage(imgData, 'JPEG', 0, 0, widthMm, heightMm);
+        document.body.removeChild(container);
+        pdf.save(`${buildFileName(row, selectedRows)}.pdf`);
+      } else {
+        const zip = new JSZip();
+        for (let i = 0; i < selectedRows.length; i++) {
+          const row = selectedRows[i];
+          const canvas = await renderRowToCanvas(row, container);
+          const imgData = canvas.toDataURL('image/jpeg', 0.95);
+          const pdf = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
+          pdf.addImage(imgData, 'JPEG', 0, 0, widthMm, heightMm);
+          zip.file(`${buildFileName(row, selectedRows)}.pdf`, pdf.output('blob'));
+        }
+        document.body.removeChild(container);
+
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${sanitizeFileName(contest.title) || 'дипломы'}.zip`;
+        a.click();
+        URL.revokeObjectURL(url);
       }
 
-      document.body.removeChild(container);
-
-      const templateName = templates.find(t => String(t.id) === templateId)?.name || 'дипломы';
-      pdf.save(`${contest.title}_${templateName}.pdf`);
       toast({ title: 'Готово', description: `Сгенерировано дипломов: ${selectedRows.length}` });
     } catch {
       toast({ title: 'Ошибка генерации PDF', variant: 'destructive' });

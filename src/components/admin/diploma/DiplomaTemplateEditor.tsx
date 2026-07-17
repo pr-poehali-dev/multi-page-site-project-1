@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { useDiplomaTemplates } from '@/hooks/useDiplomaTemplates';
+import { useToast } from '@/hooks/use-toast';
 import { loadCustomFonts } from '@/lib/loadCustomFonts';
 import { DiplomaTemplate, DiplomaTemplateField, DiplomaGuide, MM_TO_PX, A4_WIDTH_MM, A4_HEIGHT_MM } from '@/types/diploma';
 import DiplomaTemplateCanvas from './DiplomaTemplateCanvas';
@@ -15,6 +16,8 @@ interface DiplomaTemplateEditorProps {
   templateId: number;
   onBack: () => void;
 }
+
+const MAX_BACKGROUND_SIZE = 20 * 1024 * 1024; // 20 МБ
 
 const emptyField = (): DiplomaTemplateField => ({
   data_key: 'custom',
@@ -34,6 +37,7 @@ const emptyField = (): DiplomaTemplateField => ({
 });
 
 const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProps) => {
+  const { toast } = useToast();
   const { loadTemplate, updateTemplate, uploadBackground, deleteBackground, saveFields, fonts, uploadFont, deleteFont } = useDiplomaTemplates();
   const [template, setTemplate] = useState<DiplomaTemplate | null>(null);
   const [fields, setFields] = useState<DiplomaTemplateField[]>([]);
@@ -89,6 +93,10 @@ const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProp
 
   const handleUploadBackground = async (file: File) => {
     if (!template) return;
+    if (file.size > MAX_BACKGROUND_SIZE) {
+      toast({ title: 'Файл слишком большой', description: `Максимальный размер подложки — 20 МБ. Ваш файл: ${(file.size / 1024 / 1024).toFixed(1)} МБ`, variant: 'destructive' });
+      return;
+    }
     setUploadingBg(true);
     const url = await uploadBackground(template.id, file);
     if (url) setTemplate(prev => prev ? { ...prev, background_url: url } : prev);
@@ -168,7 +176,7 @@ const DiplomaTemplateEditor = ({ templateId, onBack }: DiplomaTemplateEditorProp
           </SelectContent>
         </Select>
 
-        <label>
+        <label title="Максимальный размер файла — 20 МБ">
           <Button variant="outline" asChild disabled={uploadingBg}>
             <span className="cursor-pointer">
               <Icon name={uploadingBg ? 'Loader' : 'Image'} size={16} className={`mr-2 ${uploadingBg ? 'animate-spin' : ''}`} />

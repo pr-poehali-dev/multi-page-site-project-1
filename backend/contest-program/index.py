@@ -13,6 +13,8 @@ from decimal import Decimal
 
 SCHEMA = 't_p73771717_multi_page_site_proj'
 
+MAX_BACKGROUND_SIZE_BYTES = 20 * 1024 * 1024  # 20 МБ
+
 JURY_COUNTS = [1, 2, 3, 4, 5]
 LEVELS = ['grand_prix_min', 'laureate_1_min', 'laureate_2_min', 'laureate_3_min', 'diplom_1_min', 'diplom_2_min', 'diplom_3_min']
 
@@ -399,6 +401,9 @@ def upload_background(conn, tid, event) -> Dict[str, Any]:
     file_name = body.get('file_name', 'bg.jpg')
     if not tid or not file_b64:
         return _resp(400, {'error': 'id and file_base64 required'})
+    approx_size = len(file_b64) * 3 / 4
+    if approx_size > MAX_BACKGROUND_SIZE_BYTES:
+        return _resp(400, {'error': 'Максимальный размер подложки — 20 МБ'})
     ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else 'jpg'
     content_type = f'image/{ext}' if ext != 'jpg' else 'image/jpeg'
     version = uuid.uuid4().hex[:8]
