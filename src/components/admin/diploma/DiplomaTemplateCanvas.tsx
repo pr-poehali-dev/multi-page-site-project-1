@@ -193,7 +193,7 @@ const DiplomaTemplateCanvas = ({
       onClick={() => !previewMode && onSelect?.([])}
     >
       {backgroundUrl && (
-        <img src={backgroundUrl} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" draggable={false} />
+        <img src={backgroundUrl} alt="" crossOrigin="anonymous" className="absolute inset-0 w-full h-full object-cover pointer-events-none" draggable={false} />
       )}
 
       {!previewMode && (
