@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Rnd } from 'react-rnd';
 import { DiplomaTemplateField, DiplomaGuide, DIPLOMA_DATA_FIELDS, MM_TO_PX, A4_WIDTH_MM, A4_HEIGHT_MM } from '@/types/diploma';
-import { computeAutoFitFontSize } from '@/lib/autoFitText';
+import { computeAutoFitFontSize, measureTextWidth } from '@/lib/autoFitText';
 
 interface DiplomaTemplateCanvasProps {
   orientation: 'portrait' | 'landscape';
@@ -40,6 +40,79 @@ interface DragOffset {
   dy: number;
 }
 
+interface GroupLayoutOverride {
+  xPx: number;
+  wPx: number;
+  yPx: number;
+  hPx: number;
+  fontSize: number;
+}
+
+/**
+ * Для объединённых (сгруппированных) полей вычисляет авто-раскладку в одну строку:
+ * каждое поле сжимается по факту заполнения текстом, а вся строка центрируется
+ * в общей области, которую эти поля занимали изначально.
+ */
+const computeGroupLayout = (
+  fields: DiplomaTemplateField[],
+  pageWidthPx: number,
+  pageHeightPx: number,
+  previewValues?: Record<string, string>,
+): Map<number, GroupLayoutOverride> => {
+  const overrides = new Map<number, GroupLayoutOverride>();
+  const groupIds = new Set(fields.map(f => f.group_id).filter((g): g is number => g != null));
+
+  groupIds.forEach(gid => {
+    const idxs = fields.reduce<number[]>((acc, f, i) => (f.group_id === gid ? [...acc, i] : acc), []);
+    if (idxs.length < 2) return;
+    const sorted = [...idxs].sort((a, b) => fields[a].pos_x - fields[b].pos_x);
+
+    let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+    sorted.forEach(idx => {
+      const f = fields[idx];
+      const x = (f.pos_x / 100) * pageWidthPx;
+      const y = (f.pos_y / 100) * pageHeightPx;
+      const w = (f.width / 100) * pageWidthPx;
+      const h = (f.height / 100) * pageHeightPx;
+      left = Math.min(left, x);
+      right = Math.max(right, x + w);
+      top = Math.min(top, y);
+      bottom = Math.max(bottom, y + h);
+    });
+
+    const measured = sorted.map(idx => {
+      const f = fields[idx];
+      const text = fieldPreviewText(f, previewValues);
+      const origWPx = (f.width / 100) * pageWidthPx;
+      const origHPx = (f.height / 100) * pageHeightPx;
+      const fontSize = f.auto_fit !== false
+        ? computeAutoFitFontSize(text, {
+            widthPx: origWPx,
+            heightPx: origHPx,
+            fontFamily: f.font_family,
+            fontWeight: f.font_weight,
+            lineHeight: f.line_height,
+            maxFontSize: f.font_size,
+          })
+        : f.font_size;
+      const measuredWidth = measureTextWidth(text, f.font_family, fontSize, f.font_weight);
+      return { idx, width: (measuredWidth || origWPx) + 8, fontSize };
+    });
+
+    const avgFontSize = measured.reduce((s, m) => s + m.fontSize, 0) / measured.length;
+    const gap = Math.max(4, avgFontSize * 0.35);
+    const totalWidth = measured.reduce((s, m) => s + m.width, 0) + gap * (measured.length - 1);
+    let cursorX = left + Math.max(0, (right - left - totalWidth) / 2);
+
+    measured.forEach(m => {
+      overrides.set(m.idx, { xPx: cursorX, wPx: m.width, yPx: top, hPx: bottom - top, fontSize: m.fontSize });
+      cursorX += m.width + gap;
+    });
+  });
+
+  return overrides;
+};
+
 const DiplomaTemplateCanvas = ({
   orientation,
   backgroundUrl,
@@ -59,6 +132,8 @@ const DiplomaTemplateCanvas = ({
   const heightMm = orientation === 'portrait' ? A4_HEIGHT_MM : A4_WIDTH_MM;
   const pageWidthPx = widthMm * MM_TO_PX;
   const pageHeightPx = heightMm * MM_TO_PX;
+
+  const groupLayout = computeGroupLayout(fields, pageWidthPx, pageHeightPx, previewValues);
 
   const computeMoveSet = (index: number): number[] => {
     const field = fields[index];
@@ -148,10 +223,11 @@ const DiplomaTemplateCanvas = ({
       })}
 
       {fields.map((field, i) => {
-        const baseXPx = (field.pos_x / 100) * pageWidthPx;
-        const baseYPx = (field.pos_y / 100) * pageHeightPx;
-        const wPx = (field.width / 100) * pageWidthPx;
-        const hPx = (field.height / 100) * pageHeightPx;
+        const override = groupLayout.get(i);
+        const baseXPx = override ? override.xPx : (field.pos_x / 100) * pageWidthPx;
+        const baseYPx = override ? override.yPx : (field.pos_y / 100) * pageHeightPx;
+        const wPx = override ? override.wPx : (field.width / 100) * pageWidthPx;
+        const hPx = override ? override.hPx : (field.height / 100) * pageHeightPx;
 
         const offsetActive = dragOffset && dragOffset.moveSet.includes(i);
         const xPx = baseXPx + (offsetActive ? dragOffset!.dx : 0);
@@ -159,16 +235,18 @@ const DiplomaTemplateCanvas = ({
 
         const text = fieldPreviewText(field, previewValues);
         const autoFit = field.auto_fit !== false;
-        const effectiveFontSize = autoFit
-          ? computeAutoFitFontSize(text, {
-              widthPx: wPx,
-              heightPx: hPx,
-              fontFamily: field.font_family,
-              fontWeight: field.font_weight,
-              lineHeight: field.line_height,
-              maxFontSize: field.font_size,
-            })
-          : field.font_size;
+        const effectiveFontSize = override
+          ? override.fontSize
+          : autoFit
+            ? computeAutoFitFontSize(text, {
+                widthPx: wPx,
+                heightPx: hPx,
+                fontFamily: field.font_family,
+                fontWeight: field.font_weight,
+                lineHeight: field.line_height,
+                maxFontSize: field.font_size,
+              })
+            : field.font_size;
 
         const textStyle: React.CSSProperties = {
           fontFamily: field.font_family,
@@ -204,6 +282,7 @@ const DiplomaTemplateCanvas = ({
             bounds="parent"
             size={{ width: wPx, height: hPx }}
             position={{ x: xPx, y: yPx }}
+            enableResizing={!override}
             onClick={(e: React.MouseEvent) => handleFieldClick(i, e)}
             onDragStart={() => setDragOffset({ activeIndex: i, moveSet: computeMoveSet(i), dx: 0, dy: 0 })}
             onDrag={(_e, d) => {

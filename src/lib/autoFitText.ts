@@ -72,3 +72,15 @@ export const computeAutoFitFontSize = (text: string, opts: AutoFitOptions): numb
   }
   return minFontSize;
 };
+
+/**
+ * Измеряет фактическую ширину однострочного текста при заданном шрифте.
+ * Используется для авто-раскладки объединённых (сгруппированных) полей —
+ * чтобы центрировать их по реальному заполнению текстом, а не по заданной ширине рамки.
+ */
+export const measureTextWidth = (text: string, fontFamily: string, fontSize: number, fontWeight: string): number => {
+  const ctx = getCtx();
+  if (!ctx || !text) return 0;
+  ctx.font = `${fontWeight === 'bold' ? 'bold' : fontWeight === 'normal' ? 'normal' : fontWeight} ${fontSize}px ${fontFamily}`;
+  return ctx.measureText(text).width;
+};
