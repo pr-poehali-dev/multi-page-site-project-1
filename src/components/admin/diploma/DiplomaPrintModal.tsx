@@ -133,7 +133,29 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
       );
       setTimeout(resolve, 150);
     });
-    const canvas = await html2canvas(container.firstElementChild as HTMLElement, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    // Ждём, пока подложка (если есть) реально отрисуется — иначе html2canvas может
+    // захватить кадр до её загрузки при быстрой смене строк в цикле генерации.
+    const bgImg = container.querySelector('img');
+    if (bgImg && !bgImg.complete) {
+      await new Promise<void>(resolve => {
+        bgImg.addEventListener('load', () => resolve(), { once: true });
+        bgImg.addEventListener('error', () => resolve(), { once: true });
+        setTimeout(resolve, 2000);
+      });
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    // foreignObjectRendering заставляет html2canvas делегировать вёрстку текста
+    // (flex-центрирование, перенос строк, шрифты) настоящему движку браузера через SVG
+    // <foreignObject>, а не собственной упрощённой реализацией — та плохо считает
+    // межстрочные интервалы для центрированного многострочного текста и накладывает строки
+    // друг на друга. С этой опцией сохранённый PDF выглядит так же, как живой предпросмотр.
+    const canvas = await html2canvas(container.firstElementChild as HTMLElement, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      foreignObjectRendering: true,
+    });
     root.unmount();
     return canvas;
   };
