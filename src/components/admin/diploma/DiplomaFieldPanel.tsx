@@ -41,6 +41,20 @@ const DiplomaFieldPanel = ({ field, customFonts, onChange, onRemove, onClose, on
         </Select>
       </div>
 
+      {field.data_key !== 'custom' && (
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Константа перед значением</label>
+          <Input
+            value={field.prefix_text || ''}
+            onChange={e => onChange({ prefix_text: e.target.value })}
+            placeholder="например: Номинация"
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Будет напечатано слитно с подставляемым значением, например «Номинация Вокал», и центрировано как единый текст.
+          </p>
+        </div>
+      )}
+
       {field.data_key === 'custom' && (
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Текст</label>

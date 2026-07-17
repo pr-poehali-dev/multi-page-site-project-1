@@ -19,6 +19,7 @@ interface DiplomaTemplateEditorProps {
 const emptyField = (): DiplomaTemplateField => ({
   data_key: 'custom',
   custom_text: 'Новый текст',
+  prefix_text: '',
   pos_x: 30,
   pos_y: 40,
   width: 40,

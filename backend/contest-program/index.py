@@ -430,15 +430,16 @@ def save_fields(conn, tid, event) -> Dict[str, Any]:
         for i, f in enumerate(fields):
             cur.execute(f'''
                 INSERT INTO {SCHEMA}.diploma_template_fields
-                  (template_id, data_key, custom_text, pos_x, pos_y, width, height,
+                  (template_id, data_key, custom_text, prefix_text, pos_x, pos_y, width, height,
                    font_family, font_size, font_color, font_weight, line_height, text_align, sort_order,
                    group_id, auto_fit)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 RETURNING *
             ''', (
                 tid,
                 f.get('data_key', 'custom'),
                 f.get('custom_text', ''),
+                f.get('prefix_text', ''),
                 f.get('pos_x', 10),
                 f.get('pos_y', 10),
                 f.get('width', 30),

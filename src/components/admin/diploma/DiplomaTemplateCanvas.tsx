@@ -19,9 +19,10 @@ interface DiplomaTemplateCanvasProps {
 const SNAP_THRESHOLD = 6;
 
 const fieldPreviewText = (field: DiplomaTemplateField, previewValues?: Record<string, string>): string => {
-  if (field.data_key === 'custom') return field.custom_text || 'Текст';
-  if (previewValues && previewValues[field.data_key] !== undefined) return previewValues[field.data_key] || '—';
-  return DIPLOMA_DATA_FIELDS.find(f => f.key === field.data_key)?.label || field.data_key;
+  const prefix = field.prefix_text ? `${field.prefix_text} ` : '';
+  if (field.data_key === 'custom') return prefix + (field.custom_text || 'Текст');
+  if (previewValues && previewValues[field.data_key] !== undefined) return prefix + (previewValues[field.data_key] || '—');
+  return prefix + (DIPLOMA_DATA_FIELDS.find(f => f.key === field.data_key)?.label || field.data_key);
 };
 
 const nearestSnap = (edges: number[], targets: number[]): number | null => {

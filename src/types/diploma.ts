@@ -21,6 +21,7 @@ export interface DiplomaTemplateField {
   template_id?: number;
   data_key: string;
   custom_text: string;
+  prefix_text?: string;
   pos_x: number;
   pos_y: number;
   width: number;
