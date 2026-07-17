@@ -3,6 +3,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { useSEO } from '@/hooks/useSEO';
@@ -109,35 +110,36 @@ const GalleryPage = () => {
             Лучшие выступления наших участников
           </p>
 
-          <div className="mb-8 animate-fade-in">
+          <div className="mb-8 animate-fade-in max-w-xs mx-auto">
             <h3 className="text-sm font-medium mb-3 text-center">Фильтр по конкурсам</h3>
-            <div className="flex flex-wrap justify-center gap-3">
-              <Button
-                variant={filter === 'all' ? 'default' : 'outline'}
-                onClick={() => setFilter('all')}
-                className={filter === 'all' ? 'bg-secondary hover:bg-secondary/90' : ''}
-              >
-                Все работы
-              </Button>
-              <Button
-                variant={filter === 'featured' ? 'default' : 'outline'}
-                onClick={() => setFilter('featured')}
-                className={filter === 'featured' ? 'bg-secondary hover:bg-secondary/90' : ''}
-              >
-                <Icon name="Star" size={16} className="mr-2" />
-                Избранное
-              </Button>
-              {contests.map((contest) => (
-                <Button
-                  key={contest.id}
-                  variant={filter === contest.id ? 'default' : 'outline'}
-                  onClick={() => setFilter(contest.id)}
-                  className={filter === contest.id ? 'bg-secondary hover:bg-secondary/90' : ''}
-                >
-                  {contest.title}
-                </Button>
-              ))}
-            </div>
+            <Select
+              value={String(filter)}
+              onValueChange={(value) => {
+                if (value === 'all' || value === 'featured') {
+                  setFilter(value);
+                } else {
+                  setFilter(Number(value));
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Выберите конкурс" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все работы</SelectItem>
+                <SelectItem value="featured">
+                  <span className="inline-flex items-center gap-2">
+                    <Icon name="Star" size={16} />
+                    Избранное
+                  </span>
+                </SelectItem>
+                {contests.map((contest) => (
+                  <SelectItem key={contest.id} value={String(contest.id)}>
+                    {contest.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="mb-8 animate-fade-in">
