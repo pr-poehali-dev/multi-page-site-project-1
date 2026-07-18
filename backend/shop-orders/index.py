@@ -177,9 +177,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 base_return = return_url or f'{base}/shop/success'
                 success_url = f'{base_return}?order_id={order_id}'
 
+                # Т-Банк не разрешает повторно инициализировать платёж с тем же OrderId —
+                # добавляем суффикс с меткой времени, реальный order_id остаётся до дефиса
+                tbank_order_ref = f"{order_id}-{int(datetime.now().timestamp())}"
+
                 tbank_resp = tbank_request(terminal_key, password, 'Init', {
                     'Amount': amount_kopecks,
-                    'OrderId': str(order_id),
+                    'OrderId': tbank_order_ref,
                     'Description': order['name'][:250],
                     'SuccessURL': success_url,
                     'FailURL': success_url.replace('success', 'fail'),
@@ -220,12 +224,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
                 cb_status = body.get('Status', '')
                 our_order_id = body.get('OrderId', '')
+                # OrderId может содержать суффикс метки времени при повторной оплате (repay) — берём часть до дефиса
+                real_order_id = our_order_id.split('-')[0] if our_order_id else ''
 
-                if cb_status == 'CONFIRMED' and our_order_id:
+                if cb_status == 'CONFIRMED' and real_order_id:
                     cur.execute(f'''
                         UPDATE {SCHEMA}.shop_orders SET status = 'paid'
                         WHERE id = %s AND status != 'paid'
-                    ''', (our_order_id,))
+                    ''', (real_order_id,))
                     conn.commit()
 
                 return {'statusCode': 200, 'headers': CORS, 'body': 'OK'}
