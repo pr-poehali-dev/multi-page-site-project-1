@@ -119,9 +119,7 @@ const GalleryPage = () => {
             <h1 className="text-5xl md:text-6xl font-heading font-bold mb-4">
               Галерея
             </h1>
-            <p className="text-xl text-muted-foreground max-w-xl mx-auto">
-              Лучшие выступления наших участников
-            </p>
+            <p className="text-xl text-muted-foreground max-w-xl mx-auto">Моменты которые остаются в сердце навсегда!</p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-fade-in">
