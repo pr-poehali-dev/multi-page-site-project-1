@@ -42,6 +42,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     Заказы интернет-магазина + интеграция с Т-Банком.
     POST /?action=pay      — создать заказ и получить ссылку оплаты Т-Банка { product_id, form_data, return_url }
+    POST /?action=repay    — повторно оплатить существующий неоплаченный заказ { order_id, return_url }
     POST /?action=callback — webhook от Т-Банка (авто-пометка заказа оплаченным)
     GET  /?action=check&order_id=X — проверить статус оплаты заказа у банка
     POST /                 — создать заказ без оплаты { product_id, form_data }
@@ -141,6 +142,71 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
                 return {'statusCode': 200, 'headers': CORS,
                         'body': json.dumps({'order_id': order_id, 'payment_url': payment_url})}
+
+            # ── Повторная оплата существующего заказа ─────────────────────────
+            if method == 'POST' and action == 'repay':
+                body = json.loads(event.get('body') or '{}')
+                order_id = body.get('order_id')
+                return_url = body.get('return_url', '')
+
+                if not order_id:
+                    conn.rollback()
+                    return {'statusCode': 400, 'headers': CORS,
+                            'body': json.dumps({'error': 'order_id required'})}
+
+                cur.execute(f'''
+                    SELECT o.id, o.status, o.product_id, p.name, p.price
+                    FROM {SCHEMA}.shop_orders o
+                    JOIN {SCHEMA}.shop_products p ON p.id = o.product_id
+                    WHERE o.id = %s
+                ''', (order_id,))
+                order = cur.fetchone()
+                if not order:
+                    conn.rollback()
+                    return {'statusCode': 404, 'headers': CORS,
+                            'body': json.dumps({'error': 'Order not found'})}
+
+                if order['status'] in ('paid', 'completed'):
+                    conn.rollback()
+                    return {'statusCode': 200, 'headers': CORS,
+                            'body': json.dumps({'status': 'paid', 'order_id': int(order['id'])})}
+
+                amount_kopecks = int(float(order['price']) * 100)
+                host = (event.get('headers') or {}).get('host', '')
+                base = f'https://{host}' if host else ''
+                base_return = return_url or f'{base}/shop/success'
+                success_url = f'{base_return}?order_id={order_id}'
+
+                tbank_resp = tbank_request(terminal_key, password, 'Init', {
+                    'Amount': amount_kopecks,
+                    'OrderId': str(order_id),
+                    'Description': order['name'][:250],
+                    'SuccessURL': success_url,
+                    'FailURL': success_url.replace('success', 'fail'),
+                    'Language': 'ru',
+                })
+                print(f"[TBANK] Repay Init response: {tbank_resp}")
+
+                if not tbank_resp.get('Success'):
+                    conn.rollback()
+                    return {'statusCode': 502, 'headers': CORS,
+                            'body': json.dumps({
+                                'error': tbank_resp.get('Message', 'Ошибка банка'),
+                                'details': tbank_resp.get('Details', '')
+                            })}
+
+                tbank_order_id = tbank_resp.get('PaymentId', '')
+                payment_url = tbank_resp.get('PaymentURL', '')
+
+                cur.execute(f'''
+                    UPDATE {SCHEMA}.shop_orders
+                    SET alfa_order_id = %s, payment_url = %s, status = 'pending'
+                    WHERE id = %s
+                ''', (str(tbank_order_id), payment_url, order_id))
+                conn.commit()
+
+                return {'statusCode': 200, 'headers': CORS,
+                        'body': json.dumps({'order_id': int(order_id), 'payment_url': payment_url})}
 
             # ── Webhook от Т-Банка ────────────────────────────────────────────
             if method == 'POST' and action == 'callback':
