@@ -229,7 +229,10 @@ const AdminPage = () => {
       case 'participants': return false;
       case 'form-builder': return contestsLoading;
       case 'diplomas': return false;
-      default: return juryLoading;
+      case 'reviews': return false;
+      case 'jury': return juryLoading;
+      case 'jury-accounts': return juryLoading;
+      default: return false;
     }
   }, [activeTab, applicationsLoading, contestsLoading, concertsLoading, scoringLoading, galleryLoading, resultsLoading, partnersLoading, juryLoading]);
 
