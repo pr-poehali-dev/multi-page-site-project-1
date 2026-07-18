@@ -146,27 +146,23 @@ const ResultsPage = () => {
             )}
 
             {uniqueContests.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2">
-                <Button
-                  size="sm"
-                  variant={selectedContest === null ? 'default' : 'outline'}
-                  onClick={() => setSelectedContest(null)}
-                  className={`rounded-full ${selectedContest === null ? 'bg-secondary hover:bg-secondary/90' : ''}`}
-                >
-                  Все конкурсы
-                </Button>
-                {uniqueContests.map((contest) => (
-                  <Button
-                    key={contest.id}
-                    size="sm"
-                    variant={selectedContest === contest.id ? 'default' : 'outline'}
-                    onClick={() => setSelectedContest(contest.id)}
-                    className={`rounded-full ${selectedContest === contest.id ? 'bg-secondary hover:bg-secondary/90' : ''}`}
-                  >
-                    {contest.title}
-                  </Button>
-                ))}
-              </div>
+              <Select
+                value={selectedContest === null ? 'all' : String(selectedContest)}
+                onValueChange={(value) => setSelectedContest(value === 'all' ? null : Number(value))}
+              >
+                <SelectTrigger className="w-64 rounded-full">
+                  <Icon name="Trophy" size={16} className="mr-2 text-secondary" />
+                  <SelectValue placeholder="Конкурс" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все конкурсы</SelectItem>
+                  {uniqueContests.map((contest) => (
+                    <SelectItem key={contest.id} value={String(contest.id)}>
+                      {contest.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </div>
 

@@ -2,7 +2,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSEO } from '@/hooks/useSEO';
 
 const GALLERY_URL = 'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?endpoint=gallery';
@@ -23,6 +23,9 @@ const AboutPage = () => {
   });
   const [galleryPhotos, setGalleryPhotos] = useState<GalleryItem[]>([]);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [countsStarted, setCountsStarted] = useState(false);
+  const [counts, setCounts] = useState([0, 0, 0, 0]);
+  const statsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const loadGallery = async () => {
@@ -47,11 +50,46 @@ const AboutPage = () => {
   }, [galleryPhotos]);
 
   const stats = [
-    { number: '500+', label: 'Участников' },
-    { number: '50+', label: 'Конкурсов' },
-    { number: '12', label: 'Стран' },
-    { number: '100+', label: 'Призов' },
+    { target: 500, suffix: '+', label: 'Участников' },
+    { target: 50, suffix: '+', label: 'Конкурсов' },
+    { target: 12, suffix: '', label: 'Стран' },
+    { target: 100, suffix: '+', label: 'Призов' },
   ];
+
+  useEffect(() => {
+    const el = statsRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setCountsStarted(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.3 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!countsStarted) return;
+    const duration = 1500;
+    const startTime = performance.now();
+    let frame: number;
+
+    const tick = (now: number) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCounts(stats.map(s => Math.round(s.target * eased)));
+      if (progress < 1) {
+        frame = requestAnimationFrame(tick);
+      }
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countsStarted]);
 
   const values = [
     {
@@ -147,7 +185,7 @@ const AboutPage = () => {
             </Card>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
+          <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
             {stats.map((stat, index) => (
               <Card 
                 key={index} 
@@ -155,7 +193,7 @@ const AboutPage = () => {
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div className="text-4xl font-heading font-bold text-secondary mb-2">
-                  {stat.number}
+                  {counts[index]}{stat.suffix}
                 </div>
                 <div className="text-sm text-muted-foreground">{stat.label}</div>
               </Card>
