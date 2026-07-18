@@ -12,6 +12,12 @@
       "method": "GET",
       "path": "/",
       "expectedStatus": 200
+    },
+    {
+      "name": "GET orders by email returns 200",
+      "method": "GET",
+      "path": "/?email=test@example.com",
+      "expectedStatus": 200
     }
   ]
 }

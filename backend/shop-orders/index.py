@@ -47,6 +47,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     POST /                 — создать заказ без оплаты { product_id, form_data }
     GET  /?contest_id=X    — список заказов по конкурсу (для админки)
     GET  /?product_id=X    — список заказов по товару
+    GET  /?email=X         — список заказов покупателя по email (личный кабинет)
     PUT  /?id=X            — обновить статус { status }
     PUT  /?action=remove&id=X — скрыть заказ
     """
@@ -227,6 +228,26 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 conn.rollback()
                 contest_id = params.get('contest_id')
                 product_id = params.get('product_id')
+                email = params.get('email')
+                if email:
+                    cur.execute(f'''
+                        SELECT o.*, p.name AS product_name, p.price,
+                               c.title AS contest_title
+                        FROM {SCHEMA}.shop_orders o
+                        JOIN {SCHEMA}.shop_products p ON p.id = o.product_id
+                        LEFT JOIN {SCHEMA}.contests c ON c.id = p.contest_id
+                        WHERE o.status != '__hidden__'
+                          AND lower(o.form_data->>'Адрес электронной почты') = lower(%s)
+                        ORDER BY o.created_at DESC
+                    ''', (email,))
+                    rows = []
+                    for r in cur.fetchall():
+                        row = dict(r)
+                        row['price'] = float(row['price'])
+                        row['form_data'] = dict(row['form_data']) if row['form_data'] else {}
+                        rows.append(row)
+                    return {'statusCode': 200, 'headers': CORS,
+                            'body': json.dumps({'orders': rows}, default=json_serial)}
                 if contest_id:
                     cur.execute(f'''
                         SELECT o.*, p.name AS product_name, p.price,

@@ -11,10 +11,12 @@ import ParticipantHeader, { Participant } from '@/components/participant/Partici
 import CabinetApplicationsTab, { Application } from '@/components/participant/CabinetApplicationsTab';
 import CabinetAwardsTab, { Diploma } from '@/components/participant/CabinetAwardsTab';
 import CabinetChatTab, { ChatMessage } from '@/components/participant/CabinetChatTab';
+import CabinetOrdersTab, { ShopOrder } from '@/components/participant/CabinetOrdersTab';
 
 const DIPLOMA_URL = 'https://functions.poehali.dev/1806f979-38b3-442e-b8ef-fa6827104251';
 const AUTH_URL = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
 const CONTESTS_URL = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
+const ORDERS_URL = 'https://functions.poehali.dev/b020db38-8100-400d-9e53-2dbfcafd5f48';
 
 type Tab = 'applications' | 'awards' | 'shop' | 'chat';
 
@@ -23,6 +25,8 @@ const ParticipantCabinetPage = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [diplomas, setDiplomas] = useState<Diploma[]>([]);
   const [diplomasLoading, setDiplomasLoading] = useState(false);
+  const [orders, setOrders] = useState<ShopOrder[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [showNewApp, setShowNewApp] = useState(false);
   const [editingApplication, setEditingApplication] = useState<Application | null>(null);
   const [fieldLabelsByContest, setFieldLabelsByContest] = useState<Record<number, Record<string, string>>>({});
@@ -109,6 +113,21 @@ const ParticipantCabinetPage = () => {
     };
     load();
   }, [tab, participant, diplomas.length]);
+
+  // Загружаем заказы магазина когда переходим на вкладку
+  useEffect(() => {
+    if (tab !== 'shop' || !participant || orders.length > 0) return;
+    const load = async () => {
+      setOrdersLoading(true);
+      try {
+        const res = await fetch(`${ORDERS_URL}?email=${encodeURIComponent(participant.email)}`);
+        const data = await res.json();
+        setOrders(data.orders || []);
+      } catch { setOrders([]); }
+      finally { setOrdersLoading(false); }
+    };
+    load();
+  }, [tab, participant, orders.length]);
 
   // Загружаем чат при переходе на вкладку и помечаем прочитанным
   useEffect(() => {
@@ -218,7 +237,10 @@ const ParticipantCabinetPage = () => {
               onClick={() => setTab('shop')}
               className="gap-2"
             >
-              <Icon name="ShoppingBag" size={16} /> Магазин
+              <Icon name="ShoppingBag" size={16} /> Мои заказы
+              {orders.length > 0 && (
+                <span className="ml-1 bg-background/20 rounded-full text-xs px-1.5">{orders.length}</span>
+              )}
             </Button>
             <Button
               variant={tab === 'chat' ? 'default' : 'outline'}
@@ -251,21 +273,11 @@ const ParticipantCabinetPage = () => {
 
           {/* ── Вкладка: Магазин ── */}
           {tab === 'shop' && (
-            <div className="text-center py-16">
-              <div className="w-20 h-20 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Icon name="ShoppingBag" size={40} className="text-secondary" />
-              </div>
-              <h2 className="text-2xl font-heading font-bold mb-3">Магазин ИНДИГО</h2>
-              <p className="text-muted-foreground mb-2 max-w-md mx-auto">
-                Дипломы, сувениры и памятные подарки для участников конкурсов
-              </p>
-              <p className="text-sm text-muted-foreground mb-8 max-w-md mx-auto">
-                Закажите именной диплом, памятную медаль или другую атрибутику с доставкой
-              </p>
-              <Button onClick={() => navigate('/shop')} className="bg-secondary hover:bg-secondary/90 gap-2" size="lg">
-                <Icon name="ShoppingBag" size={18} /> Перейти в магазин
-              </Button>
-            </div>
+            <CabinetOrdersTab
+              orders={orders}
+              loading={ordersLoading}
+              onGoToShop={() => navigate('/shop')}
+            />
           )}
 
           {/* ── Вкладка: Чат ── */}
