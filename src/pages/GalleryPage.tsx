@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
@@ -29,6 +28,8 @@ interface Contest {
   status: string;
 }
 
+const ASPECTS = ['aspect-square', 'aspect-[3/4]', 'aspect-[4/5]', 'aspect-[4/3]'];
+
 const GalleryPage = () => {
   useSEO({
     title: 'Галерея — фото и видео с конкурсов вокала, хореографии и театра',
@@ -41,7 +42,7 @@ const GalleryPage = () => {
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -90,28 +91,40 @@ const GalleryPage = () => {
   };
 
   const filteredItems = getFilteredItems();
+  const selectedItem = selectedIndex !== null ? filteredItems[selectedIndex] : null;
 
-  const getContestTitle = (contestId?: number) => {
-    if (!contestId) return null;
-    const contest = contests.find(c => c.id === contestId);
-    return contest?.title;
+  const showPrev = () => {
+    if (selectedIndex === null) return;
+    setSelectedIndex((selectedIndex - 1 + filteredItems.length) % filteredItems.length);
+  };
+  const showNext = () => {
+    if (selectedIndex === null) return;
+    setSelectedIndex((selectedIndex + 1) % filteredItems.length);
   };
 
   return (
     <div className="min-h-screen">
       <Navigation />
 
-      <section className="pt-32 pb-20 px-4">
-        <div className="container mx-auto">
-          <h1 className="text-5xl md:text-6xl font-heading font-bold mb-6 text-center animate-fade-in">
-            Галерея работ
-          </h1>
-          <p className="text-xl text-muted-foreground text-center mb-12 animate-fade-in">
-            Лучшие выступления наших участников
-          </p>
+      <section className="pt-32 pb-20 px-4 relative overflow-hidden">
+        <div className="absolute top-10 -left-20 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-10 -right-20 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1.2s' }} />
 
-          <div className="mb-8 animate-fade-in max-w-xs mx-auto">
-            <h3 className="text-sm font-medium mb-3 text-center">Фильтр по конкурсам</h3>
+        <div className="container mx-auto relative">
+          <div className="text-center mb-12 animate-fade-in">
+            <div className="inline-flex items-center gap-2 bg-secondary/10 text-secondary px-4 py-1.5 rounded-full text-sm font-medium mb-4">
+              <Icon name="Sparkles" size={16} />
+              Яркие моменты
+            </div>
+            <h1 className="text-5xl md:text-6xl font-heading font-bold mb-4">
+              Галерея
+            </h1>
+            <p className="text-xl text-muted-foreground max-w-xl mx-auto">
+              Лучшие выступления наших участников
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-fade-in">
             <Select
               value={String(filter)}
               onValueChange={(value) => {
@@ -122,7 +135,7 @@ const GalleryPage = () => {
                 }
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-64 rounded-full">
                 <SelectValue placeholder="Выберите конкурс" />
               </SelectTrigger>
               <SelectContent>
@@ -140,35 +153,32 @@ const GalleryPage = () => {
                 ))}
               </SelectContent>
             </Select>
-          </div>
 
-          <div className="mb-8 animate-fade-in">
-            <h3 className="text-sm font-medium mb-3 text-center">Тип медиа</h3>
-            <div className="flex flex-wrap justify-center gap-3">
+            <div className="inline-flex bg-muted rounded-full p-1 gap-1">
               <Button
                 size="sm"
-                variant={mediaFilter === 'all' ? 'default' : 'outline'}
+                variant="ghost"
                 onClick={() => setMediaFilter('all')}
-                className={mediaFilter === 'all' ? 'bg-secondary hover:bg-secondary/90' : ''}
+                className={`rounded-full ${mediaFilter === 'all' ? 'bg-white shadow text-secondary' : 'text-muted-foreground'}`}
               >
                 Все
               </Button>
               <Button
                 size="sm"
-                variant={mediaFilter === 'photo' ? 'default' : 'outline'}
+                variant="ghost"
                 onClick={() => setMediaFilter('photo')}
-                className={mediaFilter === 'photo' ? 'bg-secondary hover:bg-secondary/90' : ''}
+                className={`rounded-full gap-1.5 ${mediaFilter === 'photo' ? 'bg-white shadow text-secondary' : 'text-muted-foreground'}`}
               >
-                <Icon name="Image" size={16} className="mr-2" />
+                <Icon name="Image" size={15} />
                 Фото
               </Button>
               <Button
                 size="sm"
-                variant={mediaFilter === 'video' ? 'default' : 'outline'}
+                variant="ghost"
                 onClick={() => setMediaFilter('video')}
-                className={mediaFilter === 'video' ? 'bg-secondary hover:bg-secondary/90' : ''}
+                className={`rounded-full gap-1.5 ${mediaFilter === 'video' ? 'bg-white shadow text-secondary' : 'text-muted-foreground'}`}
               >
-                <Icon name="Video" size={16} className="mr-2" />
+                <Icon name="Video" size={15} />
                 Видео
               </Button>
             </div>
@@ -180,66 +190,56 @@ const GalleryPage = () => {
             </div>
           ) : filteredItems.length === 0 ? (
             <div className="text-center py-20">
-              <Icon name="ImageOff" size={64} className="mx-auto mb-4 text-muted-foreground" />
+              <Icon name="ImageOff" size={64} className="mx-auto mb-4 text-muted-foreground/40" />
               <p className="text-xl text-muted-foreground">
                 В этой категории пока нет работ
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 max-w-7xl mx-auto">
               {filteredItems.map((item, index) => (
-                <Card
+                <div
                   key={item.id}
-                  className="overflow-hidden group cursor-pointer hover:shadow-2xl transition-all duration-300 animate-scale-in"
-                  style={{ animationDelay: `${index * 0.08}s` }}
-                  onClick={() => setSelectedItem(item)}
+                  className={`break-inside-avoid mb-3 group cursor-pointer relative overflow-hidden rounded-2xl bg-muted animate-scale-in ${ASPECTS[index % ASPECTS.length]}`}
+                  style={{ animationDelay: `${(index % 12) * 0.05}s` }}
+                  onClick={() => setSelectedIndex(index)}
                 >
-                  <div className="aspect-video bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center relative overflow-hidden">
-                    {item.media_type === 'photo' ? (
-                      <img 
-                        src={item.file_url} 
-                        alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  {item.media_type === 'photo' ? (
+                    <img
+                      src={item.file_url}
+                      alt=""
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  ) : (
+                    <>
+                      <video
+                        src={item.file_url}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        preload="metadata"
                       />
-                    ) : (
-                      <>
-                        <video 
-                          src={item.file_url}
-                          className="w-full h-full object-cover"
-                          preload="metadata"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                          <Icon name="Play" size={48} className="text-white" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                        <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                          <Icon name="Play" size={24} className="text-secondary ml-0.5" />
                         </div>
-                      </>
-                    )}
-                    {item.is_featured && (
-                      <div className="absolute top-2 right-2 bg-secondary text-white px-2 py-1 rounded text-xs flex items-center gap-1">
-                        <Icon name="Star" size={12} />
-                        Избранное
                       </div>
-                    )}
-                  </div>
+                    </>
+                  )}
 
-                  <div className="p-4">
-                    <h3 className="font-heading font-semibold text-lg mb-1">{item.title}</h3>
-                    {item.description && (
-                      <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                        {item.description}
-                      </p>
-                    )}
-                    <div className="flex justify-between items-center">
-                      {item.contest_id && (
-                        <span className="text-xs bg-muted px-2 py-1 rounded line-clamp-1">
-                          {getContestTitle(item.contest_id)}
-                        </span>
-                      )}
-                      <span className="text-xs text-muted-foreground ml-auto">
-                        {new Date(item.created_at).toLocaleDateString('ru-RU')}
-                      </span>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="w-11 h-11 rounded-full bg-white/90 flex items-center justify-center">
+                      <Icon name="Maximize2" size={18} className="text-secondary" />
                     </div>
                   </div>
-                </Card>
+
+                  {item.is_featured && (
+                    <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-secondary/90 backdrop-blur-sm flex items-center justify-center shadow">
+                      <Icon name="Star" size={14} className="text-white fill-white" />
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -247,64 +247,52 @@ const GalleryPage = () => {
       </section>
 
       {selectedItem && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-          onClick={() => setSelectedItem(null)}
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setSelectedIndex(null)}
         >
-          <div 
-            className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto"
+          <button
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors z-10"
+            onClick={() => setSelectedIndex(null)}
+          >
+            <Icon name="X" size={22} />
+          </button>
+
+          {filteredItems.length > 1 && (
+            <>
+              <button
+                className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors z-10"
+                onClick={(e) => { e.stopPropagation(); showPrev(); }}
+              >
+                <Icon name="ChevronLeft" size={24} />
+              </button>
+              <button
+                className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors z-10"
+                onClick={(e) => { e.stopPropagation(); showNext(); }}
+              >
+                <Icon name="ChevronRight" size={24} />
+              </button>
+            </>
+          )}
+
+          <div
+            className="max-w-5xl w-full max-h-[85vh] flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-              <h2 className="text-2xl font-heading font-bold">{selectedItem.title}</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedItem(null)}
-              >
-                <Icon name="X" size={24} />
-              </Button>
-            </div>
-            
-            <div className="p-6">
-              {selectedItem.media_type === 'photo' ? (
-                <img 
-                  src={selectedItem.file_url} 
-                  alt={selectedItem.title}
-                  className="w-full rounded-lg"
-                />
-              ) : (
-                <video 
-                  src={selectedItem.file_url}
-                  controls
-                  className="w-full rounded-lg"
-                  autoPlay
-                />
-              )}
-              
-              {selectedItem.description && (
-                <p className="mt-4 text-muted-foreground">
-                  {selectedItem.description}
-                </p>
-              )}
-              
-              <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
-                {selectedItem.contest_id && (
-                  <div className="flex items-center gap-2">
-                    <Icon name="Trophy" size={16} />
-                    {getContestTitle(selectedItem.contest_id)}
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Icon name="Calendar" size={16} />
-                  {new Date(selectedItem.created_at).toLocaleDateString('ru-RU', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
-                </div>
-              </div>
-            </div>
+            {selectedItem.media_type === 'photo' ? (
+              <img
+                src={selectedItem.file_url}
+                alt=""
+                className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
+              />
+            ) : (
+              <video
+                src={selectedItem.file_url}
+                controls
+                autoPlay
+                className="max-w-full max-h-[85vh] rounded-xl shadow-2xl"
+              />
+            )}
           </div>
         </div>
       )}
