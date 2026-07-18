@@ -105,9 +105,9 @@ const ReviewsPage = () => {
             <h1 className="text-5xl md:text-6xl font-heading font-bold mb-6">
               Что говорят о нас
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-              Истории и впечатления коллективов, которые уже стали частью ИНДИГО
-            </p>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">Истории и впечатления коллективов, 
+которые уже стали частью большой творческой семьи 
+ИНДИГО</p>
             <Button
               size="lg"
               onClick={() => setShowForm(v => !v)}
