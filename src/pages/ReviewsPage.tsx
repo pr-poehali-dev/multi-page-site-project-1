@@ -8,14 +8,17 @@ import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
 import { useSEO } from '@/hooks/useSEO';
 import { useToast } from '@/hooks/use-toast';
+import { compressImage } from '@/lib/compressImage';
 
 const REVIEWS_URL = 'https://functions.poehali.dev/7b3c1e0e-bd68-4b73-9377-740689560912?entity=reviews';
+const UPLOAD_URL = 'https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3';
 
 interface Review {
   id: number;
   full_name: string;
   team_name: string;
   text: string;
+  photo_url?: string;
   created_at: string;
 }
 
@@ -44,6 +47,8 @@ const ReviewsPage = () => {
   const [fullName, setFullName] = useState('');
   const [teamName, setTeamName] = useState('');
   const [text, setText] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,6 +68,33 @@ const ReviewsPage = () => {
     }
   };
 
+  const handlePhotoSelect = async (file: File) => {
+    setUploadingPhoto(true);
+    try {
+      const compressed = await compressImage(file, { maxDimension: 800, maxSizeBytes: 700 * 1024 });
+      const b64 = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = e => resolve((e.target!.result as string).split(',')[1]);
+        r.onerror = reject;
+        r.readAsDataURL(compressed);
+      });
+      const res = await fetch(UPLOAD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          files: [{ fileName: compressed.name, fileType: compressed.type, fileSize: compressed.size, fileData: b64 }],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.files?.[0]) throw new Error(data.error);
+      setPhotoUrl(data.files[0].fileUrl);
+    } catch {
+      toast({ title: 'Не удалось загрузить фото', variant: 'destructive' });
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !text.trim()) {
@@ -74,13 +106,14 @@ const ReviewsPage = () => {
       const res = await fetch(REVIEWS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ full_name: fullName.trim(), team_name: teamName.trim(), text: text.trim() }),
+        body: JSON.stringify({ full_name: fullName.trim(), team_name: teamName.trim(), text: text.trim(), photo_url: photoUrl }),
       });
       if (!res.ok) throw new Error();
       setSubmitted(true);
       setFullName('');
       setTeamName('');
       setText('');
+      setPhotoUrl('');
     } catch {
       toast({ title: 'Не удалось отправить отзыв', description: 'Попробуйте ещё раз', variant: 'destructive' });
     } finally {
@@ -173,7 +206,36 @@ const ReviewsPage = () => {
                       required
                     />
                   </div>
-                  <Button type="submit" disabled={submitting} className="w-full bg-secondary hover:bg-secondary/90 gap-2">
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">
+                      Фото (необязательно)
+                    </label>
+                    <div className="flex items-center gap-4">
+                      {photoUrl && (
+                        <img src={photoUrl} alt="Превью" className="w-16 h-16 rounded-full object-cover border-2 border-secondary/30" />
+                      )}
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) handlePhotoSelect(file);
+                          }}
+                        />
+                        <span className="inline-flex items-center gap-2 text-sm border rounded-md px-4 py-2 hover:bg-muted transition-colors">
+                          {uploadingPhoto ? (
+                            <Icon name="Loader2" size={16} className="animate-spin" />
+                          ) : (
+                            <Icon name="ImagePlus" size={16} />
+                          )}
+                          {photoUrl ? 'Заменить фото' : 'Загрузить фото'}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                  <Button type="submit" disabled={submitting || uploadingPhoto} className="w-full bg-secondary hover:bg-secondary/90 gap-2">
                     {submitting ? (
                       <Icon name="Loader2" size={18} className="animate-spin" />
                     ) : (
@@ -211,11 +273,19 @@ const ReviewsPage = () => {
                     className="absolute -top-2 -right-2 text-secondary/5 group-hover:text-secondary/10 transition-colors"
                   />
                   <div className="flex items-center gap-3 mb-4 relative">
-                    <div
-                      className={`w-12 h-12 rounded-full bg-gradient-to-br ${AVATAR_COLORS[review.id % AVATAR_COLORS.length]} flex items-center justify-center text-white font-bold text-lg shrink-0`}
-                    >
-                      {review.full_name.charAt(0).toUpperCase()}
-                    </div>
+                    {review.photo_url ? (
+                      <img
+                        src={review.photo_url}
+                        alt={review.full_name}
+                        className="w-12 h-12 rounded-full object-cover shrink-0 border-2 border-white shadow"
+                      />
+                    ) : (
+                      <div
+                        className={`w-12 h-12 rounded-full bg-gradient-to-br ${AVATAR_COLORS[review.id % AVATAR_COLORS.length]} flex items-center justify-center text-white font-bold text-lg shrink-0`}
+                      >
+                        {review.full_name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <p className="font-heading font-semibold truncate">{review.full_name}</p>
                       {review.team_name && (

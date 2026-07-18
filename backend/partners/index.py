@@ -33,9 +33,10 @@ def handle_reviews(event: Dict[str, Any], conn) -> Dict[str, Any]:
     Отзывы участников конкурсов.
     GET  /?entity=reviews&action=public           — список опубликованных отзывов (для сайта)
     GET  /?entity=reviews&action=all               — список всех отзывов (для админки)
-    POST /?entity=reviews                          — создать отзыв (на модерации) { full_name, team_name, text }
+    POST /?entity=reviews                          — создать отзыв (на модерации) { full_name, team_name, text, photo_url }
     PUT  /?entity=reviews&id=X&action=publish      — опубликовать отзыв
     PUT  /?entity=reviews&id=X&action=unpublish    — снять с публикации
+    PUT  /?entity=reviews&id=X&action=update       — обновить поля отзыва (админ) { full_name, team_name, text, photo_url }
     DELETE /?entity=reviews&id=X                   — удалить отзыв
     """
     method = event.get('httpMethod', 'GET')
@@ -46,7 +47,7 @@ def handle_reviews(event: Dict[str, Any], conn) -> Dict[str, Any]:
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         if method == 'GET' and action == 'public':
             cur.execute(f'''
-                SELECT id, full_name, team_name, text, created_at
+                SELECT id, full_name, team_name, text, photo_url, created_at
                 FROM {SCHEMA}.reviews
                 WHERE is_published = TRUE
                 ORDER BY created_at DESC
@@ -66,15 +67,16 @@ def handle_reviews(event: Dict[str, Any], conn) -> Dict[str, Any]:
             full_name = (body.get('full_name') or '').strip()
             team_name = (body.get('team_name') or '').strip()
             text = (body.get('text') or '').strip()
+            photo_url = (body.get('photo_url') or '').strip()
 
             if not full_name or not text:
                 return {'statusCode': 400, 'headers': CORS,
                         'body': json.dumps({'error': 'full_name и text обязательны'})}
 
             cur.execute(f'''
-                INSERT INTO {SCHEMA}.reviews (full_name, team_name, text, is_published)
-                VALUES (%s, %s, %s, FALSE) RETURNING *
-            ''', (full_name[:255], team_name[:255], text[:3000]))
+                INSERT INTO {SCHEMA}.reviews (full_name, team_name, text, photo_url, is_published)
+                VALUES (%s, %s, %s, %s, FALSE) RETURNING *
+            ''', (full_name[:255], team_name[:255], text[:3000], photo_url[:1000]))
             review = dict(cur.fetchone())
             conn.commit()
             return {'statusCode': 200, 'headers': CORS,
@@ -85,6 +87,34 @@ def handle_reviews(event: Dict[str, Any], conn) -> Dict[str, Any]:
             if not review_id:
                 return {'statusCode': 400, 'headers': CORS,
                         'body': json.dumps({'error': 'id required'})}
+
+            if action == 'update':
+                body = json.loads(event.get('body') or '{}')
+                sets, vals = [], []
+                if 'full_name' in body:
+                    sets.append('full_name = %s'); vals.append((body['full_name'] or '').strip()[:255])
+                if 'team_name' in body:
+                    sets.append('team_name = %s'); vals.append((body['team_name'] or '').strip()[:255])
+                if 'text' in body:
+                    sets.append('text = %s'); vals.append((body['text'] or '').strip()[:3000])
+                if 'photo_url' in body:
+                    sets.append('photo_url = %s'); vals.append((body['photo_url'] or '').strip()[:1000])
+                if not sets:
+                    return {'statusCode': 400, 'headers': CORS,
+                            'body': json.dumps({'error': 'nothing to update'})}
+                vals.append(review_id)
+                cur.execute(f'''
+                    UPDATE {SCHEMA}.reviews SET {', '.join(sets)}
+                    WHERE id = %s RETURNING *
+                ''', vals)
+                review = cur.fetchone()
+                conn.commit()
+                if not review:
+                    return {'statusCode': 404, 'headers': CORS,
+                            'body': json.dumps({'error': 'not found'})}
+                return {'statusCode': 200, 'headers': CORS,
+                        'body': json.dumps({'review': dict(review)}, default=json_serial)}
+
             is_published = action == 'publish'
             cur.execute(f'''
                 UPDATE {SCHEMA}.reviews SET is_published = %s
