@@ -11,7 +11,7 @@ interface Application {
   admin_comment?: string;
 }
 
-export const useAdminApplications = (statusFilter: string, contestFilter: string) => {
+export const useAdminApplications = (statusFilter: string, contestFilter: string, enabled: boolean = true) => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -88,10 +88,11 @@ export const useAdminApplications = (statusFilter: string, contestFilter: string
   };
 
   useEffect(() => {
+    if (!enabled) return;
     loadApplications();
     const interval = setInterval(loadApplications, 15000);
     return () => clearInterval(interval);
-  }, [statusFilter, contestFilter]);
+  }, [statusFilter, contestFilter, enabled]);
 
   return {
     applications,

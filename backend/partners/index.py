@@ -22,10 +22,22 @@ def json_serial(obj):
     raise TypeError(f'Object of type {type(obj)} is not JSON serializable')
 
 
+_conn = None
+
+
 def get_db_connection():
-    '''Создает подключение к базе данных'''
+    '''Возвращает переиспользуемое подключение к базе данных (кэш между вызовами функции)'''
+    global _conn
+    if _conn is not None and _conn.closed == 0:
+        try:
+            with _conn.cursor() as cur:
+                cur.execute('SELECT 1')
+            return _conn
+        except Exception:
+            _conn = None
     dsn = os.environ.get('DATABASE_URL')
-    return psycopg2.connect(dsn, cursor_factory=RealDictCursor)
+    _conn = psycopg2.connect(dsn, cursor_factory=RealDictCursor)
+    return _conn
 
 
 def handle_reviews(event: Dict[str, Any], conn) -> Dict[str, Any]:
@@ -168,10 +180,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     query_params_pre = event.get('queryStringParameters') or {}
     if query_params_pre.get('entity') == 'reviews':
-        try:
-            return handle_reviews(event, conn)
-        finally:
-            conn.close()
+        return handle_reviews(event, conn)
     
     try:
         if method == 'GET':
@@ -312,5 +321,3 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'body': json.dumps({'error': str(e)}),
             'isBase64Encoded': False
         }
-    finally:
-        conn.close()
