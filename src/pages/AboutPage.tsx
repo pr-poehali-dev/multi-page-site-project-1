@@ -17,7 +17,7 @@ interface GalleryItem {
 const AboutPage = () => {
   useSEO({
     title: 'О нас — международный конкурсный проект для детей',
-    description: 'ИНДИГО — международный и всероссийский конкурсный проект для детей и творческих коллективов. Более 500 участников, 50+ конкурсов, признание в 12 странах, включая Беларусь, Казахстан и Узбекистан.',
+    description: 'ИНДИГО — международный и всероссийский конкурсный проект для детей и творческих коллективов. Более 130 участников, 17+ конкурсов, признание в разных странах, включая Беларусь и Южную Осетию.',
     keywords: 'о конкурсе ИНДИГО, международный творческий конкурс, всероссийский конкурс для детей, творческое объединение, детский конкурс отзывы',
     path: '/about',
   });
@@ -50,10 +50,31 @@ const AboutPage = () => {
   }, [galleryPhotos]);
 
   const stats = [
-    { target: 500, suffix: '+', label: 'Участников' },
-    { target: 50, suffix: '+', label: 'Конкурсов' },
-    { target: 12, suffix: '', label: 'Стран' },
-    { target: 100, suffix: '+', label: 'Призов' },
+    { target: 136, suffix: '+', label: 'Участников' },
+    { target: 17, suffix: '+', label: 'Конкурсов' },
+    { target: 5, suffix: '', label: 'Стран' },
+    { target: 15, suffix: '+', label: 'Призов' },
+  ];
+
+  const completedContests = [
+    {
+      title: 'Международный фестиваль-конкурс «ИСТОКИ»',
+      year: 2026,
+      participants: 60,
+      prizes: ['Гран-при', 'Лауреат I степени', 'Лауреат II степени', 'Лауреат III степени', 'Дипломант I степени', 'Дипломант II степени'],
+    },
+    {
+      title: 'Всероссийский фестиваль-конкурс «Душа России»',
+      year: 2026,
+      participants: 48,
+      prizes: ['Гран-при', 'Лауреат I степени', 'Лауреат II степени', 'Лауреат III степени', 'Дипломант I степени'],
+    },
+    {
+      title: 'Международный фестиваль-конкурс «Энергия мечты»',
+      year: 2026,
+      participants: 37,
+      prizes: ['Гран-при', 'Лауреат I степени', 'Лауреат II степени', 'Дипломант I степени'],
+    },
   ];
 
   useEffect(() => {
@@ -174,7 +195,7 @@ const AboutPage = () => {
             
             <Card className="p-8 md:p-12 bg-gradient-to-br from-primary/5 to-secondary/5 shadow-xl">
               <p className="text-lg md:text-xl leading-relaxed text-center">
-                Наша платформа объединяет музыкантов, вокалистов, танцоров и других творческих личностей. С момента основания мы провели более <span className="font-bold text-primary">50 конкурсов</span>, в которых приняли участие артисты из <span className="font-bold text-secondary">12 стран мира</span>.
+                Наша платформа объединяет музыкантов, вокалистов, танцоров и других творческих личностей. С момента основания мы провели более <span className="font-bold text-primary">17 конкурсов</span>, в которых приняли участие артисты из <span className="font-bold text-secondary">5 стран мира</span>.
               </p>
             </Card>
 
@@ -185,7 +206,7 @@ const AboutPage = () => {
             </Card>
           </div>
 
-          <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
+          <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
             {stats.map((stat, index) => (
               <Card 
                 key={index} 
@@ -196,6 +217,42 @@ const AboutPage = () => {
                   {counts[index]}{stat.suffix}
                 </div>
                 <div className="text-sm text-muted-foreground">{stat.label}</div>
+              </Card>
+            ))}
+          </div>
+
+          <h2 className="text-3xl font-heading font-bold mb-8 text-center">
+            Проведённые конкурсы
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
+            {completedContests.map((contest, index) => (
+              <Card
+                key={index}
+                className="p-6 hover:shadow-xl transition-all hover:-translate-y-1 animate-fade-in"
+                style={{ animationDelay: `${index * 0.12}s` }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-medium bg-secondary/10 text-secondary px-2.5 py-1 rounded-full">
+                    {contest.year}
+                  </span>
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Icon name="Users" size={15} />
+                    {contest.participants} участников
+                  </div>
+                </div>
+                <h3 className="font-heading font-semibold mb-4 leading-snug">{contest.title}</h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {contest.prizes.map((prize, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center gap-1 text-xs bg-muted px-2.5 py-1 rounded-full text-foreground/80"
+                    >
+                      <Icon name="Award" size={12} className="text-secondary" />
+                      {prize}
+                    </span>
+                  ))}
+                </div>
               </Card>
             ))}
           </div>
