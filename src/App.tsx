@@ -29,6 +29,7 @@ import ShopPage from "./pages/ShopPage";
 import ShopProductPage from "./pages/ShopProductPage";
 import ShopSuccessPage from "./pages/ShopSuccessPage";
 import ShopFailPage from "./pages/ShopFailPage";
+import ReviewsPage from "./pages/ReviewsPage";
 import VocalPage from "./pages/nominations/VocalPage";
 import ChoreographyPage from "./pages/nominations/ChoreographyPage";
 import TheatrePage from "./pages/nominations/TheatrePage";
@@ -73,6 +74,7 @@ const App = () => (
           <Route path="/shop/:id" element={<ShopProductPage />} />
           <Route path="/shop/success" element={<ShopSuccessPage />} />
           <Route path="/shop/fail" element={<ShopFailPage />} />
+          <Route path="/reviews" element={<ReviewsPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

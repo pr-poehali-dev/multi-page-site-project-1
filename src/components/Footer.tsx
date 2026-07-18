@@ -76,6 +76,18 @@ const Footer = () => {
             Политика конфиденциальности
           </a>
         </div>
+
+        <div className="mt-6 flex items-center justify-center gap-3 text-xs opacity-40">
+          <Link to="/jury-login" className="hover:opacity-100 transition-opacity flex items-center gap-1">
+            <Icon name="UserCircle" size={12} />
+            Вход для жюри
+          </Link>
+          <span>·</span>
+          <Link to="/admin" className="hover:opacity-100 transition-opacity flex items-center gap-1">
+            <Icon name="Shield" size={12} />
+            Админ
+          </Link>
+        </div>
       </div>
     </footer>
   );

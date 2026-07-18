@@ -10,6 +10,12 @@
         "partners": []
       },
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get published reviews",
+      "method": "GET",
+      "path": "/?entity=reviews&action=public",
+      "expectedStatus": 200
     }
   ]
 }

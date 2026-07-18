@@ -16,6 +16,7 @@ const Navigation = () => {
     { path: '/gallery', label: 'Галерея' },
     { path: '/sponsors', label: 'Нас поддерживают' },
     { path: '/results', label: 'Итоги конкурсов' },
+    { path: '/reviews', label: 'Отзывы' },
     { path: '/diploma-check', label: 'Проверка диплома' },
     { path: '/contacts', label: 'Контакты' },
   ];
@@ -48,18 +49,6 @@ const Navigation = () => {
               <Button variant="outline" size="sm" className="gap-2">
                 <Icon name="User" size={16} />
                 Личный кабинет
-              </Button>
-            </Link>
-            <Link to="/jury-login">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Icon name="UserCircle" size={16} />
-                Вход для жюри
-              </Button>
-            </Link>
-            <Link to="/admin">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Icon name="Shield" size={16} />
-                Админ
               </Button>
             </Link>
           </div>
@@ -95,18 +84,6 @@ const Navigation = () => {
               <Button variant="outline" className="w-full mt-2 gap-2">
                 <Icon name="User" size={16} />
                 Личный кабинет
-              </Button>
-            </Link>
-            <Link to="/jury-login">
-              <Button variant="outline" className="w-full mt-2 gap-2">
-                <Icon name="UserCircle" size={16} />
-                Вход для жюри
-              </Button>
-            </Link>
-            <Link to="/admin">
-              <Button variant="outline" className="w-full mt-2 gap-2">
-                <Icon name="Shield" size={16} />
-                Админ
               </Button>
             </Link>
           </div>

@@ -12,8 +12,9 @@ import ShopTab from '@/components/admin/ShopTab';
 import ParticipantsTab from '@/components/admin/ParticipantsTab';
 import ApplicationFormBuilderTab from '@/components/admin/ApplicationFormBuilderTab';
 import DiplomaTemplatesTab from '@/components/admin/DiplomaTemplatesTab';
+import ReviewsManagementTab from '@/components/admin/ReviewsManagementTab';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews';
 
 interface AdminTabContentProps {
   activeTab: TabType;
@@ -243,6 +244,11 @@ const AdminTabContent = ({
     case 'diplomas':
       return (
         <DiplomaTemplatesTab />
+      );
+
+    case 'reviews':
+      return (
+        <ReviewsManagementTab />
       );
 
     default:
