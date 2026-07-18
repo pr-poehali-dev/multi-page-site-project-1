@@ -52,7 +52,7 @@ const Footer = () => {
 
           <div>
             <h4 className="font-heading font-semibold mb-4">Соцсети</h4>
-            <div className="flex gap-4">
+            <div className="flex gap-4 mb-6">
               <a href="https://vk.com/indigo_rf?from=groups" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                   <path d="M15.07 2H8.93A6.93 6.93 0 002 8.93v6.14A6.93 6.93 0 008.93 22h6.14A6.93 6.93 0 0022 15.07V8.93A6.93 6.93 0 0015.07 2zm3.38 12.21c-.93 2.48-2.87 3.16-6.45 3.16s-5.52-.68-6.45-3.16c-.32-.85-.48-1.8-.48-3.21s.16-2.36.48-3.21C6.48 5.31 8.42 4.63 12 4.63s5.52.68 6.45 3.16c.32.85.48 1.8.48 3.21s-.16 2.36-.48 3.21z"/>
@@ -62,6 +62,22 @@ const Footer = () => {
               <a href="https://t.me/indigo_fest" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
                 <Icon name="Send" size={20} />
               </a>
+            </div>
+
+            <h4 className="font-heading font-semibold mb-4">Личный кабинет</h4>
+            <div className="flex flex-col gap-2 items-start">
+              <Link to="/jury-login">
+                <Button size="sm" variant="secondary" className="gap-2">
+                  <Icon name="UserCircle" size={16} />
+                  Вход для жюри
+                </Button>
+              </Link>
+              <Link to="/admin">
+                <Button size="sm" variant="secondary" className="gap-2">
+                  <Icon name="Shield" size={16} />
+                  Админ
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -79,21 +95,6 @@ const Footer = () => {
           </a>
         </div>
 
-      </div>
-
-      <div className="fixed bottom-4 right-4 z-40 flex flex-col gap-2 items-end">
-        <Link to="/jury-login">
-          <Button size="sm" variant="secondary" className="gap-2 shadow-lg">
-            <Icon name="UserCircle" size={16} />
-            Вход для жюри
-          </Button>
-        </Link>
-        <Link to="/admin">
-          <Button size="sm" variant="secondary" className="gap-2 shadow-lg">
-            <Icon name="Shield" size={16} />
-            Админ
-          </Button>
-        </Link>
       </div>
     </footer>
   );
