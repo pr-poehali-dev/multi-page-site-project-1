@@ -16,8 +16,8 @@ const Navigation = () => {
     { path: '/gallery', label: 'Галерея' },
     { path: '/sponsors', label: 'Нас поддерживают' },
     { path: '/results', label: 'Итоги конкурсов' },
-    { path: '/reviews', label: 'Отзывы' },
     { path: '/diploma-check', label: 'Проверка диплома' },
+    { path: '/reviews', label: 'Отзывы' },
     { path: '/contacts', label: 'Контакты' },
   ];
 

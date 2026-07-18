@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 
 const Footer = () => {
@@ -21,6 +22,7 @@ const Footer = () => {
               <li><Link to="/" className="opacity-90 hover:opacity-100 transition-opacity">Главная</Link></li>
               <li><Link to="/about" className="opacity-90 hover:opacity-100 transition-opacity">О нас</Link></li>
               <li><Link to="/contests" className="opacity-90 hover:opacity-100 transition-opacity">Конкурсы</Link></li>
+              <li><Link to="/reviews" className="opacity-90 hover:opacity-100 transition-opacity">Отзывы</Link></li>
               <li><Link to="/contacts" className="opacity-90 hover:opacity-100 transition-opacity">Контакты</Link></li>
             </ul>
           </div>
@@ -77,17 +79,21 @@ const Footer = () => {
           </a>
         </div>
 
-        <div className="mt-6 flex items-center justify-center gap-3 text-xs opacity-40">
-          <Link to="/jury-login" className="hover:opacity-100 transition-opacity flex items-center gap-1">
-            <Icon name="UserCircle" size={12} />
+      </div>
+
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col gap-2 items-end">
+        <Link to="/jury-login">
+          <Button size="sm" variant="secondary" className="gap-2 shadow-lg">
+            <Icon name="UserCircle" size={16} />
             Вход для жюри
-          </Link>
-          <span>·</span>
-          <Link to="/admin" className="hover:opacity-100 transition-opacity flex items-center gap-1">
-            <Icon name="Shield" size={12} />
+          </Button>
+        </Link>
+        <Link to="/admin">
+          <Button size="sm" variant="secondary" className="gap-2 shadow-lg">
+            <Icon name="Shield" size={16} />
             Админ
-          </Link>
-        </div>
+          </Button>
+        </Link>
       </div>
     </footer>
   );
