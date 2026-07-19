@@ -56,7 +56,7 @@ const AdminPage = () => {
     setShowEditModal: setShowEditConcertModal,
   } = useAdminConcerts();
 
-  const { applications, loading: applicationsLoading, updateStatus, toggleEditingLock } = useAdminApplications(statusFilter, contestFilter, activeTab === 'applications');
+  const { applications, loading: applicationsLoading, updateStatus, toggleEditingLock, loadApplications } = useAdminApplications(statusFilter, contestFilter, activeTab === 'applications');
 
   const handleToggleEditingLock = async (applicationId: number, locked: boolean) => {
     const result = await toggleEditingLock(applicationId, locked);
@@ -287,6 +287,7 @@ const AdminPage = () => {
             handleDeleteApplication={handleDeleteApplication}
             handleToggleEditingLock={handleToggleEditingLock}
             handleToggleContestLock={handleToggleContestLock}
+            loadApplications={loadApplications}
             handleCreateClick={handleCreateClick}
             openEditModal={openEditModal}
             handleDeleteContest={handleDeleteContest}

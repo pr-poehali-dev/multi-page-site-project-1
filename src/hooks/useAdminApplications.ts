@@ -90,8 +90,6 @@ export const useAdminApplications = (statusFilter: string, contestFilter: string
   useEffect(() => {
     if (!enabled) return;
     loadApplications();
-    const interval = setInterval(loadApplications, 15000);
-    return () => clearInterval(interval);
   }, [statusFilter, contestFilter, enabled]);
 
   return {

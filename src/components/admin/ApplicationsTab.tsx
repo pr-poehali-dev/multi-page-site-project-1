@@ -66,6 +66,7 @@ interface ApplicationsTabProps {
   onDeleteApplication: (applicationId: number) => void;
   onToggleEditingLock: (applicationId: number, locked: boolean) => void;
   onToggleContestLock: (contestId: number, locked: boolean) => void;
+  onRefresh?: () => void;
 }
 
 const ApplicationsTab = ({
@@ -82,6 +83,7 @@ const ApplicationsTab = ({
   onDeleteApplication,
   onToggleEditingLock,
   onToggleContestLock,
+  onRefresh,
 }: ApplicationsTabProps) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [fieldDefsByContest, setFieldDefsByContest] = useState<Record<number, CustomFieldDef[]>>({});
@@ -135,6 +137,12 @@ const ApplicationsTab = ({
 
   return (
     <>
+      <div className="flex justify-end mb-4">
+        <Button variant="outline" onClick={onRefresh} disabled={loading}>
+          <Icon name="RefreshCw" size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Обновить
+        </Button>
+      </div>
       <Card className="p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
