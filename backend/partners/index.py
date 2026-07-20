@@ -40,6 +40,54 @@ def get_db_connection():
     return _conn
 
 
+def handle_settings(event: Dict[str, Any], conn) -> Dict[str, Any]:
+    """
+    Глобальные настройки сайта (уведомление о технических работах и т.п.)
+    GET /?entity=settings&key=maintenance_notice   — получить настройку по ключу
+    PUT /?entity=settings&key=maintenance_notice   — обновить настройку { enabled, message }
+    """
+    method = event.get('httpMethod', 'GET')
+    params = event.get('queryStringParameters') or {}
+    key = params.get('key', 'maintenance_notice')
+    CORS = {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}
+
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        if method == 'GET':
+            cur.execute(
+                f'SELECT key, enabled, message FROM {SCHEMA}.site_settings WHERE key = %s',
+                (key,)
+            )
+            row = cur.fetchone()
+            if not row:
+                return {'statusCode': 404, 'headers': CORS, 'body': json.dumps({'error': 'not found'})}
+            return {'statusCode': 200, 'headers': CORS, 'body': json.dumps(dict(row))}
+
+        if method == 'PUT':
+            body = json.loads(event.get('body') or '{}')
+            enabled = bool(body.get('enabled', False))
+            message = body.get('message')
+
+            if message is not None:
+                cur.execute(
+                    f'''UPDATE {SCHEMA}.site_settings SET enabled = %s, message = %s, updated_at = NOW()
+                        WHERE key = %s RETURNING key, enabled, message''',
+                    (enabled, message[:2000], key)
+                )
+            else:
+                cur.execute(
+                    f'''UPDATE {SCHEMA}.site_settings SET enabled = %s, updated_at = NOW()
+                        WHERE key = %s RETURNING key, enabled, message''',
+                    (enabled, key)
+                )
+            row = cur.fetchone()
+            conn.commit()
+            if not row:
+                return {'statusCode': 404, 'headers': CORS, 'body': json.dumps({'error': 'not found'})}
+            return {'statusCode': 200, 'headers': CORS, 'body': json.dumps(dict(row))}
+
+    return {'statusCode': 405, 'headers': CORS, 'body': json.dumps({'error': 'Method not allowed'})}
+
+
 def handle_reviews(event: Dict[str, Any], conn) -> Dict[str, Any]:
     """
     Отзывы участников конкурсов.
@@ -181,6 +229,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     query_params_pre = event.get('queryStringParameters') or {}
     if query_params_pre.get('entity') == 'reviews':
         return handle_reviews(event, conn)
+    if query_params_pre.get('entity') == 'settings':
+        return handle_settings(event, conn)
     
     try:
         if method == 'GET':

@@ -12,11 +12,13 @@ import CabinetApplicationsTab, { Application } from '@/components/participant/Ca
 import CabinetAwardsTab, { Diploma } from '@/components/participant/CabinetAwardsTab';
 import CabinetChatTab, { ChatMessage } from '@/components/participant/CabinetChatTab';
 import CabinetOrdersTab, { ShopOrder } from '@/components/participant/CabinetOrdersTab';
+import MaintenanceBanner from '@/components/participant/MaintenanceBanner';
 
 const DIPLOMA_URL = 'https://functions.poehali.dev/1806f979-38b3-442e-b8ef-fa6827104251';
 const AUTH_URL = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
 const CONTESTS_URL = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
 const ORDERS_URL = 'https://functions.poehali.dev/b020db38-8100-400d-9e53-2dbfcafd5f48';
+const SETTINGS_URL = 'https://functions.poehali.dev/7b3c1e0e-bd68-4b73-9377-740689560912?entity=settings&key=maintenance_notice';
 
 type Tab = 'applications' | 'awards' | 'shop' | 'chat';
 
@@ -36,6 +38,7 @@ const ParticipantCabinetPage = () => {
   const [msgText, setMsgText] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [maintenanceNotice, setMaintenanceNotice] = useState<{ enabled: boolean; message: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -81,6 +84,18 @@ const ParticipantCabinetPage = () => {
     if (!participant) return;
     refreshApplications(participant.id);
   }, [participant]);
+
+  // Проверяем, включено ли организатором глобальное уведомление о техработах
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch(SETTINGS_URL);
+        const data = await res.json();
+        setMaintenanceNotice({ enabled: Boolean(data.enabled), message: data.message || '' });
+      } catch { /* если настройка недоступна — просто не показываем баннер */ }
+    };
+    load();
+  }, []);
 
   // Автоматически открываем форму подачи заявки, если пришли по ссылке "Подать заявку" с конкурса
   useEffect(() => {
@@ -239,6 +254,10 @@ const ParticipantCabinetPage = () => {
         <div className="container mx-auto max-w-4xl">
 
           <ParticipantHeader participant={participant} onLogout={handleLogout} />
+
+          {maintenanceNotice?.enabled && maintenanceNotice.message && (
+            <MaintenanceBanner message={maintenanceNotice.message} />
+          )}
 
           {/* Вкладки */}
           <div className="flex gap-2 mb-6 flex-wrap">

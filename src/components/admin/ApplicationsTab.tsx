@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import RejectApplicationDialog from './RejectApplicationDialog';
+import MaintenanceNoticeSettings from './MaintenanceNoticeSettings';
 
 const CONTESTS_API = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
 
@@ -137,6 +138,8 @@ const ApplicationsTab = ({
 
   return (
     <>
+      <MaintenanceNoticeSettings />
+
       <div className="flex justify-end mb-4">
         <Button variant="outline" onClick={onRefresh} disabled={loading}>
           <Icon name="RefreshCw" size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
