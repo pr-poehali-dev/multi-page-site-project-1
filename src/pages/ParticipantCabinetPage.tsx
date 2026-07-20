@@ -99,9 +99,9 @@ const ParticipantCabinetPage = () => {
     const load = async () => {
       setDiplomasLoading(true);
       try {
-        // Ищем дипломы по всем заявкам участника — по номерам дипломов из программы
-        // Используем поиск через diploma-check по имени участника через contest_program
-        const res = await fetch(`${DIPLOMA_URL}?participant_name=${encodeURIComponent(participant.full_name)}`);
+        // Ищем дипломы строго по заявкам участника (participant_id), чтобы не показывать
+        // чужие дипломы с других конкурсов при совпадении имени
+        const res = await fetch(`${DIPLOMA_URL}?participant_id=${encodeURIComponent(participant.id)}`);
         const data = await res.json();
         if (data.diplomas) {
           setDiplomas(data.diplomas);

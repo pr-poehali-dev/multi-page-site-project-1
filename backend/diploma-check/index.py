@@ -31,8 +31,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     params = event.get('queryStringParameters') or {}
     diploma_number = (params.get('diploma_number') or '').strip().upper()
     participant_name = (params.get('participant_name') or '').strip()
+    participant_id = (params.get('participant_id') or '').strip()
 
-    if not diploma_number and not participant_name:
+    if not diploma_number and not participant_name and not participant_id:
         return {
             'statusCode': 400,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
@@ -42,21 +43,23 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     conn.autocommit = True
 
-    # Поиск всех дипломов по имени участника
-    if participant_name and not diploma_number:
+    # Поиск дипломов конкретного участника — строго по его заявкам (participant_id),
+    # чтобы не показывать чужие дипломы с других конкурсов при совпадении имени
+    if participant_id and not diploma_number:
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(f'''
-                    SELECT cp.diploma_number, cp.participant_name, cp.director_name,
+                    SELECT DISTINCT cp.diploma_number, cp.participant_name, cp.director_name,
                            cp.piece_title, cp.nomination, cp.directing_party,
                            c.title as contest_title, c.location as contest_location,
                            c.event_date as contest_event_date
-                    FROM {SCHEMA}.contest_program cp
+                    FROM {SCHEMA}.applications a
+                    JOIN {SCHEMA}.contest_program cp ON cp.application_id = a.id
                     JOIN {SCHEMA}.contests c ON c.id = cp.contest_id
-                    WHERE cp.diploma_number != ''
-                      AND LOWER(cp.participant_name) LIKE LOWER(%s)
+                    WHERE a.participant_id = %s
+                      AND cp.diploma_number != ''
                     ORDER BY c.event_date DESC
-                ''', (f'%{participant_name}%',))
+                ''', (participant_id,))
                 rows = cur.fetchall()
                 return {
                     'statusCode': 200,
