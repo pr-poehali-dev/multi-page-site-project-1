@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,15 +47,63 @@ const getStatusBadge = (status: string) => {
   );
 };
 
+const isPastApplication = (app: Application) => {
+  if (!app.end_date) return false;
+  const endDate = new Date(app.end_date);
+  if (Number.isNaN(endDate.getTime())) return false;
+  return endDate < new Date();
+};
+
 const CabinetApplicationsTab = ({ applications, fieldLabelsByContest, onNewApplication, onEditApplication }: CabinetApplicationsTabProps) => {
+  const [view, setView] = useState<'current' | 'archive'>('current');
+
+  const { currentApplications, archiveApplications } = useMemo(() => {
+    const current: Application[] = [];
+    const archive: Application[] = [];
+    applications.forEach((app) => {
+      (isPastApplication(app) ? archive : current).push(app);
+    });
+    return { currentApplications: current, archiveApplications: archive };
+  }, [applications]);
+
+  const visibleApplications = view === 'current' ? currentApplications : archiveApplications;
+
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-xl font-heading font-bold">Заявки на конкурсы</h2>
         <Button onClick={onNewApplication} className="bg-secondary hover:bg-secondary/90 gap-2">
           <Icon name="Plus" size={16} /> Подать заявку
         </Button>
       </div>
+
+      {applications.length > 0 && (
+        <div className="flex gap-2 mb-4">
+          <Button
+            size="sm"
+            variant={view === 'current' ? 'default' : 'outline'}
+            onClick={() => setView('current')}
+            className="gap-1.5"
+          >
+            <Icon name="FileText" size={14} /> Текущие
+            {currentApplications.length > 0 && (
+              <span className="ml-1 bg-background/20 rounded-full text-xs px-1.5">{currentApplications.length}</span>
+            )}
+          </Button>
+          <Button
+            size="sm"
+            variant={view === 'archive' ? 'default' : 'outline'}
+            onClick={() => setView('archive')}
+            className="gap-1.5"
+          >
+            <Icon name="Archive" size={14} /> Архив
+            {archiveApplications.length > 0 && (
+              <span className="ml-1 bg-background/20 rounded-full text-xs px-1.5">{archiveApplications.length}</span>
+            )}
+          </Button>
+        </div>
+      )}
+
       {applications.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
@@ -65,16 +114,33 @@ const CabinetApplicationsTab = ({ applications, fieldLabelsByContest, onNewAppli
             </Button>
           </CardContent>
         </Card>
+      ) : visibleApplications.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Icon name="Archive" size={48} className="mx-auto mb-4 text-muted-foreground opacity-30" />
+            <p className="text-muted-foreground">
+              {view === 'archive' ? 'В архиве пока нет заявок' : 'Нет текущих заявок'}
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-4">
-          {applications.map((app) => {
-            const isLocked = !app.is_editable;
+          {visibleApplications.map((app) => {
+            const isArchived = view === 'archive';
+            const isLocked = !app.is_editable || isArchived;
             return (
-            <Card key={app.id}>
+            <Card key={app.id} className={isArchived ? 'opacity-80' : ''}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="mb-2">{app.contest_title}</CardTitle>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <CardTitle>{app.contest_title}</CardTitle>
+                      {isArchived && (
+                        <Badge variant="outline" className="gap-1 text-muted-foreground">
+                          <Icon name="Archive" size={12} /> Архив
+                        </Badge>
+                      )}
+                    </div>
                     <CardDescription>
                       Подано: {new Date(app.submitted_at).toLocaleDateString('ru-RU', {
                         day: 'numeric', month: 'long', year: 'numeric',
@@ -84,17 +150,19 @@ const CabinetApplicationsTab = ({ applications, fieldLabelsByContest, onNewAppli
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     {getStatusBadge(app.status)}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1.5"
-                      disabled={isLocked}
-                      onClick={() => onEditApplication(app)}
-                      title={isLocked ? 'Редактирование закрыто организатором' : 'Редактировать заявку'}
-                    >
-                      <Icon name={isLocked ? 'Lock' : 'Pencil'} size={14} />
-                      {isLocked ? 'Закрыто' : 'Редактировать'}
-                    </Button>
+                    {!isArchived && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        disabled={isLocked}
+                        onClick={() => onEditApplication(app)}
+                        title={isLocked ? 'Редактирование закрыто организатором' : 'Редактировать заявку'}
+                      >
+                        <Icon name={isLocked ? 'Lock' : 'Pencil'} size={14} />
+                        {isLocked ? 'Закрыто' : 'Редактировать'}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -157,7 +225,7 @@ const CabinetApplicationsTab = ({ applications, fieldLabelsByContest, onNewAppli
                     </p>
                   </div>
                 )}
-                {isLocked && (
+                {isLocked && !isArchived && (
                   <div className="mt-4 pt-4 border-t flex items-center gap-2 text-sm text-muted-foreground">
                     <Icon name="Lock" size={14} />
                     Организатор закрыл редактирование этой заявки
