@@ -52,8 +52,31 @@ const ParticipantCabinetPage = () => {
       setApplications(parsedData.applications);
     } catch {
       navigate('/participant-login');
+      return;
     }
   }, [navigate]);
+
+  // Подгружаем актуальные статусы заявок с сервера — на случай, если организатор
+  // открыл/закрыл редактирование, пока участник был залогинен
+  useEffect(() => {
+    if (!participant) return;
+    const refreshApplications = async () => {
+      try {
+        const res = await fetch(`${AUTH_URL}?action=applications&participant_id=${participant.id}`);
+        const data = await res.json();
+        if (data.applications) {
+          setApplications(data.applications);
+          const stored = localStorage.getItem('participantData');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            parsed.applications = data.applications;
+            localStorage.setItem('participantData', JSON.stringify(parsed));
+          }
+        }
+      } catch { /* оставляем данные из localStorage при ошибке сети */ }
+    };
+    refreshApplications();
+  }, [participant]);
 
   // Автоматически открываем форму подачи заявки, если пришли по ссылке "Подать заявку" с конкурса
   useEffect(() => {

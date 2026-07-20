@@ -286,6 +286,48 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     count = cur.fetchone()[0]
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'unread_count': count}), 'isBase64Encoded': False}
 
+            # Актуальный список заявок участника (обновление статусов блокировки редактирования)
+            elif action == 'applications':
+                pid = params.get('participant_id')
+                if not pid:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Укажите participant_id'}), 'isBase64Encoded': False}
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(f'''
+                        SELECT
+                            a.id,
+                            a.contest_id,
+                            a.category,
+                            a.performance_title,
+                            a.participation_format,
+                            a.nomination,
+                            a.experience,
+                            a.achievements,
+                            a.additional_info,
+                            a.custom_fields,
+                            a.status,
+                            a.submitted_at,
+                            a.editing_locked,
+                            a.admin_comment,
+                            c.title as contest_title,
+                            c.start_date,
+                            c.end_date,
+                            c.status as contest_status,
+                            c.applications_locked,
+                            c.location,
+                            c.event_date
+                        FROM {SCHEMA}.applications a
+                        JOIN {SCHEMA}.contests c ON a.contest_id = c.id
+                        WHERE a.participant_id = %s
+                        ORDER BY a.submitted_at DESC
+                    ''', (pid,))
+                    applications = cur.fetchall()
+                    for app in applications:
+                        if app.get('submitted_at'): app['submitted_at'] = app['submitted_at'].isoformat()
+                        if app.get('start_date'): app['start_date'] = app['start_date'].isoformat()
+                        if app.get('end_date'): app['end_date'] = app['end_date'].isoformat()
+                        app['is_editable'] = not app.get('editing_locked') and not app.get('applications_locked')
+                    return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'applications': [dict(a) for a in applications]}), 'isBase64Encoded': False}
+
             # Чат с участником
             elif action == 'chat':
                 pid = params.get('participant_id')
