@@ -57,25 +57,29 @@ const ParticipantCabinetPage = () => {
   }, [navigate]);
 
   // Подгружаем актуальные статусы заявок с сервера — на случай, если организатор
-  // открыл/закрыл редактирование, пока участник был залогинен
+  // открыл/закрыл редактирование, пока участник был залогинен, а также после
+  // подачи новой заявки или редактирования существующей (чтобы получить свежие
+  // флаги editing_locked/applications_locked/is_editable, которых нет при
+  // локальном обновлении из localStorage)
+  const refreshApplications = async (participantId: number) => {
+    try {
+      const res = await fetch(`${AUTH_URL}?action=applications&participant_id=${participantId}`);
+      const data = await res.json();
+      if (data.applications) {
+        setApplications(data.applications);
+        const stored = localStorage.getItem('participantData');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          parsed.applications = data.applications;
+          localStorage.setItem('participantData', JSON.stringify(parsed));
+        }
+      }
+    } catch { /* оставляем данные из localStorage при ошибке сети */ }
+  };
+
   useEffect(() => {
     if (!participant) return;
-    const refreshApplications = async () => {
-      try {
-        const res = await fetch(`${AUTH_URL}?action=applications&participant_id=${participant.id}`);
-        const data = await res.json();
-        if (data.applications) {
-          setApplications(data.applications);
-          const stored = localStorage.getItem('participantData');
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            parsed.applications = data.applications;
-            localStorage.setItem('participantData', JSON.stringify(parsed));
-          }
-        }
-      } catch { /* оставляем данные из localStorage при ошибке сети */ }
-    };
-    refreshApplications();
+    refreshApplications(participant.id);
   }, [participant]);
 
   // Автоматически открываем форму подачи заявки, если пришли по ссылке "Подать заявку" с конкурса
@@ -328,11 +332,7 @@ const ParticipantCabinetPage = () => {
           onClose={handleCloseNewApp}
           onSuccess={() => {
             handleCloseNewApp();
-            const data = localStorage.getItem('participantData');
-            if (data) {
-              const parsed = JSON.parse(data);
-              setApplications(parsed.applications);
-            }
+            refreshApplications(participant.id);
           }}
         />
       )}
@@ -343,11 +343,7 @@ const ParticipantCabinetPage = () => {
           onClose={() => setEditingApplication(null)}
           onSuccess={() => {
             setEditingApplication(null);
-            const data = localStorage.getItem('participantData');
-            if (data) {
-              const parsed = JSON.parse(data);
-              setApplications(parsed.applications);
-            }
+            if (participant) refreshApplications(participant.id);
           }}
         />
       )}
