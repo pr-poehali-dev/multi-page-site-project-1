@@ -11,6 +11,7 @@ interface Contest {
   end_date: string;
   status: string;
   location?: string;
+  applications_locked?: boolean;
 }
 
 interface ContestsTabProps {
@@ -19,6 +20,7 @@ interface ContestsTabProps {
   onCreateClick: () => void;
   onEditClick: (contest: Contest) => void;
   onDeleteClick: (contestId: number) => void;
+  onToggleContestLock: (contestId: number, locked: boolean) => void;
 }
 
 const ContestsTab = ({
@@ -27,6 +29,7 @@ const ContestsTab = ({
   onCreateClick,
   onEditClick,
   onDeleteClick,
+  onToggleContestLock,
 }: ContestsTabProps) => {
   const [mainTab, setMainTab] = useState<'active' | 'archive'>('active');
   const [archiveYear, setArchiveYear] = useState<number | null>(null);
@@ -155,6 +158,7 @@ const ContestsTab = ({
                   <th className="px-6 py-4 text-left text-sm font-semibold">Название</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Даты</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Статус</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Редактирование заявок</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Действия</th>
                 </tr>
               </thead>
