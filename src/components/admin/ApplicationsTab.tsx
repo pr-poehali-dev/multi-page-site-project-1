@@ -316,11 +316,23 @@ const ApplicationsTab = ({
                       variant="outline"
                       className={app.editing_locked ? 'text-secondary hover:bg-secondary/10' : 'text-gray-600 hover:bg-muted'}
                       onClick={() => onToggleEditingLock(app.id, !app.editing_locked)}
-                      title={app.editing_locked ? 'Разрешить участнику редактировать заявку' : 'Закрыть редактирование заявки участником'}
+                      title={app.editing_locked ? 'Разрешить участнику редактировать заявку' : app.applications_locked ? 'Заявка открыта, но весь конкурс закрыт отдельной настройкой ниже' : 'Закрыть редактирование заявки участником'}
                     >
                       <Icon name={app.editing_locked ? 'Lock' : 'LockOpen'} size={16} className="mr-1" />
                       {app.editing_locked ? 'Закрыто' : 'Открыто'}
                     </Button>
+                    {app.applications_locked && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-amber-600 hover:bg-amber-50"
+                        onClick={() => onToggleContestLock(app.contest_id, false)}
+                        title="Весь конкурс закрыт для редактирования — эта настройка перекрывает статус отдельной заявки"
+                      >
+                        <Icon name="Lock" size={16} className="mr-1" />
+                        Конкурс закрыт
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"

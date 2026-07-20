@@ -1,0 +1,1 @@
+UPDATE t_p73771717_multi_page_site_proj.contests SET applications_locked = false WHERE id = 42;

@@ -80,6 +80,7 @@ const AdminPage = () => {
           title: locked ? 'Заявки конкурса закрыты для редактирования' : 'Заявки конкурса снова открыты для редактирования',
         });
         loadContests();
+        loadApplications();
       }
     } catch {
       toast({ title: 'Ошибка', description: 'Не удалось изменить блокировку конкурса', variant: 'destructive' });
