@@ -251,8 +251,8 @@ const ParticipantCabinetPage = () => {
     <div className="min-h-screen flex flex-col">
       <Navigation />
 
-      <main className="flex-1 pt-32 pb-20 px-4">
-        <div className="container mx-auto max-w-6xl">
+      <main className="flex-1 pt-32 pb-20 px-4 md:px-6">
+        <div className="container mx-auto max-w-[1600px]">
 
           <ParticipantHeader participant={participant} onLogout={handleLogout} />
 
@@ -260,47 +260,51 @@ const ParticipantCabinetPage = () => {
             <MaintenanceBanner message={maintenanceNotice.message} />
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">
             <div className="order-2 lg:order-1 lg:sticky lg:top-32">
               <CabinetSidebar />
             </div>
 
             <div className="order-1 lg:order-2 min-w-0">
               {/* Вкладки */}
-              <div className="flex gap-2 mb-6 flex-wrap">
+              <div className="flex gap-3 mb-8 flex-wrap">
                 <Button
+                  size="lg"
                   variant={tab === 'applications' ? 'default' : 'outline'}
                   onClick={() => setTab('applications')}
-                  className="gap-2"
+                  className="gap-2 text-base"
                 >
-                  <Icon name="FileText" size={16} /> Мои заявки
+                  <Icon name="FileText" size={20} /> Мои заявки
                   {applications.length > 0 && (
-                    <span className="ml-1 bg-background/20 rounded-full text-xs px-1.5">{applications.length}</span>
+                    <span className="ml-1 bg-background/20 rounded-full text-sm px-2">{applications.length}</span>
                   )}
                 </Button>
                 <Button
+                  size="lg"
                   variant={tab === 'awards' ? 'default' : 'outline'}
                   onClick={() => setTab('awards')}
-                  className="gap-2"
+                  className="gap-2 text-base"
                 >
-                  <Icon name="Award" size={16} /> Награды
+                  <Icon name="Award" size={20} /> Награды
                 </Button>
                 <Button
+                  size="lg"
                   variant={tab === 'shop' ? 'default' : 'outline'}
                   onClick={() => setTab('shop')}
-                  className="gap-2"
+                  className="gap-2 text-base"
                 >
-                  <Icon name="ShoppingBag" size={16} /> Мои заказы
+                  <Icon name="ShoppingBag" size={20} /> Мои заказы
                   {orders.length > 0 && (
-                    <span className="ml-1 bg-background/20 rounded-full text-xs px-1.5">{orders.length}</span>
+                    <span className="ml-1 bg-background/20 rounded-full text-sm px-2">{orders.length}</span>
                   )}
                 </Button>
                 <Button
+                  size="lg"
                   variant={tab === 'chat' ? 'default' : 'outline'}
                   onClick={() => setTab('chat')}
-                  className="gap-2 relative"
+                  className="gap-2 relative text-base"
                 >
-                  <Icon name="MessageSquare" size={16} /> Чат с организаторами
+                  <Icon name="MessageSquare" size={20} /> Чат с организаторами
                   {unreadCount > 0 && (
                     <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
                       {unreadCount}

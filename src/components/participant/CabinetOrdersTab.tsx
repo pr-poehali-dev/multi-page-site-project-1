@@ -83,10 +83,10 @@ const CabinetOrdersTab = ({ orders, loading, onGoToShop }: CabinetOrdersTabProps
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-heading font-bold">Мои заказы</h2>
-        <Button onClick={onGoToShop} className="bg-secondary hover:bg-secondary/90 gap-2">
-          <Icon name="ShoppingBag" size={16} /> В магазин
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-2xl font-heading font-bold">Мои заказы</h2>
+        <Button size="lg" onClick={onGoToShop} className="bg-secondary hover:bg-secondary/90 gap-2 text-base">
+          <Icon name="ShoppingBag" size={20} /> В магазин
         </Button>
       </div>
 
@@ -101,7 +101,7 @@ const CabinetOrdersTab = ({ orders, loading, onGoToShop }: CabinetOrdersTabProps
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {orders.map((order) => {
             const isUnpaid = UNPAID_STATUSES.includes(order.status);
             const isExpanded = expandedId === order.id;
@@ -114,15 +114,15 @@ const CabinetOrdersTab = ({ orders, loading, onGoToShop }: CabinetOrdersTabProps
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <CardTitle className="mb-2 flex items-center gap-2">
+                      <CardTitle className="mb-2 flex items-center gap-2 text-xl">
                         {order.product_name}
                         <Icon
                           name={isExpanded ? 'ChevronUp' : 'ChevronDown'}
-                          size={18}
+                          size={20}
                           className="text-muted-foreground"
                         />
                       </CardTitle>
-                      <CardDescription>
+                      <CardDescription className="text-base">
                         {order.contest_title && <>{order.contest_title} · </>}
                         Заказано: {new Date(order.created_at).toLocaleDateString('ru-RU', {
                           day: 'numeric', month: 'long', year: 'numeric',
@@ -132,7 +132,7 @@ const CabinetOrdersTab = ({ orders, loading, onGoToShop }: CabinetOrdersTabProps
                     </div>
                     <div className="flex flex-col items-end gap-2 shrink-0">
                       {getOrderStatusBadge(order.status)}
-                      <span className="font-semibold text-secondary">
+                      <span className="text-lg font-semibold text-secondary">
                         {order.price > 0 ? `${order.price.toLocaleString('ru-RU')} ₽` : 'Бесплатно'}
                       </span>
                     </div>

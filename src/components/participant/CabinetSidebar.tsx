@@ -65,41 +65,41 @@ const CabinetSidebar = () => {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Ближайшие очные конкурсы */}
       <Card className="overflow-hidden border-primary/15">
-        <div className="bg-gradient-to-br from-primary to-purple-500 px-5 py-4">
-          <h3 className="font-heading font-bold text-white flex items-center gap-2">Ближайшие конкурсы</h3>
+        <div className="bg-gradient-to-br from-primary to-purple-500 px-6 py-5">
+          <h3 className="text-lg font-heading font-bold text-white flex items-center gap-2">Ближайшие конкурсы</h3>
         </div>
-        <div className="p-3">
+        <div className="p-4">
           {loadingContests ? (
-            <div className="py-6 flex justify-center">
-              <Icon name="Loader2" size={22} className="animate-spin text-muted-foreground" />
+            <div className="py-8 flex justify-center">
+              <Icon name="Loader2" size={28} className="animate-spin text-muted-foreground" />
             </div>
           ) : contests.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">Пока нет запланированных очных туров</p>
+            <p className="text-base text-muted-foreground text-center py-6">Пока нет запланированных очных туров</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {contests.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => navigate(`/contests/${c.id}`)}
-                  className="w-full text-left rounded-xl p-3 hover:bg-muted/70 transition-colors group flex items-start gap-3"
+                  className="w-full text-left rounded-xl p-4 hover:bg-muted/70 transition-colors group flex items-start gap-4"
                 >
                   {c.poster_url ? (
-                    <img src={c.poster_url} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                    <img src={c.poster_url} alt="" className="w-16 h-16 rounded-lg object-cover shrink-0" />
                   ) : (
-                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Icon name="Trophy" size={20} className="text-primary" />
+                    <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Icon name="Trophy" size={26} className="text-primary" />
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold leading-tight truncate group-hover:text-primary transition-colors">
+                    <p className="text-base font-semibold leading-tight truncate group-hover:text-primary transition-colors">
                       {c.title}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{c.location}</p>
+                    <p className="text-sm text-muted-foreground mt-1 truncate">{c.location}</p>
                     {c.event_date && (
-                      <span className="inline-block mt-1 text-xs font-medium text-secondary">{c.event_date}</span>
+                      <span className="inline-block mt-1.5 text-sm font-medium text-secondary">{c.event_date}</span>
                     )}
                   </div>
                 </button>
@@ -111,29 +111,29 @@ const CabinetSidebar = () => {
 
       {/* Новости ИНДИГО */}
       <Card className="overflow-hidden border-secondary/15">
-        <div className="bg-gradient-to-br from-secondary to-pink-500 px-5 py-4">
-          <h3 className="font-heading font-bold text-white flex items-center gap-2">
-            <Icon name="Newspaper" size={18} />
+        <div className="bg-gradient-to-br from-secondary to-pink-500 px-6 py-5">
+          <h3 className="text-lg font-heading font-bold text-white flex items-center gap-2">
+            <Icon name="Newspaper" size={22} />
             Новости ИНДИГО
           </h3>
         </div>
-        <div className="p-3">
+        <div className="p-4">
           {loadingNews ? (
-            <div className="py-6 flex justify-center">
-              <Icon name="Loader2" size={22} className="animate-spin text-muted-foreground" />
+            <div className="py-8 flex justify-center">
+              <Icon name="Loader2" size={28} className="animate-spin text-muted-foreground" />
             </div>
           ) : news.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">Новостей пока нет</p>
+            <p className="text-base text-muted-foreground text-center py-6">Новостей пока нет</p>
           ) : (
             <div className="divide-y">
               {news.map((n) => (
-                <div key={n.id} className="p-3 first:pt-2 last:pb-2">
+                <div key={n.id} className="p-4 first:pt-2 last:pb-2">
                   {n.image_url && (
-                    <img src={n.image_url} alt="" className="w-full h-28 object-cover rounded-lg mb-2" />
+                    <img src={n.image_url} alt="" className="w-full h-40 object-cover rounded-lg mb-3" />
                   )}
-                  <p className="text-sm font-semibold leading-tight mb-1">{n.title}</p>
-                  <p className="text-xs text-muted-foreground line-clamp-3 whitespace-pre-wrap">{n.content}</p>
-                  <p className="text-[11px] text-muted-foreground/70 mt-1.5">
+                  <p className="text-base font-semibold leading-tight mb-1.5">{n.title}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap">{n.content}</p>
+                  <p className="text-xs text-muted-foreground/70 mt-2">
                     {new Date(n.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
                   </p>
                 </div>

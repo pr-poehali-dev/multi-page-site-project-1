@@ -70,35 +70,33 @@ const CabinetApplicationsTab = ({ applications, fieldLabelsByContest, onNewAppli
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-xl font-heading font-bold">Заявки на конкурсы</h2>
-        <Button onClick={onNewApplication} className="bg-secondary hover:bg-secondary/90 gap-2">
-          <Icon name="Plus" size={16} /> Подать заявку
+      <div className="mb-6 flex items-center justify-between flex-wrap gap-3">
+        <h2 className="text-2xl font-heading font-bold">Заявки на конкурсы</h2>
+        <Button size="lg" onClick={onNewApplication} className="bg-secondary hover:bg-secondary/90 gap-2 text-base">
+          <Icon name="Plus" size={20} /> Подать заявку
         </Button>
       </div>
 
       {applications.length > 0 && (
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-3 mb-6">
           <Button
-            size="sm"
             variant={view === 'current' ? 'default' : 'outline'}
             onClick={() => setView('current')}
-            className="gap-1.5"
+            className="gap-2 text-base"
           >
-            <Icon name="FileText" size={14} /> Текущие
+            <Icon name="FileText" size={18} /> Текущие
             {currentApplications.length > 0 && (
-              <span className="ml-1 bg-background/20 rounded-full text-xs px-1.5">{currentApplications.length}</span>
+              <span className="ml-1 bg-background/20 rounded-full text-sm px-2">{currentApplications.length}</span>
             )}
           </Button>
           <Button
-            size="sm"
             variant={view === 'archive' ? 'default' : 'outline'}
             onClick={() => setView('archive')}
-            className="gap-1.5"
+            className="gap-2 text-base"
           >
-            <Icon name="Archive" size={14} /> Архив
+            <Icon name="Archive" size={18} /> Архив
             {archiveApplications.length > 0 && (
-              <span className="ml-1 bg-background/20 rounded-full text-xs px-1.5">{archiveApplications.length}</span>
+              <span className="ml-1 bg-background/20 rounded-full text-sm px-2">{archiveApplications.length}</span>
             )}
           </Button>
         </div>
@@ -124,7 +122,7 @@ const CabinetApplicationsTab = ({ applications, fieldLabelsByContest, onNewAppli
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {visibleApplications.map((app) => {
             const isArchived = view === 'archive';
             const isLocked = !app.is_editable || isArchived;
@@ -134,14 +132,14 @@ const CabinetApplicationsTab = ({ applications, fieldLabelsByContest, onNewAppli
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <CardTitle>{app.contest_title}</CardTitle>
+                      <CardTitle className="text-xl">{app.contest_title}</CardTitle>
                       {isArchived && (
                         <Badge variant="outline" className="gap-1 text-muted-foreground">
                           <Icon name="Archive" size={12} /> Архив
                         </Badge>
                       )}
                     </div>
-                    <CardDescription>
+                    <CardDescription className="text-base">
                       Подано: {new Date(app.submitted_at).toLocaleDateString('ru-RU', {
                         day: 'numeric', month: 'long', year: 'numeric',
                         hour: '2-digit', minute: '2-digit'
@@ -152,14 +150,13 @@ const CabinetApplicationsTab = ({ applications, fieldLabelsByContest, onNewAppli
                     {getStatusBadge(app.status)}
                     {!isArchived && (
                       <Button
-                        size="sm"
                         variant="outline"
                         className="gap-1.5"
                         disabled={isLocked}
                         onClick={() => onEditApplication(app)}
                         title={isLocked ? 'Редактирование закрыто организатором' : 'Редактировать заявку'}
                       >
-                        <Icon name={isLocked ? 'Lock' : 'Pencil'} size={14} />
+                        <Icon name={isLocked ? 'Lock' : 'Pencil'} size={16} />
                         {isLocked ? 'Закрыто' : 'Редактировать'}
                       </Button>
                     )}
@@ -175,29 +172,29 @@ const CabinetApplicationsTab = ({ applications, fieldLabelsByContest, onNewAppli
                     <p className="text-sm text-amber-900 whitespace-pre-wrap">{app.admin_comment}</p>
                   </div>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   {app.category && (
                     <div>
-                      <p className="text-sm text-muted-foreground">Возраст</p>
-                      <p className="font-medium">{app.category}</p>
+                      <p className="text-sm text-muted-foreground mb-1">Возраст</p>
+                      <p className="text-lg font-medium">{app.category}</p>
                     </div>
                   )}
                   {app.performance_title && (
                     <div>
-                      <p className="text-sm text-muted-foreground">Название номера</p>
-                      <p className="font-medium">{app.performance_title}</p>
+                      <p className="text-sm text-muted-foreground mb-1">Название номера</p>
+                      <p className="text-lg font-medium">{app.performance_title}</p>
                     </div>
                   )}
                   {app.nomination && (
                     <div>
-                      <p className="text-sm text-muted-foreground">Номинация</p>
-                      <p className="font-medium">{app.nomination}</p>
+                      <p className="text-sm text-muted-foreground mb-1">Номинация</p>
+                      <p className="text-lg font-medium">{app.nomination}</p>
                     </div>
                   )}
                   {app.participation_format && (
                     <div>
-                      <p className="text-sm text-muted-foreground">Формат</p>
-                      <p className="font-medium">{app.participation_format === 'offline' ? 'Очное' : 'Заочное'}</p>
+                      <p className="text-sm text-muted-foreground mb-1">Формат</p>
+                      <p className="text-lg font-medium">{app.participation_format === 'offline' ? 'Очное' : 'Заочное'}</p>
                     </div>
                   )}
                 </div>

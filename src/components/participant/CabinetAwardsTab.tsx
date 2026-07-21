@@ -37,7 +37,7 @@ const CabinetAwardsTab = ({ diplomas, diplomasLoading }: CabinetAwardsTabProps) 
 
   return (
     <>
-      <h2 className="text-xl font-heading font-bold mb-4">Мои награды и дипломы</h2>
+      <h2 className="text-2xl font-heading font-bold mb-6">Мои награды и дипломы</h2>
       {diplomasLoading ? (
         <div className="text-center py-16">
           <Icon name="Loader2" size={40} className="mx-auto animate-spin text-muted-foreground" />
@@ -51,60 +51,60 @@ const CabinetAwardsTab = ({ diplomas, diplomasLoading }: CabinetAwardsTabProps) 
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {diplomas.map((d) => (
             <Card key={d.diploma_number} className="overflow-hidden">
               <div className="border-l-4 border-secondary pl-0">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
-                      <p className="text-xs text-muted-foreground font-mono mb-1">{d.diploma_number}</p>
-                      <CardTitle className="text-lg">{d.contest_title}</CardTitle>
+                      <p className="text-sm text-muted-foreground font-mono mb-1.5">{d.diploma_number}</p>
+                      <CardTitle className="text-xl">{d.contest_title}</CardTitle>
                       {d.contest_event_date && (
-                        <CardDescription>{d.contest_event_date}</CardDescription>
+                        <CardDescription className="text-base">{d.contest_event_date}</CardDescription>
                       )}
                     </div>
                     {d.award && (
-                      <span className={`shrink-0 px-3 py-1 rounded-xl text-sm font-bold border ${AWARD_COLORS[d.award] || 'bg-muted text-muted-foreground border-border'}`}>
+                      <span className={`shrink-0 px-4 py-1.5 rounded-xl text-base font-bold border ${AWARD_COLORS[d.award] || 'bg-muted text-muted-foreground border-border'}`}>
                         {d.award}
                       </span>
                     )}
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-base">
                     <div>
-                      <p className="text-muted-foreground">Участник</p>
+                      <p className="text-sm text-muted-foreground mb-1">Участник</p>
                       <p className="font-medium">{d.participant_name}</p>
                     </div>
                     {d.nomination && (
                       <div>
-                        <p className="text-muted-foreground">Номинация</p>
+                        <p className="text-sm text-muted-foreground mb-1">Номинация</p>
                         <p className="font-medium">{d.nomination}</p>
                       </div>
                     )}
                     {d.piece_title && (
                       <div>
-                        <p className="text-muted-foreground">Произведение</p>
+                        <p className="text-sm text-muted-foreground mb-1">Произведение</p>
                         <p className="font-medium">{d.piece_title}</p>
                       </div>
                     )}
                     {d.director_name && (
                       <div>
-                        <p className="text-muted-foreground">Руководитель</p>
+                        <p className="text-sm text-muted-foreground mb-1">Руководитель</p>
                         <p className="font-medium">{d.director_name}</p>
                       </div>
                     )}
                     {d.directing_party && (
                       <div className="md:col-span-2">
-                        <p className="text-muted-foreground">Направляющая сторона</p>
+                        <p className="text-sm text-muted-foreground mb-1">Направляющая сторона</p>
                         <p className="font-medium">{d.directing_party}</p>
                       </div>
                     )}
                   </div>
-                  <div className="mt-4 pt-3 border-t flex gap-2 flex-wrap">
-                    <Button size="sm" variant="outline" onClick={() => navigate(`/diploma-check?diploma_number=${d.diploma_number}`)}>
-                      <Icon name="ExternalLink" size={14} className="mr-1" /> Открыть диплом
+                  <div className="mt-5 pt-4 border-t flex gap-2 flex-wrap">
+                    <Button variant="outline" onClick={() => navigate(`/diploma-check?diploma_number=${d.diploma_number}`)}>
+                      <Icon name="ExternalLink" size={16} className="mr-1.5" /> Открыть диплом
                     </Button>
                   </div>
                 </CardContent>
