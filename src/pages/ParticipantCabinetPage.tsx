@@ -13,6 +13,7 @@ import CabinetAwardsTab, { Diploma } from '@/components/participant/CabinetAward
 import CabinetChatTab, { ChatMessage } from '@/components/participant/CabinetChatTab';
 import CabinetOrdersTab, { ShopOrder } from '@/components/participant/CabinetOrdersTab';
 import MaintenanceBanner from '@/components/participant/MaintenanceBanner';
+import CabinetSidebar from '@/components/participant/CabinetSidebar';
 
 const DIPLOMA_URL = 'https://functions.poehali.dev/1806f979-38b3-442e-b8ef-fa6827104251';
 const AUTH_URL = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
@@ -251,7 +252,7 @@ const ParticipantCabinetPage = () => {
       <Navigation />
 
       <main className="flex-1 pt-32 pb-20 px-4">
-        <div className="container mx-auto max-w-4xl">
+        <div className="container mx-auto max-w-6xl">
 
           <ParticipantHeader participant={participant} onLogout={handleLogout} />
 
@@ -259,85 +260,93 @@ const ParticipantCabinetPage = () => {
             <MaintenanceBanner message={maintenanceNotice.message} />
           )}
 
-          {/* Вкладки */}
-          <div className="flex gap-2 mb-6 flex-wrap">
-            <Button
-              variant={tab === 'applications' ? 'default' : 'outline'}
-              onClick={() => setTab('applications')}
-              className="gap-2"
-            >
-              <Icon name="FileText" size={16} /> Мои заявки
-              {applications.length > 0 && (
-                <span className="ml-1 bg-background/20 rounded-full text-xs px-1.5">{applications.length}</span>
+          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
+            <div className="order-2 lg:order-1 lg:sticky lg:top-32">
+              <CabinetSidebar />
+            </div>
+
+            <div className="order-1 lg:order-2 min-w-0">
+              {/* Вкладки */}
+              <div className="flex gap-2 mb-6 flex-wrap">
+                <Button
+                  variant={tab === 'applications' ? 'default' : 'outline'}
+                  onClick={() => setTab('applications')}
+                  className="gap-2"
+                >
+                  <Icon name="FileText" size={16} /> Мои заявки
+                  {applications.length > 0 && (
+                    <span className="ml-1 bg-background/20 rounded-full text-xs px-1.5">{applications.length}</span>
+                  )}
+                </Button>
+                <Button
+                  variant={tab === 'awards' ? 'default' : 'outline'}
+                  onClick={() => setTab('awards')}
+                  className="gap-2"
+                >
+                  <Icon name="Award" size={16} /> Награды
+                </Button>
+                <Button
+                  variant={tab === 'shop' ? 'default' : 'outline'}
+                  onClick={() => setTab('shop')}
+                  className="gap-2"
+                >
+                  <Icon name="ShoppingBag" size={16} /> Мои заказы
+                  {orders.length > 0 && (
+                    <span className="ml-1 bg-background/20 rounded-full text-xs px-1.5">{orders.length}</span>
+                  )}
+                </Button>
+                <Button
+                  variant={tab === 'chat' ? 'default' : 'outline'}
+                  onClick={() => setTab('chat')}
+                  className="gap-2 relative"
+                >
+                  <Icon name="MessageSquare" size={16} /> Чат с организаторами
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                      {unreadCount}
+                    </span>
+                  )}
+                </Button>
+              </div>
+
+              {/* ── Вкладка: Заявки ── */}
+              {tab === 'applications' && (
+                <CabinetApplicationsTab
+                  applications={applications}
+                  fieldLabelsByContest={fieldLabelsByContest}
+                  onNewApplication={() => setShowNewApp(true)}
+                  onEditApplication={(app) => setEditingApplication(app)}
+                />
               )}
-            </Button>
-            <Button
-              variant={tab === 'awards' ? 'default' : 'outline'}
-              onClick={() => setTab('awards')}
-              className="gap-2"
-            >
-              <Icon name="Award" size={16} /> Награды
-            </Button>
-            <Button
-              variant={tab === 'shop' ? 'default' : 'outline'}
-              onClick={() => setTab('shop')}
-              className="gap-2"
-            >
-              <Icon name="ShoppingBag" size={16} /> Мои заказы
-              {orders.length > 0 && (
-                <span className="ml-1 bg-background/20 rounded-full text-xs px-1.5">{orders.length}</span>
+
+              {/* ── Вкладка: Награды ── */}
+              {tab === 'awards' && (
+                <CabinetAwardsTab diplomas={diplomas} diplomasLoading={diplomasLoading} />
               )}
-            </Button>
-            <Button
-              variant={tab === 'chat' ? 'default' : 'outline'}
-              onClick={() => setTab('chat')}
-              className="gap-2 relative"
-            >
-              <Icon name="MessageSquare" size={16} /> Чат с организаторами
-              {unreadCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                  {unreadCount}
-                </span>
+
+              {/* ── Вкладка: Магазин ── */}
+              {tab === 'shop' && (
+                <CabinetOrdersTab
+                  orders={orders}
+                  loading={ordersLoading}
+                  onGoToShop={() => navigate('/shop')}
+                />
               )}
-            </Button>
+
+              {/* ── Вкладка: Чат ── */}
+              {tab === 'chat' && (
+                <CabinetChatTab
+                  messages={messages}
+                  messagesLoading={messagesLoading}
+                  msgText={msgText}
+                  setMsgText={setMsgText}
+                  sendingMsg={sendingMsg}
+                  sendMessage={sendMessage}
+                  messagesEndRef={messagesEndRef}
+                />
+              )}
+            </div>
           </div>
-
-          {/* ── Вкладка: Заявки ── */}
-          {tab === 'applications' && (
-            <CabinetApplicationsTab
-              applications={applications}
-              fieldLabelsByContest={fieldLabelsByContest}
-              onNewApplication={() => setShowNewApp(true)}
-              onEditApplication={(app) => setEditingApplication(app)}
-            />
-          )}
-
-          {/* ── Вкладка: Награды ── */}
-          {tab === 'awards' && (
-            <CabinetAwardsTab diplomas={diplomas} diplomasLoading={diplomasLoading} />
-          )}
-
-          {/* ── Вкладка: Магазин ── */}
-          {tab === 'shop' && (
-            <CabinetOrdersTab
-              orders={orders}
-              loading={ordersLoading}
-              onGoToShop={() => navigate('/shop')}
-            />
-          )}
-
-          {/* ── Вкладка: Чат ── */}
-          {tab === 'chat' && (
-            <CabinetChatTab
-              messages={messages}
-              messagesLoading={messagesLoading}
-              msgText={msgText}
-              setMsgText={setMsgText}
-              sendingMsg={sendingMsg}
-              sendMessage={sendMessage}
-              messagesEndRef={messagesEndRef}
-            />
-          )}
 
         </div>
       </main>

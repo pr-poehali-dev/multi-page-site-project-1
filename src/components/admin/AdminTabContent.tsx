@@ -13,8 +13,9 @@ import ParticipantsTab from '@/components/admin/ParticipantsTab';
 import ApplicationFormBuilderTab from '@/components/admin/ApplicationFormBuilderTab';
 import DiplomaTemplatesTab from '@/components/admin/DiplomaTemplatesTab';
 import ReviewsManagementTab from '@/components/admin/ReviewsManagementTab';
+import NewsManagementTab from '@/components/admin/NewsManagementTab';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news';
 
 interface AdminTabContentProps {
   activeTab: TabType;
@@ -252,6 +253,11 @@ const AdminTabContent = ({
     case 'reviews':
       return (
         <ReviewsManagementTab />
+      );
+
+    case 'news':
+      return (
+        <NewsManagementTab />
       );
 
     default:

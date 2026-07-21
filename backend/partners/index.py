@@ -88,6 +88,103 @@ def handle_settings(event: Dict[str, Any], conn) -> Dict[str, Any]:
     return {'statusCode': 405, 'headers': CORS, 'body': json.dumps({'error': 'Method not allowed'})}
 
 
+def handle_news(event: Dict[str, Any], conn) -> Dict[str, Any]:
+    """
+    Новости ИНДИГО.
+    GET  /?entity=news&action=public   — список опубликованных новостей (для сайта/ЛК)
+    GET  /?entity=news                 — список всех новостей (для админки)
+    POST /?entity=news                 — создать новость { title, content, image_url, is_published }
+    PUT  /?entity=news&id=X            — обновить новость { title, content, image_url, is_published }
+    DELETE /?entity=news&id=X          — удалить новость
+    """
+    method = event.get('httpMethod', 'GET')
+    params = event.get('queryStringParameters') or {}
+    action = params.get('action', '')
+    CORS = {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}
+
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        if method == 'GET' and action == 'public':
+            cur.execute(f'''
+                SELECT id, title, content, image_url, created_at
+                FROM {SCHEMA}.news
+                WHERE is_published = TRUE
+                ORDER BY created_at DESC
+                LIMIT 20
+            ''')
+            rows = [dict(r) for r in cur.fetchall()]
+            return {'statusCode': 200, 'headers': CORS,
+                    'body': json.dumps({'news': rows}, default=json_serial)}
+
+        if method == 'GET':
+            cur.execute(f'SELECT * FROM {SCHEMA}.news ORDER BY created_at DESC')
+            rows = [dict(r) for r in cur.fetchall()]
+            return {'statusCode': 200, 'headers': CORS,
+                    'body': json.dumps({'news': rows}, default=json_serial)}
+
+        if method == 'POST':
+            body = json.loads(event.get('body') or '{}')
+            title = (body.get('title') or '').strip()
+            content = (body.get('content') or '').strip()
+            image_url = (body.get('image_url') or '').strip()
+            is_published = bool(body.get('is_published', True))
+
+            if not title or not content:
+                return {'statusCode': 400, 'headers': CORS,
+                        'body': json.dumps({'error': 'title и content обязательны'})}
+
+            cur.execute(f'''
+                INSERT INTO {SCHEMA}.news (title, content, image_url, is_published)
+                VALUES (%s, %s, %s, %s) RETURNING *
+            ''', (title[:500], content[:5000], image_url[:1000], is_published))
+            item = dict(cur.fetchone())
+            conn.commit()
+            return {'statusCode': 200, 'headers': CORS,
+                    'body': json.dumps({'news': item}, default=json_serial)}
+
+        if method == 'PUT':
+            news_id = params.get('id')
+            if not news_id:
+                return {'statusCode': 400, 'headers': CORS,
+                        'body': json.dumps({'error': 'id required'})}
+            body = json.loads(event.get('body') or '{}')
+            sets, vals = [], []
+            if 'title' in body:
+                sets.append('title = %s'); vals.append((body['title'] or '').strip()[:500])
+            if 'content' in body:
+                sets.append('content = %s'); vals.append((body['content'] or '').strip()[:5000])
+            if 'image_url' in body:
+                sets.append('image_url = %s'); vals.append((body['image_url'] or '').strip()[:1000])
+            if 'is_published' in body:
+                sets.append('is_published = %s'); vals.append(bool(body['is_published']))
+            if not sets:
+                return {'statusCode': 400, 'headers': CORS,
+                        'body': json.dumps({'error': 'nothing to update'})}
+            sets.append('updated_at = NOW()')
+            vals.append(news_id)
+            cur.execute(f'''
+                UPDATE {SCHEMA}.news SET {', '.join(sets)}
+                WHERE id = %s RETURNING *
+            ''', vals)
+            item = cur.fetchone()
+            conn.commit()
+            if not item:
+                return {'statusCode': 404, 'headers': CORS,
+                        'body': json.dumps({'error': 'not found'})}
+            return {'statusCode': 200, 'headers': CORS,
+                    'body': json.dumps({'news': dict(item)}, default=json_serial)}
+
+        if method == 'DELETE':
+            news_id = params.get('id')
+            if not news_id:
+                return {'statusCode': 400, 'headers': CORS,
+                        'body': json.dumps({'error': 'id required'})}
+            cur.execute(f'DELETE FROM {SCHEMA}.news WHERE id = %s', (news_id,))
+            conn.commit()
+            return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'ok': True})}
+
+    return {'statusCode': 400, 'headers': CORS, 'body': json.dumps({'error': 'Unknown action'})}
+
+
 def handle_reviews(event: Dict[str, Any], conn) -> Dict[str, Any]:
     """
     Отзывы участников конкурсов.
@@ -231,6 +328,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return handle_reviews(event, conn)
     if query_params_pre.get('entity') == 'settings':
         return handle_settings(event, conn)
+    if query_params_pre.get('entity') == 'news':
+        return handle_news(event, conn)
     
     try:
         if method == 'GET':

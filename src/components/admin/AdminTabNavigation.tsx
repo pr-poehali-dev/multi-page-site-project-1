@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news';
 
 interface AdminTabNavigationProps {
   activeTab: TabType;
@@ -135,6 +135,13 @@ const AdminTabNavigation = ({ activeTab, onTabChange, onLogout }: AdminTabNaviga
         >
           <Icon name="MessageSquareHeart" className="mr-2 h-4 w-4" />
           Отзывы
+        </Button>
+        <Button
+          variant={activeTab === 'news' ? 'default' : 'outline'}
+          onClick={() => onTabChange('news')}
+        >
+          <Icon name="Newspaper" className="mr-2 h-4 w-4" />
+          Новости
         </Button>
       </div>
     </div>
