@@ -69,10 +69,7 @@ const CabinetSidebar = () => {
       {/* Ближайшие очные конкурсы */}
       <Card className="overflow-hidden border-primary/15">
         <div className="bg-gradient-to-br from-primary to-purple-500 px-5 py-4">
-          <h3 className="font-heading font-bold text-white flex items-center gap-2">
-            <Icon name="MapPin" size={18} />
-            Ближайшие очные конкурсы
-          </h3>
+          <h3 className="font-heading font-bold text-white flex items-center gap-2">Ближайшие конкурсы</h3>
         </div>
         <div className="p-3">
           {loadingContests ? (
