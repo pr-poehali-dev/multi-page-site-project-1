@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
+import NewsDetailModal, { NewsItem } from '@/components/participant/NewsDetailModal';
 
 const CONTESTS_URL = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
 const NEWS_URL = 'https://functions.poehali.dev/7b3c1e0e-bd68-4b73-9377-740689560912?entity=news&action=public';
@@ -15,20 +16,13 @@ interface Contest {
   poster_url?: string;
 }
 
-interface NewsItem {
-  id: number;
-  title: string;
-  content: string;
-  image_url?: string;
-  created_at: string;
-}
-
 const CabinetSidebar = () => {
   const navigate = useNavigate();
   const [contests, setContests] = useState<Contest[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loadingContests, setLoadingContests] = useState(true);
   const [loadingNews, setLoadingNews] = useState(true);
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
 
   useEffect(() => {
     const loadContests = async () => {
@@ -127,21 +121,27 @@ const CabinetSidebar = () => {
           ) : (
             <div className="divide-y">
               {news.map((n) => (
-                <div key={n.id} className="p-4 first:pt-2 last:pb-2">
+                <button
+                  key={n.id}
+                  onClick={() => setSelectedNews(n)}
+                  className="w-full text-left p-4 first:pt-2 last:pb-2 hover:bg-muted/70 transition-colors rounded-lg group"
+                >
                   {n.image_url && (
                     <img src={n.image_url} alt="" className="w-full h-40 object-cover rounded-lg mb-3" />
                   )}
-                  <p className="text-base font-semibold leading-tight mb-1.5">{n.title}</p>
+                  <p className="text-base font-semibold leading-tight mb-1.5 group-hover:text-secondary transition-colors">{n.title}</p>
                   <p className="text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap">{n.content}</p>
                   <p className="text-xs text-muted-foreground/70 mt-2">
                     {new Date(n.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
                   </p>
-                </div>
+                </button>
               ))}
             </div>
           )}
         </div>
       </Card>
+
+      <NewsDetailModal news={selectedNews} onClose={() => setSelectedNews(null)} />
     </div>
   );
 };
