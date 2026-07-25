@@ -4,6 +4,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
+import { trackGoal } from '@/lib/analytics';
 
 const ORDERS_URL = 'https://functions.poehali.dev/b020db38-8100-400d-9e53-2dbfcafd5f48';
 
@@ -25,6 +26,7 @@ const ShopSuccessPage = () => {
         const data = await res.json();
         if (data.status === 'paid') {
           setStatus('paid');
+          trackGoal('order_paid');
         } else if (attempts < 4) {
           attempts++;
           setTimeout(check, 2000);

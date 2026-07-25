@@ -9,6 +9,7 @@ import Icon from '@/components/ui/icon';
 import { useSEO } from '@/hooks/useSEO';
 import { useToast } from '@/hooks/use-toast';
 import { compressImage } from '@/lib/compressImage';
+import { trackGoal } from '@/lib/analytics';
 
 const REVIEWS_URL = 'https://functions.poehali.dev/7b3c1e0e-bd68-4b73-9377-740689560912?entity=reviews';
 const UPLOAD_URL = 'https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3';
@@ -110,6 +111,7 @@ const ReviewsPage = () => {
       });
       if (!res.ok) throw new Error();
       setSubmitted(true);
+      trackGoal('review_submit');
       setFullName('');
       setTeamName('');
       setText('');

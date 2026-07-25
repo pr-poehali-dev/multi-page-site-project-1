@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { trackGoal } from '@/lib/analytics';
 
 const CONTESTS_URL = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
 const APPLICATIONS_URL = 'https://functions.poehali.dev/065d2b6a-5112-4a26-a642-211398843a75';
@@ -213,6 +214,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
         }
 
         toast({ title: 'Заявка отправлена!', description: 'Мы рассмотрим её в течение 3 дней.' });
+        trackGoal('application_submit');
         onSuccess();
       } else {
         toast({ title: 'Ошибка', description: 'Не удалось отправить заявку', variant: 'destructive' });

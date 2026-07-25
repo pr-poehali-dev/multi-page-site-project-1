@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSEO } from '@/hooks/useSEO';
 import RegisterStepPersonal from '@/components/register/RegisterStepPersonal';
+import { trackGoal } from '@/lib/analytics';
 
 const REGISTER_URL = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
 
@@ -66,6 +67,7 @@ const RegisterPage = () => {
         localStorage.setItem('participantEmail', formData.email);
         localStorage.setItem('participantData', JSON.stringify(data));
         toast({ title: 'Аккаунт создан!', description: 'Добро пожаловать в личный кабинет' });
+        trackGoal('register_complete');
 
         const contestId = searchParams.get('contest');
         navigate(contestId ? `/participant-cabinet?apply=${contestId}` : '/participant-cabinet');

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { trackGoal } from '@/lib/analytics';
 
 const PRODUCTS_URL = 'https://functions.poehali.dev/eddcb40d-3bae-4f75-9c69-390ad1190d83';
 const ORDERS_URL = 'https://functions.poehali.dev/b020db38-8100-400d-9e53-2dbfcafd5f48';
@@ -83,6 +84,7 @@ const ShopProductPage = () => {
       if (!res.ok) throw new Error(data.error);
 
       toast({ title: 'Заявка принята!', description: 'Переходим на страницу оплаты...' });
+      trackGoal('order_start');
       setTimeout(() => {
         window.location.href = data.payment_url;
       }, 800);

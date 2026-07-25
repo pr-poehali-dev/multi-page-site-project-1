@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { useSEO } from '@/hooks/useSEO';
+import { trackGoal } from '@/lib/analytics';
 
 const ContactsPage = () => {
   useSEO({
@@ -44,6 +45,7 @@ const ContactsPage = () => {
         title: 'Сообщение отправлено!',
         description: 'Мы свяжемся с вами в ближайшее время.',
       });
+      trackGoal('contact_submit');
       setFormData({ name: '', email: '', subject: '', message: '' });
     } catch (error) {
       toast({
