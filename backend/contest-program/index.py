@@ -75,6 +75,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     POST /?action=criterion_create          — создать критерий { nomination_id, name, max_score }
     PUT  /?action=criterion_update&id=X     — обновить критерий { name, max_score }
     DELETE /?action=criterion_delete&id=X   — удалить критерий
+    --- Шаблоны номинаций (переиспользуемые наборы) ---
+    GET  /?action=nomination_templates                        — список шаблонов номинаций с номинациями и критериями
+    POST /?action=nomination_template_create                  — создать шаблон { name }
+    PUT  /?action=nomination_template_update&id=X             — переименовать шаблон { name }
+    DELETE /?action=nomination_template_delete&id=X           — удалить шаблон
+    POST /?action=nomination_template_item_create             — создать номинацию в шаблоне { template_id, name }
+    PUT  /?action=nomination_template_item_update&id=X        — переименовать номинацию шаблона { name }
+    DELETE /?action=nomination_template_item_delete&id=X       — удалить номинацию шаблона
+    POST /?action=nomination_template_criterion_create        — создать критерий в номинации шаблона { template_item_id, name, max_score }
+    PUT  /?action=nomination_template_criterion_update&id=X   — обновить критерий шаблона { name, max_score }
+    DELETE /?action=nomination_template_criterion_delete&id=X — удалить критерий шаблона
+    POST /?action=apply_nomination_template                   — назначить шаблон конкурсу { contest_id, template_id } (копирует номинации+критерии)
     --- Конструктор дипломов: шаблоны ---
     GET  /?action=templates                 — список всех шаблонов
     GET  /?action=template&id=X             — шаблон + его поля
@@ -121,6 +133,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return list_fonts(conn)
             elif action == 'nominations':
                 return list_nominations(conn, params.get('contest_id'))
+            elif action == 'nomination_templates':
+                return list_nomination_templates(conn)
             else:
                 return get_program(conn, event)
         elif method == 'POST':
@@ -138,6 +152,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return create_nomination(conn, event)
             elif action == 'criterion_create':
                 return create_criterion(conn, event)
+            elif action == 'nomination_template_create':
+                return create_nomination_template(conn, event)
+            elif action == 'nomination_template_item_create':
+                return create_nomination_template_item(conn, event)
+            elif action == 'nomination_template_criterion_create':
+                return create_nomination_template_criterion(conn, event)
+            elif action == 'apply_nomination_template':
+                return apply_nomination_template(conn, event)
             else:
                 return create_row(conn, event)
         elif method == 'PUT':
@@ -147,6 +169,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return update_nomination(conn, params.get('id'), event)
             elif action == 'criterion_update':
                 return update_criterion(conn, params.get('id'), event)
+            elif action == 'nomination_template_update':
+                return update_nomination_template(conn, params.get('id'), event)
+            elif action == 'nomination_template_item_update':
+                return update_nomination_template_item(conn, params.get('id'), event)
+            elif action == 'nomination_template_criterion_update':
+                return update_nomination_template_criterion(conn, params.get('id'), event)
             else:
                 return update_row(conn, event)
         elif method == 'DELETE':
@@ -160,6 +188,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return delete_nomination(conn, params.get('id'))
             elif action == 'criterion_delete':
                 return delete_criterion(conn, params.get('id'))
+            elif action == 'nomination_template_delete':
+                return delete_nomination_template(conn, params.get('id'))
+            elif action == 'nomination_template_item_delete':
+                return delete_nomination_template_item(conn, params.get('id'))
+            elif action == 'nomination_template_criterion_delete':
+                return delete_nomination_template_criterion(conn, params.get('id'))
             else:
                 return delete_row(conn, event)
         else:
@@ -447,6 +481,245 @@ def delete_criterion(conn, criterion_id) -> Dict[str, Any]:
         cur.execute(f'DELETE FROM {SCHEMA}.nomination_criteria WHERE id = %s', (criterion_id,))
 
     return _resp(200, {'success': True})
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ШАБЛОНЫ НОМИНАЦИЙ (переиспользуемые наборы номинаций+критериев для любых конкурсов)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def list_nomination_templates(conn) -> Dict[str, Any]:
+    '''Список всех шаблонов номинаций с номинациями и критериями внутри'''
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'SELECT id, name FROM {SCHEMA}.nomination_templates ORDER BY id')
+        templates = list(cur.fetchall())
+
+        cur.execute(f'''
+            SELECT id, template_id, name, sort_order
+            FROM {SCHEMA}.nomination_template_items
+            ORDER BY sort_order, id
+        ''')
+        items = list(cur.fetchall())
+
+        cur.execute(f'''
+            SELECT id, template_item_id, name, max_score, sort_order
+            FROM {SCHEMA}.nomination_template_criteria
+            ORDER BY sort_order, id
+        ''')
+        criteria = list(cur.fetchall())
+
+    for item in items:
+        item['criteria'] = [c for c in criteria if c['template_item_id'] == item['id']]
+    for tpl in templates:
+        tpl['items'] = [i for i in items if i['template_id'] == tpl['id']]
+
+    return _resp(200, {'templates': templates})
+
+
+def create_nomination_template(conn, event: Dict[str, Any]) -> Dict[str, Any]:
+    '''Создание шаблона номинаций { name }'''
+    body = json.loads(event.get('body', '{}'))
+    name = (body.get('name') or '').strip()
+    if not name:
+        return _resp(400, {'error': 'name обязателен'})
+
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'''
+            INSERT INTO {SCHEMA}.nomination_templates (name)
+            VALUES (%s)
+            RETURNING id, name
+        ''', (name,))
+        row = dict(cur.fetchone())
+        row['items'] = []
+
+    return _resp(201, {'success': True, 'template': row})
+
+
+def update_nomination_template(conn, template_id, event: Dict[str, Any]) -> Dict[str, Any]:
+    '''Переименование шаблона { name }'''
+    if not template_id:
+        return _resp(400, {'error': 'id обязателен'})
+    body = json.loads(event.get('body', '{}'))
+    name = (body.get('name') or '').strip()
+    if not name:
+        return _resp(400, {'error': 'name обязателен'})
+
+    with conn.cursor() as cur:
+        cur.execute(f'UPDATE {SCHEMA}.nomination_templates SET name = %s, updated_at = NOW() WHERE id = %s', (name, template_id))
+
+    return _resp(200, {'success': True})
+
+
+def delete_nomination_template(conn, template_id) -> Dict[str, Any]:
+    '''Удаление шаблона номинаций целиком (номинации и критерии внутри)'''
+    if not template_id:
+        return _resp(400, {'error': 'id обязателен'})
+
+    with conn.cursor() as cur:
+        cur.execute(f'''
+            DELETE FROM {SCHEMA}.nomination_template_criteria
+            WHERE template_item_id IN (SELECT id FROM {SCHEMA}.nomination_template_items WHERE template_id = %s)
+        ''', (template_id,))
+        cur.execute(f'DELETE FROM {SCHEMA}.nomination_template_items WHERE template_id = %s', (template_id,))
+        cur.execute(f'DELETE FROM {SCHEMA}.nomination_templates WHERE id = %s', (template_id,))
+
+    return _resp(200, {'success': True})
+
+
+def create_nomination_template_item(conn, event: Dict[str, Any]) -> Dict[str, Any]:
+    '''Создание номинации внутри шаблона { template_id, name }'''
+    body = json.loads(event.get('body', '{}'))
+    template_id = body.get('template_id')
+    name = (body.get('name') or '').strip()
+    if not template_id or not name:
+        return _resp(400, {'error': 'template_id и name обязательны'})
+
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM {SCHEMA}.nomination_template_items WHERE template_id = %s', (template_id,))
+        next_order = cur.fetchone()['next_order']
+        cur.execute(f'''
+            INSERT INTO {SCHEMA}.nomination_template_items (template_id, name, sort_order)
+            VALUES (%s, %s, %s)
+            RETURNING id, template_id, name, sort_order
+        ''', (template_id, name, next_order))
+        row = dict(cur.fetchone())
+        row['criteria'] = []
+
+    return _resp(201, {'success': True, 'item': row})
+
+
+def update_nomination_template_item(conn, item_id, event: Dict[str, Any]) -> Dict[str, Any]:
+    '''Переименование номинации шаблона { name }'''
+    if not item_id:
+        return _resp(400, {'error': 'id обязателен'})
+    body = json.loads(event.get('body', '{}'))
+    name = (body.get('name') or '').strip()
+    if not name:
+        return _resp(400, {'error': 'name обязателен'})
+
+    with conn.cursor() as cur:
+        cur.execute(f'UPDATE {SCHEMA}.nomination_template_items SET name = %s WHERE id = %s', (name, item_id))
+
+    return _resp(200, {'success': True})
+
+
+def delete_nomination_template_item(conn, item_id) -> Dict[str, Any]:
+    '''Удаление номинации шаблона'''
+    if not item_id:
+        return _resp(400, {'error': 'id обязателен'})
+
+    with conn.cursor() as cur:
+        cur.execute(f'DELETE FROM {SCHEMA}.nomination_template_criteria WHERE template_item_id = %s', (item_id,))
+        cur.execute(f'DELETE FROM {SCHEMA}.nomination_template_items WHERE id = %s', (item_id,))
+
+    return _resp(200, {'success': True})
+
+
+def create_nomination_template_criterion(conn, event: Dict[str, Any]) -> Dict[str, Any]:
+    '''Создание критерия внутри номинации шаблона { template_item_id, name, max_score }'''
+    body = json.loads(event.get('body', '{}'))
+    template_item_id = body.get('template_item_id')
+    name = (body.get('name') or '').strip()
+    max_score = body.get('max_score', 10)
+    if not template_item_id or not name:
+        return _resp(400, {'error': 'template_item_id и name обязательны'})
+
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM {SCHEMA}.nomination_template_criteria WHERE template_item_id = %s', (template_item_id,))
+        next_order = cur.fetchone()['next_order']
+        cur.execute(f'''
+            INSERT INTO {SCHEMA}.nomination_template_criteria (template_item_id, name, max_score, sort_order)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id, template_item_id, name, max_score, sort_order
+        ''', (template_item_id, name, max_score, next_order))
+        row = dict(cur.fetchone())
+
+    return _resp(201, {'success': True, 'criterion': row})
+
+
+def update_nomination_template_criterion(conn, criterion_id, event: Dict[str, Any]) -> Dict[str, Any]:
+    '''Обновление критерия шаблона { name, max_score }'''
+    if not criterion_id:
+        return _resp(400, {'error': 'id обязателен'})
+    body = json.loads(event.get('body', '{}'))
+    fields = []
+    values = []
+    if 'name' in body:
+        fields.append('name = %s')
+        values.append(body['name'])
+    if 'max_score' in body:
+        fields.append('max_score = %s')
+        values.append(body['max_score'])
+    if not fields:
+        return _resp(400, {'error': 'Нет полей для обновления'})
+
+    values.append(criterion_id)
+    with conn.cursor() as cur:
+        cur.execute(f'UPDATE {SCHEMA}.nomination_template_criteria SET {", ".join(fields)} WHERE id = %s', values)
+
+    return _resp(200, {'success': True})
+
+
+def delete_nomination_template_criterion(conn, criterion_id) -> Dict[str, Any]:
+    '''Удаление критерия шаблона'''
+    if not criterion_id:
+        return _resp(400, {'error': 'id обязателен'})
+
+    with conn.cursor() as cur:
+        cur.execute(f'DELETE FROM {SCHEMA}.nomination_template_criteria WHERE id = %s', (criterion_id,))
+
+    return _resp(200, {'success': True})
+
+
+def apply_nomination_template(conn, event: Dict[str, Any]) -> Dict[str, Any]:
+    '''Назначить шаблон конкурсу: копирует номинации и критерии шаблона в номинации конкурса.
+    Если номинация с таким именем уже есть у конкурса — пропускается (не дублируется).'''
+    body = json.loads(event.get('body', '{}'))
+    contest_id = body.get('contest_id')
+    template_id = body.get('template_id')
+    if not contest_id or not template_id:
+        return _resp(400, {'error': 'contest_id и template_id обязательны'})
+
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'SELECT name FROM {SCHEMA}.nominations WHERE contest_id = %s', (contest_id,))
+        existing_names = {r['name'] for r in cur.fetchall()}
+
+        cur.execute(f'SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM {SCHEMA}.nominations WHERE contest_id = %s', (contest_id,))
+        next_order = cur.fetchone()['max_order']
+
+        cur.execute(f'''
+            SELECT id, name, sort_order
+            FROM {SCHEMA}.nomination_template_items
+            WHERE template_id = %s
+            ORDER BY sort_order, id
+        ''', (template_id,))
+        template_items = list(cur.fetchall())
+
+        created_count = 0
+        for item in template_items:
+            if item['name'] in existing_names:
+                continue
+            next_order += 1
+            cur.execute(f'''
+                INSERT INTO {SCHEMA}.nominations (contest_id, name, sort_order)
+                VALUES (%s, %s, %s)
+                RETURNING id
+            ''', (contest_id, item['name'], next_order))
+            new_nomination_id = cur.fetchone()['id']
+            created_count += 1
+
+            cur.execute(f'''
+                SELECT name, max_score, sort_order
+                FROM {SCHEMA}.nomination_template_criteria
+                WHERE template_item_id = %s
+                ORDER BY sort_order, id
+            ''', (item['id'],))
+            for crit in cur.fetchall():
+                cur.execute(f'''
+                    INSERT INTO {SCHEMA}.nomination_criteria (nomination_id, name, max_score, sort_order)
+                    VALUES (%s, %s, %s, %s)
+                ''', (new_nomination_id, crit['name'], crit['max_score'], crit['sort_order']))
+
+    return _resp(200, {'success': True, 'created': created_count, 'skipped': len(template_items) - created_count})
 
 
 def save_scoring(conn, event: Dict[str, Any]) -> Dict[str, Any]:

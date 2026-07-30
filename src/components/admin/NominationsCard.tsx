@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,6 +21,11 @@ export interface Nomination {
   criteria: Criterion[];
 }
 
+interface NominationTemplateOption {
+  id: number;
+  name: string;
+}
+
 interface NominationsCardProps {
   contestId: string;
 }
@@ -33,6 +39,9 @@ const NominationsCard = ({ contestId }: NominationsCardProps) => {
   const [newCriterion, setNewCriterion] = useState<Record<number, { name: string; max_score: string }>>({});
   const [editingNomination, setEditingNomination] = useState<{ id: number; name: string } | null>(null);
   const [editingCriterion, setEditingCriterion] = useState<{ id: number; name: string; max_score: string } | null>(null);
+  const [templates, setTemplates] = useState<NominationTemplateOption[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [applyingTemplate, setApplyingTemplate] = useState(false);
 
   const loadNominations = useCallback(async () => {
     if (!contestId) return;
@@ -48,7 +57,40 @@ const NominationsCard = ({ contestId }: NominationsCardProps) => {
     }
   }, [contestId, toast]);
 
+  const loadTemplates = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}?action=nomination_templates`);
+      const data = await res.json();
+      setTemplates((data.templates || []).map((t: { id: number; name: string }) => ({ id: t.id, name: t.name })));
+    } catch {
+      setTemplates([]);
+    }
+  }, []);
+
   useEffect(() => { loadNominations(); }, [loadNominations]);
+  useEffect(() => { loadTemplates(); }, [loadTemplates]);
+
+  const handleApplyTemplate = async () => {
+    if (!selectedTemplateId || !contestId) return;
+    setApplyingTemplate(true);
+    try {
+      const res = await fetch(`${API}?action=apply_nomination_template`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contest_id: Number(contestId), template_id: Number(selectedTemplateId) }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: 'Шаблон назначен', description: `Добавлено номинаций: ${data.created}${data.skipped > 0 ? `, пропущено (уже есть): ${data.skipped}` : ''}` });
+        setSelectedTemplateId('');
+        loadNominations();
+      }
+    } catch {
+      toast({ title: 'Ошибка', description: 'Не удалось назначить шаблон', variant: 'destructive' });
+    } finally {
+      setApplyingTemplate(false);
+    }
+  };
 
   const handleCreateNomination = async () => {
     if (!newNominationName.trim()) return;
@@ -170,6 +212,24 @@ const NominationsCard = ({ contestId }: NominationsCardProps) => {
             <span className="ml-2 hidden sm:inline">Добавить</span>
           </Button>
         </div>
+
+        {templates.length > 0 && (
+          <div className="flex gap-2 mt-3 pt-3 border-t items-center">
+            <Icon name="LayoutTemplate" size={16} className="text-muted-foreground shrink-0" />
+            <div className="flex-1">
+              <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                <SelectTrigger><SelectValue placeholder="Назначить готовый шаблон номинаций" /></SelectTrigger>
+                <SelectContent>
+                  {templates.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button variant="secondary" onClick={handleApplyTemplate} disabled={!selectedTemplateId || applyingTemplate}>
+              {applyingTemplate ? <Icon name="Loader" size={16} className="animate-spin" /> : <Icon name="Check" size={16} />}
+              <span className="ml-2 hidden sm:inline">Назначить</span>
+            </Button>
+          </div>
+        )}
       </Card>
 
       {loading ? (
