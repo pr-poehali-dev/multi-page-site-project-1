@@ -36,6 +36,8 @@ interface Application {
   performance_title?: string;
   participation_format?: string;
   nomination?: string;
+  nomination_id?: number | null;
+  nomination_name?: string;
   experience: string;
   achievements: string;
   additional_info: string;
@@ -376,7 +378,7 @@ const ApplicationsTab = ({
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Номинация</p>
-                    <p className="text-sm font-medium">{app.nomination || '—'}</p>
+                    <p className="text-sm font-medium">{app.nomination_name || app.nomination || '—'}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">

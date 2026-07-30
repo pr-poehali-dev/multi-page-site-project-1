@@ -25,6 +25,12 @@ interface CustomField {
   field_type: string;
   options: string;
   is_required: boolean;
+  system_key?: string | null;
+}
+
+interface NominationOption {
+  id: number;
+  name: string;
 }
 
 interface NewApplicationModalProps {
@@ -53,6 +59,8 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
   const [customFileValues, setCustomFileValues] = useState<Record<string, File>>({});
   const [customAudioFileValues, setCustomAudioFileValues] = useState<Record<string, File>>({});
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
+  const [nominationOptions, setNominationOptions] = useState<NominationOption[]>([]);
+  const [nominationId, setNominationId] = useState<number | null>(null);
 
   const CUSTOM_FILE_MAX_SIZE = 15 * 1024 * 1024;
   const CUSTOM_AUDIO_MAX_SIZE = 50 * 1024 * 1024;
@@ -84,19 +92,21 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
     setContestId('');
   };
 
-  // Загружаем доп. поля формы, назначенные выбранному конкурсу
+  // Загружаем доп. поля формы и номинации, назначенные выбранному конкурсу
   useEffect(() => {
-    if (!contestId) { setCustomFields([]); return; }
+    if (!contestId) { setCustomFields([]); setNominationOptions([]); return; }
     const load = async () => {
       setLoadingCustomFields(true);
       try {
         const res = await fetch(`${CONTESTS_URL}?action=contest_form&contest_id=${contestId}`);
         const data = await res.json();
         setCustomFields(data.fields || []);
+        setNominationOptions(data.nominations || []);
         setCustomValues({});
         setCustomFileValues({});
         setCustomAudioFileValues({});
-      } catch { setCustomFields([]); }
+        setNominationId(null);
+      } catch { setCustomFields([]); setNominationOptions([]); }
       finally { setLoadingCustomFields(false); }
     };
     load();
@@ -184,6 +194,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
           city: participant.city,
           password: '',
           contestId,
+          nominationId,
           customFields: finalCustomValues,
         }),
       });
@@ -334,7 +345,25 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
                       <label className="block text-sm font-medium mb-2">
                         {f.field_label} {f.is_required && <span className="text-destructive">*</span>}
                       </label>
-                      {f.field_type === 'textarea' ? (
+                      {f.system_key === 'nomination' ? (
+                        nominationOptions.length > 0 ? (
+                          <Select
+                            value={nominationId ? String(nominationId) : ''}
+                            onValueChange={val => {
+                              const opt = nominationOptions.find(o => String(o.id) === val);
+                              setNominationId(opt?.id ?? null);
+                              setCustomValues(v => ({ ...v, [f.field_name]: opt?.name ?? '' }));
+                            }}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Выберите номинацию" /></SelectTrigger>
+                            <SelectContent>
+                              {nominationOptions.map(o => <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <p className="text-sm text-muted-foreground py-2">Организатор ещё не добавил номинации для этого конкурса</p>
+                        )
+                      ) : f.field_type === 'textarea' ? (
                         <Textarea
                           value={customValues[f.field_name] || ''}
                           onChange={e => setCustomValues(v => ({ ...v, [f.field_name]: e.target.value }))}

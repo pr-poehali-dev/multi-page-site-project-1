@@ -132,12 +132,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     }
 
                 custom_fields = body_data.get('customFields', {})
+                nomination_id = body_data.get('nominationId')
 
                 cur.execute(
                     '''
                     UPDATE applications
                     SET category = %s, performance_title = %s, participation_format = %s,
-                        nomination = %s, experience = %s, achievements = %s,
+                        nomination = %s, nomination_id = %s, experience = %s, achievements = %s,
                         additional_info = %s, custom_fields = %s
                     WHERE id = %s
                     RETURNING id, status, submitted_at, contest_id, participant_id
@@ -147,6 +148,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         body_data.get('performanceTitle', ''),
                         body_data.get('participationFormat', ''),
                         body_data.get('nomination', ''),
+                        nomination_id,
                         body_data.get('experience', ''),
                         body_data.get('achievements', ''),
                         body_data.get('additionalInfo', ''),
@@ -194,12 +196,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         '''
                         UPDATE contest_program
                         SET region = %s, directing_party = %s, participant_name = %s, age = %s,
-                            nomination = %s, piece_title = %s, duration = %s, director_name = %s,
+                            nomination = %s, nomination_id = %s, piece_title = %s, duration = %s, director_name = %s,
                             participation_format = %s, updated_at = CURRENT_TIMESTAMP
                         WHERE application_id = %s
                         ''',
-                        (region, directing_party, participant_name, age_category,
-                         nomination, piece_title, duration, director_name,
+                        (region, directing_party, participant_name, age_category, nomination, nomination_id,
+                         piece_title, duration, director_name,
                          participation_format, application_id)
                     )
 
@@ -232,6 +234,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             performance_title = body_data.get('performanceTitle', '')
             participation_format = body_data.get('participationFormat', '')
             nomination = body_data.get('nomination', '')
+            nomination_id = body_data.get('nominationId')
             experience = body_data.get('experience', '')
             achievements = body_data.get('achievements', '')
             additional_info = body_data.get('additionalInfo', '')
@@ -308,11 +311,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 cur.execute(
                     '''
                     INSERT INTO applications 
-                    (participant_id, contest_id, category, performance_title, participation_format, nomination, experience, achievements, additional_info, custom_fields, status)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending')
+                    (participant_id, contest_id, category, performance_title, participation_format, nomination, nomination_id, experience, achievements, additional_info, custom_fields, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending')
                     RETURNING id, submitted_at, status
                     ''',
-                    (participant_id, contest_id, category, performance_title, participation_format, nomination, experience, achievements, additional_info, json.dumps(custom_fields))
+                    (participant_id, contest_id, category, performance_title, participation_format, nomination, nomination_id, experience, achievements, additional_info, json.dumps(custom_fields))
                 )
                 application = cur.fetchone()
                 
@@ -355,7 +358,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     SELECT 
                         p.full_name, p.contact_position, p.email, p.phone, p.vk_link, p.city,
                         a.id as application_id, a.category, a.performance_title, a.participation_format, 
-                        a.nomination, a.experience, a.achievements, a.additional_info, a.custom_fields, a.status, a.submitted_at,
+                        a.nomination, a.nomination_id, a.experience, a.achievements, a.additional_info, a.custom_fields, a.status, a.submitted_at,
                         c.contest_key, c.title as contest_title
                     FROM participants p
                     JOIN applications a ON p.id = a.participant_id
@@ -396,6 +399,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'performanceTitle': result['performance_title'] or '',
                     'participationFormat': result['participation_format'] or '',
                     'nomination': result['nomination'] or '',
+                    'nominationId': result.get('nomination_id'),
                     'experience': result['experience'] or '',
                     'achievements': result['achievements'] or '',
                     'additionalInfo': result['additional_info'] or '',

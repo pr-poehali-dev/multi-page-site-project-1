@@ -513,18 +513,21 @@ def assign_template(conn, event) -> Dict[str, Any]:
 
 
 def get_contest_form(conn, contest_id) -> Dict[str, Any]:
-    '''Получить поля формы, назначенной конкурсу (для рендера на фронте)'''
+    '''Получить поля формы, назначенной конкурсу, и список номинаций конкурса (для рендера на фронте)'''
     if not contest_id:
         return _resp(400, {'error': 'Укажите contest_id'})
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute('SELECT id, name FROM nominations WHERE contest_id = %s ORDER BY sort_order, id', (contest_id,))
+        nominations = cur.fetchall()
+
         cur.execute('SELECT form_template_id FROM contests WHERE id = %s', (contest_id,))
         row = cur.fetchone()
         if not row or not row['form_template_id']:
-            return _resp(200, {'fields': []})
+            return _resp(200, {'fields': [], 'nominations': nominations})
         cur.execute('''
             SELECT id, field_name, field_label, field_type, options, is_required, sort_order, system_key
             FROM application_form_fields
             WHERE template_id = %s
             ORDER BY sort_order ASC, id ASC
         ''', (row['form_template_id'],))
-        return _resp(200, {'fields': cur.fetchall()})
+        return _resp(200, {'fields': cur.fetchall(), 'nominations': nominations})

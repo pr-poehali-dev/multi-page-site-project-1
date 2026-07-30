@@ -12,6 +12,7 @@ export interface Application {
   performance_title: string | null;
   participation_format: string | null;
   nomination: string | null;
+  nomination_id?: number | null;
   status: string;
   submitted_at: string;
   start_date: string;

@@ -324,6 +324,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         a.category,
                         a.performance_title,
                         a.nomination,
+                        a.nomination_id,
                         a.participation_format,
                         a.experience,
                         a.achievements,
@@ -340,10 +341,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         p.vk_link,
                         p.city,
                         c.title as contest_title,
-                        c.applications_locked
+                        c.applications_locked,
+                        n.name as nomination_name
                     FROM applications a
                     JOIN participants p ON a.participant_id = p.id
                     JOIN contests c ON a.contest_id = c.id
+                    LEFT JOIN nominations n ON n.id = a.nomination_id
                     WHERE 1=1
                 '''
                 query_params = []
@@ -488,6 +491,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
                     participant_name = system_values.get('participant_name') or application['full_name']
                     nomination = system_values.get('nomination') or application.get('nomination', '')
+                    nomination_id = application.get('nomination_id')
                     piece_title = system_values.get('piece_title') or application.get('performance_title', '')
                     participation_format = system_values.get('participation_format') or application.get('participation_format', '')
                     region = system_values.get('region') or application.get('city', '')
@@ -525,8 +529,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
                         cur.execute(f'''
                             INSERT INTO {SCHEMA}.contest_program
-                              (contest_id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name, application_id, participation_format)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                              (contest_id, order_number, region, directing_party, participant_name, age, nomination, nomination_id, piece_title, duration, diploma_number, director_name, application_id, participation_format)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ''', (
                             application['contest_id'],
                             next_num,
@@ -535,6 +539,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                             participant_name,
                             age_category,
                             nomination,
+                            nomination_id,
                             piece_title,
                             duration,
                             diploma_number,
@@ -542,6 +547,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                             app_id,
                             participation_format
                         ))
+                    else:
+                        # Заявка уже в программе (например, была одобрена ранее) — синхронизируем номинацию
+                        cur.execute(f'''
+                            UPDATE {SCHEMA}.contest_program
+                            SET nomination = %s, nomination_id = %s
+                            WHERE application_id = %s
+                        ''', (nomination, nomination_id, app_id))
             
             try:
                 send_status_update_email(application['email'], application['full_name'], application['contest_title'], new_status, admin_comment)

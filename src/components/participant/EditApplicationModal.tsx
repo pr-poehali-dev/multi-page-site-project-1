@@ -17,6 +17,12 @@ interface CustomField {
   field_type: string;
   options: string;
   is_required: boolean;
+  system_key?: string | null;
+}
+
+interface NominationOption {
+  id: number;
+  name: string;
 }
 
 interface ApplicationToEdit {
@@ -26,6 +32,7 @@ interface ApplicationToEdit {
   custom_fields?: Record<string, string>;
   location?: string;
   event_date?: string;
+  nomination_id?: number | null;
 }
 
 interface EditApplicationModalProps {
@@ -47,6 +54,8 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
   const [customAudioFileValues, setCustomAudioFileValues] = useState<Record<string, File>>({});
   const [loadingCustomFields, setLoadingCustomFields] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [nominationOptions, setNominationOptions] = useState<NominationOption[]>([]);
+  const [nominationId, setNominationId] = useState<number | null>(application.nomination_id ?? null);
 
   const CUSTOM_FILE_MAX_SIZE = 15 * 1024 * 1024;
   const CUSTOM_AUDIO_MAX_SIZE = 50 * 1024 * 1024;
@@ -58,8 +67,10 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
         const res = await fetch(`${CONTESTS_URL}?action=contest_form&contest_id=${application.contest_id}`);
         const data = await res.json();
         setCustomFields(data.fields || []);
+        setNominationOptions(data.nominations || []);
       } catch {
         setCustomFields([]);
+        setNominationOptions([]);
       } finally {
         setLoadingCustomFields(false);
       }
@@ -140,6 +151,7 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           applicationId: application.id,
+          nominationId,
           customFields: finalCustomValues,
         }),
       });
@@ -201,7 +213,25 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
                   <label className="block text-sm font-medium mb-2">
                     {f.field_label} {f.is_required && <span className="text-destructive">*</span>}
                   </label>
-                  {f.field_type === 'textarea' ? (
+                  {f.system_key === 'nomination' ? (
+                    nominationOptions.length > 0 ? (
+                      <Select
+                        value={nominationId ? String(nominationId) : ''}
+                        onValueChange={val => {
+                          const opt = nominationOptions.find(o => String(o.id) === val);
+                          setNominationId(opt?.id ?? null);
+                          setCustomValues(v => ({ ...v, [f.field_name]: opt?.name ?? '' }));
+                        }}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Выберите номинацию" /></SelectTrigger>
+                        <SelectContent>
+                          {nominationOptions.map(o => <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-sm text-muted-foreground py-2">Организатор ещё не добавил номинации для этого конкурса</p>
+                    )
+                  ) : f.field_type === 'textarea' ? (
                     <Textarea
                       value={customValues[f.field_name] || ''}
                       onChange={e => setCustomValues(v => ({ ...v, [f.field_name]: e.target.value }))}
