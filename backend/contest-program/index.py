@@ -67,6 +67,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     PUT  /                                  — обновить строку программы
     DELETE /                                — удалить строку программы
     POST /?action=scoring                   — сохранить систему оценивания конкурса
+    --- Номинации и критерии ---
+    GET  /?action=nominations&contest_id=X  — список номинаций конкурса с критериями
+    POST /?action=nomination_create         — создать номинацию { contest_id, name }
+    PUT  /?action=nomination_update&id=X    — переименовать номинацию { name }
+    DELETE /?action=nomination_delete&id=X  — удалить номинацию
+    POST /?action=criterion_create          — создать критерий { nomination_id, name, max_score }
+    PUT  /?action=criterion_update&id=X     — обновить критерий { name, max_score }
+    DELETE /?action=criterion_delete&id=X   — удалить критерий
     --- Конструктор дипломов: шаблоны ---
     GET  /?action=templates                 — список всех шаблонов
     GET  /?action=template&id=X             — шаблон + его поля
@@ -111,6 +119,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return get_template(conn, params.get('id'))
             elif action == 'fonts':
                 return list_fonts(conn)
+            elif action == 'nominations':
+                return list_nominations(conn, params.get('contest_id'))
             else:
                 return get_program(conn, event)
         elif method == 'POST':
@@ -124,11 +134,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return save_fields(conn, params.get('template_id'), event)
             elif action == 'upload_font':
                 return upload_font(conn, event)
+            elif action == 'nomination_create':
+                return create_nomination(conn, event)
+            elif action == 'criterion_create':
+                return create_criterion(conn, event)
             else:
                 return create_row(conn, event)
         elif method == 'PUT':
             if action == 'template_update':
                 return update_template(conn, params.get('id'), event)
+            elif action == 'nomination_update':
+                return update_nomination(conn, params.get('id'), event)
+            elif action == 'criterion_update':
+                return update_criterion(conn, params.get('id'), event)
             else:
                 return update_row(conn, event)
         elif method == 'DELETE':
@@ -138,6 +156,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return delete_font(conn, params.get('id'))
             elif action == 'delete_background':
                 return delete_background(conn, params.get('id'))
+            elif action == 'nomination_delete':
+                return delete_nomination(conn, params.get('id'))
+            elif action == 'criterion_delete':
+                return delete_criterion(conn, params.get('id'))
             else:
                 return delete_row(conn, event)
         else:
@@ -171,7 +193,7 @@ def get_program(conn, event: Dict[str, Any]) -> Dict[str, Any]:
 
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(f'''
-            SELECT id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name, participation_format
+            SELECT id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name, participation_format, nomination_id
             FROM {SCHEMA}.contest_program
             WHERE contest_id = %s
             ORDER BY order_number
@@ -214,9 +236,9 @@ def create_row(conn, event: Dict[str, Any]) -> Dict[str, Any]:
 
         cur.execute(f'''
             INSERT INTO {SCHEMA}.contest_program
-              (contest_id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name, participation_format)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name, participation_format
+              (contest_id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name, participation_format, nomination_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id, order_number, region, directing_party, participant_name, age, nomination, piece_title, duration, diploma_number, director_name, participation_format, nomination_id
         ''', (
             contest_id,
             order_number,
@@ -229,7 +251,8 @@ def create_row(conn, event: Dict[str, Any]) -> Dict[str, Any]:
             body.get('duration', ''),
             diploma_number,
             body.get('director_name', ''),
-            body.get('participation_format', '')
+            body.get('participation_format', ''),
+            body.get('nomination_id')
         ))
         row = dict(cur.fetchone())
 
@@ -248,7 +271,7 @@ def update_row(conn, event: Dict[str, Any]) -> Dict[str, Any]:
     if not row_id:
         return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'id строки обязателен'}), 'isBase64Encoded': False}
 
-    fields = ['order_number', 'region', 'directing_party', 'participant_name', 'age', 'nomination', 'piece_title', 'duration', 'diploma_number', 'director_name', 'participation_format']
+    fields = ['order_number', 'region', 'directing_party', 'participant_name', 'age', 'nomination', 'piece_title', 'duration', 'diploma_number', 'director_name', 'participation_format', 'nomination_id']
     updates = []
     values = []
     for f in fields:
@@ -287,6 +310,143 @@ def delete_row(conn, event: Dict[str, Any]) -> Dict[str, Any]:
         'body': json.dumps({'success': True}),
         'isBase64Encoded': False
     }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# НОМИНАЦИИ И КРИТЕРИИ ОЦЕНИВАНИЯ
+# ══════════════════════════════════════════════════════════════════════════════
+
+def list_nominations(conn, contest_id) -> Dict[str, Any]:
+    '''Список номинаций конкурса вместе с их критериями'''
+    if not contest_id:
+        return _resp(400, {'error': 'contest_id обязателен'})
+
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'''
+            SELECT id, contest_id, name, sort_order
+            FROM {SCHEMA}.nominations
+            WHERE contest_id = %s
+            ORDER BY sort_order, id
+        ''', (contest_id,))
+        nominations = list(cur.fetchall())
+
+        cur.execute(f'''
+            SELECT id, nomination_id, name, max_score, sort_order
+            FROM {SCHEMA}.nomination_criteria
+            WHERE nomination_id IN (SELECT id FROM {SCHEMA}.nominations WHERE contest_id = %s)
+            ORDER BY sort_order, id
+        ''', (contest_id,))
+        criteria = list(cur.fetchall())
+
+    for nom in nominations:
+        nom['criteria'] = [c for c in criteria if c['nomination_id'] == nom['id']]
+
+    return _resp(200, {'nominations': nominations})
+
+
+def create_nomination(conn, event: Dict[str, Any]) -> Dict[str, Any]:
+    '''Создание номинации { contest_id, name }'''
+    body = json.loads(event.get('body', '{}'))
+    contest_id = body.get('contest_id')
+    name = (body.get('name') or '').strip()
+    if not contest_id or not name:
+        return _resp(400, {'error': 'contest_id и name обязательны'})
+
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM {SCHEMA}.nominations WHERE contest_id = %s', (contest_id,))
+        next_order = cur.fetchone()['next_order']
+        cur.execute(f'''
+            INSERT INTO {SCHEMA}.nominations (contest_id, name, sort_order)
+            VALUES (%s, %s, %s)
+            RETURNING id, contest_id, name, sort_order
+        ''', (contest_id, name, next_order))
+        row = dict(cur.fetchone())
+        row['criteria'] = []
+
+    return _resp(201, {'success': True, 'nomination': row})
+
+
+def update_nomination(conn, nomination_id, event: Dict[str, Any]) -> Dict[str, Any]:
+    '''Переименование номинации { name }'''
+    if not nomination_id:
+        return _resp(400, {'error': 'id обязателен'})
+    body = json.loads(event.get('body', '{}'))
+    name = (body.get('name') or '').strip()
+    if not name:
+        return _resp(400, {'error': 'name обязателен'})
+
+    with conn.cursor() as cur:
+        cur.execute(f'UPDATE {SCHEMA}.nominations SET name = %s, updated_at = NOW() WHERE id = %s', (name, nomination_id))
+
+    return _resp(200, {'success': True})
+
+
+def delete_nomination(conn, nomination_id) -> Dict[str, Any]:
+    '''Удаление номинации'''
+    if not nomination_id:
+        return _resp(400, {'error': 'id обязателен'})
+
+    with conn.cursor() as cur:
+        cur.execute(f'DELETE FROM {SCHEMA}.nomination_criteria WHERE nomination_id = %s', (nomination_id,))
+        cur.execute(f'DELETE FROM {SCHEMA}.nominations WHERE id = %s', (nomination_id,))
+
+    return _resp(200, {'success': True})
+
+
+def create_criterion(conn, event: Dict[str, Any]) -> Dict[str, Any]:
+    '''Создание критерия { nomination_id, name, max_score }'''
+    body = json.loads(event.get('body', '{}'))
+    nomination_id = body.get('nomination_id')
+    name = (body.get('name') or '').strip()
+    max_score = body.get('max_score', 10)
+    if not nomination_id or not name:
+        return _resp(400, {'error': 'nomination_id и name обязательны'})
+
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f'SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM {SCHEMA}.nomination_criteria WHERE nomination_id = %s', (nomination_id,))
+        next_order = cur.fetchone()['next_order']
+        cur.execute(f'''
+            INSERT INTO {SCHEMA}.nomination_criteria (nomination_id, name, max_score, sort_order)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id, nomination_id, name, max_score, sort_order
+        ''', (nomination_id, name, max_score, next_order))
+        row = dict(cur.fetchone())
+
+    return _resp(201, {'success': True, 'criterion': row})
+
+
+def update_criterion(conn, criterion_id, event: Dict[str, Any]) -> Dict[str, Any]:
+    '''Обновление критерия { name, max_score }'''
+    if not criterion_id:
+        return _resp(400, {'error': 'id обязателен'})
+    body = json.loads(event.get('body', '{}'))
+    fields = []
+    values = []
+    if 'name' in body:
+        fields.append('name = %s')
+        values.append(body['name'])
+    if 'max_score' in body:
+        fields.append('max_score = %s')
+        values.append(body['max_score'])
+    if not fields:
+        return _resp(400, {'error': 'Нет полей для обновления'})
+
+    values.append(criterion_id)
+    with conn.cursor() as cur:
+        cur.execute(f'UPDATE {SCHEMA}.nomination_criteria SET {", ".join(fields)} WHERE id = %s', values)
+
+    return _resp(200, {'success': True})
+
+
+def delete_criterion(conn, criterion_id) -> Dict[str, Any]:
+    '''Удаление критерия'''
+    if not criterion_id:
+        return _resp(400, {'error': 'id обязателен'})
+
+    with conn.cursor() as cur:
+        cur.execute(f'DELETE FROM {SCHEMA}.nomination_criteria WHERE id = %s', (criterion_id,))
+
+    return _resp(200, {'success': True})
 
 
 def save_scoring(conn, event: Dict[str, Any]) -> Dict[str, Any]:

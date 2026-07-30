@@ -23,6 +23,12 @@ interface ProgramRow {
   diploma_number: string;
   director_name: string;
   participation_format: string;
+  nomination_id: number | null;
+}
+
+interface NominationOption {
+  id: number;
+  name: string;
 }
 
 interface Contest {
@@ -48,6 +54,7 @@ const emptyRow = (): Omit<ProgramRow, 'id' | 'order_number'> => ({
   diploma_number: '',
   director_name: '',
   participation_format: '',
+  nomination_id: null,
 });
 
 const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
@@ -60,6 +67,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
   const [newRow, setNewRow] = useState(emptyRow());
   const [formatFilter, setFormatFilter] = useState<string>('all');
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [nominationOptions, setNominationOptions] = useState<NominationOption[]>([]);
 
   const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -149,12 +157,23 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
     }
   }, [toast]);
 
+  const loadNominations = useCallback(async (contestId: string) => {
+    try {
+      const res = await fetch(`${API_URL}?action=nominations&contest_id=${contestId}`);
+      const data = await res.json();
+      setNominationOptions((data.nominations || []).map((n: { id: number; name: string }) => ({ id: n.id, name: n.name })));
+    } catch {
+      setNominationOptions([]);
+    }
+  }, []);
+
   useEffect(() => {
     if (selectedContestId) {
       setFormatFilter('all');
       loadProgram(selectedContestId);
+      loadNominations(selectedContestId);
     }
-  }, [selectedContestId, loadProgram]);
+  }, [selectedContestId, loadProgram, loadNominations]);
 
   const availableFormats = Array.from(new Set(rows.map(r => r.participation_format).filter(Boolean)));
   const filteredRows = formatFilter === 'all' ? rows : rows.filter(r => r.participation_format === formatFilter);
@@ -362,7 +381,22 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
                   </div>
                   <div>
                     <label className="text-xs font-medium mb-1 block">Номинация</label>
-                    <Input value={newRow.nomination} onChange={e => setNewRow(p => ({ ...p, nomination: e.target.value }))} placeholder="Номинация" />
+                    {nominationOptions.length > 0 ? (
+                      <Select
+                        value={newRow.nomination_id ? String(newRow.nomination_id) : ''}
+                        onValueChange={v => {
+                          const opt = nominationOptions.find(o => String(o.id) === v);
+                          setNewRow(p => ({ ...p, nomination_id: opt?.id ?? null, nomination: opt?.name ?? '' }));
+                        }}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Выберите номинацию" /></SelectTrigger>
+                        <SelectContent>
+                          {nominationOptions.map(o => <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input value={newRow.nomination} onChange={e => setNewRow(p => ({ ...p, nomination: e.target.value }))} placeholder="Номинация (создайте номинации во вкладке «Оценивание»)" />
+                    )}
                   </div>
                   <div className="md:col-span-2">
                     <label className="text-xs font-medium mb-1 block">Произведение / номер</label>
@@ -408,11 +442,26 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
                           <>
                             {columns.map(col => (
                               <td key={col.key} className="py-1 px-2">
-                                <Input
-                                  value={String(editingRow[col.key])}
-                                  onChange={e => setEditingRow(prev => prev ? { ...prev, [col.key]: col.key === 'order_number' ? Number(e.target.value) : e.target.value } : null)}
-                                  className="h-7 text-xs"
-                                />
+                                {col.key === 'nomination' && nominationOptions.length > 0 ? (
+                                  <Select
+                                    value={editingRow.nomination_id ? String(editingRow.nomination_id) : ''}
+                                    onValueChange={v => {
+                                      const opt = nominationOptions.find(o => String(o.id) === v);
+                                      setEditingRow(prev => prev ? { ...prev, nomination_id: opt?.id ?? null, nomination: opt?.name ?? '' } : null);
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Номинация" /></SelectTrigger>
+                                    <SelectContent>
+                                      {nominationOptions.map(o => <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>)}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Input
+                                    value={String(editingRow[col.key])}
+                                    onChange={e => setEditingRow(prev => prev ? { ...prev, [col.key]: col.key === 'order_number' ? Number(e.target.value) : e.target.value } : null)}
+                                    className="h-7 text-xs"
+                                  />
+                                )}
                               </td>
                             ))}
                             <td className="py-1 px-2">

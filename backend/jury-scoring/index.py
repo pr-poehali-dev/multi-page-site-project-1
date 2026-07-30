@@ -30,6 +30,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     GET /scores?contest_id=N - список участников с оценками
     POST /scores - сохранение оценки (participant_id, contest_id, score, comment)
     DELETE /delete_participant?participant_id=N - удаление участника и всех его оценок
+    GET /jury_program?contest_id=N - программа конкурса для жюри с критериями номинации (X-Jury-Token)
+    POST /criteria_score - оценка по критерию номинации (program_row_id, criterion_id, contest_id, score, comment) (X-Jury-Token)
+    GET /results_table?contest_id=N - таблица результатов: сумма баллов по критериям номинации, звание
     '''
     method: str = event.get('httpMethod', 'GET')
     params = event.get('queryStringParameters') or {}
@@ -359,7 +362,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
             # Получаем всех участников программы
             cur.execute(f'''
-                SELECT cp.id, cp.order_number, cp.participant_name, cp.age, cp.nomination, cp.piece_title, cp.region, cp.directing_party, cp.director_name, cp.diploma_number
+                SELECT cp.id, cp.order_number, cp.participant_name, cp.age, cp.nomination, cp.piece_title, cp.region, cp.directing_party, cp.director_name, cp.diploma_number, cp.nomination_id
                 FROM {schema}.contest_program cp
                 WHERE cp.contest_id = %s
                 ORDER BY cp.order_number
@@ -377,13 +380,32 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             ''', (contest_id,))
             assignments_raw = cur.fetchall()
 
-            # Получаем все оценки
+            # Оценки по старой схеме (один общий балл на участника, для строк без номинации с критериями)
             cur.execute(f'''
                 SELECT ps.program_row_id, ps.jury_member_id, ps.score
                 FROM {schema}.program_scores ps
                 WHERE ps.contest_id = %s
             ''', (contest_id,))
-            scores_raw = cur.fetchall()
+            scores_raw = list(cur.fetchall())
+
+            # Оценки по критериям номинации: сумма баллов всех критериев на судью для каждого участника
+            cur.execute(f'''
+                SELECT program_row_id, jury_member_id, SUM(score) AS total_score, COUNT(*) AS scored_count
+                FROM {schema}.program_criteria_scores
+                WHERE contest_id = %s
+                GROUP BY program_row_id, jury_member_id
+            ''', (contest_id,))
+            criteria_scores_raw = cur.fetchall()
+
+            # Количество критериев в каждой номинации (для проверки, что судья оценил все критерии)
+            cur.execute(f'''
+                SELECT n.id, COUNT(nc.id)
+                FROM {schema}.nominations n
+                LEFT JOIN {schema}.nomination_criteria nc ON nc.nomination_id = n.id
+                WHERE n.contest_id = %s
+                GROUP BY n.id
+            ''', (contest_id,))
+            criteria_count_by_nomination = {r[0]: r[1] for r in cur.fetchall()}
 
             # Получаем систему оценивания
             cur.execute(f'''
@@ -421,6 +443,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 assignments_by_row[row_id].append({'jury_member_id': jury_id, 'jury_name': jury_name, 'order': order})
 
             scores_index = {(r[0], r[1]): float(r[2]) for r in scores_raw}
+            criteria_scores_index = {(r[0], r[1]): {'total': float(r[2]), 'count': r[3]} for r in criteria_scores_raw}
 
             def get_award(total, jury_count):
                 if jury_count < 1 or jury_count > 5:
@@ -445,12 +468,20 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             result = []
             for row in program_rows:
                 row_id = row[0]
+                nomination_id = row[10] if len(row) > 10 else None
+                criteria_count = criteria_count_by_nomination.get(nomination_id, 0) if nomination_id else 0
                 jury_list = assignments_by_row.get(row_id, [])
                 jury_scores = []
                 total = 0.0
                 all_scored = len(jury_list) > 0
                 for j in jury_list:
-                    score = scores_index.get((row_id, j['jury_member_id']))
+                    if criteria_count > 0:
+                        # Оценивание по критериям номинации: балл судьи = сумма его оценок по всем критериям
+                        crit = criteria_scores_index.get((row_id, j['jury_member_id']))
+                        score = crit['total'] if crit and crit['count'] >= criteria_count else None
+                    else:
+                        # Старая схема: один общий балл на участника
+                        score = scores_index.get((row_id, j['jury_member_id']))
                     jury_scores.append({'order': j['order'], 'score': score})
                     if score is not None:
                         total += score
@@ -515,7 +546,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 SELECT cp.id, cp.order_number, cp.participant_name, cp.age,
                        cp.nomination, cp.piece_title, cp.duration, cp.region, cp.directing_party,
                        (pja.jury_member_id IS NOT NULL) AS assigned,
-                       ps.score, ps.comment, ps.id AS score_id
+                       ps.score, ps.comment, ps.id AS score_id, cp.nomination_id
                 FROM {schema}.contest_program cp
                 LEFT JOIN {schema}.program_jury_assignments pja
                   ON pja.program_row_id = cp.id AND pja.jury_member_id = %s
@@ -524,18 +555,82 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 WHERE cp.contest_id = %s
                 ORDER BY cp.order_number
             ''', (jury_id, jury_id, contest_id))
+            raw_rows = cur.fetchall()
+
+            # Критерии всех номинаций конкурса
+            cur.execute(f'''
+                SELECT nc.id, nc.nomination_id, nc.name, nc.max_score, nc.sort_order
+                FROM {schema}.nomination_criteria nc
+                JOIN {schema}.nominations n ON n.id = nc.nomination_id
+                WHERE n.contest_id = %s
+                ORDER BY nc.sort_order, nc.id
+            ''', (contest_id,))
+            criteria_by_nomination: Dict[int, list] = {}
+            for cr in cur.fetchall():
+                criteria_by_nomination.setdefault(cr[1], []).append({'id': cr[0], 'name': cr[2], 'max_score': cr[3]})
+
+            # Оценки текущего жюри по критериям
+            cur.execute(f'''
+                SELECT program_row_id, criterion_id, score, comment
+                FROM {schema}.program_criteria_scores
+                WHERE contest_id = %s AND jury_member_id = %s
+            ''', (contest_id, jury_id))
+            criteria_scores_index = {(r[0], r[1]): {'score': float(r[2]), 'comment': r[3]} for r in cur.fetchall()}
+
+            cur.close()
+
             rows = []
-            for r in cur.fetchall():
+            for r in raw_rows:
+                row_id = r[0]
+                nomination_id = r[13]
+                criteria = criteria_by_nomination.get(nomination_id, []) if nomination_id else []
+                criteria_with_scores = []
+                for c in criteria:
+                    saved = criteria_scores_index.get((row_id, c['id']))
+                    criteria_with_scores.append({
+                        'id': c['id'], 'name': c['name'], 'max_score': c['max_score'],
+                        'score': saved['score'] if saved else None,
+                        'comment': saved['comment'] if saved else ''
+                    })
                 rows.append({
-                    'id': r[0], 'order_number': r[1], 'participant_name': r[2],
+                    'id': row_id, 'order_number': r[1], 'participant_name': r[2],
                     'age': r[3], 'nomination': r[4], 'piece_title': r[5],
                     'duration': r[6], 'region': r[7], 'directing_party': r[8],
                     'assigned': bool(r[9]),
                     'score': float(r[10]) if r[10] is not None else None,
-                    'comment': r[11], 'score_id': r[12]
+                    'comment': r[11], 'score_id': r[12],
+                    'nomination_id': nomination_id,
+                    'criteria': criteria_with_scores,
                 })
-            cur.close()
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'rows': rows}), 'isBase64Encoded': False}
+
+        # POST criteria_score - сохранение оценки жюри по одному критерию номинации
+        if method == 'POST' and action == 'criteria_score':
+            token = event.get('headers', {}).get('X-Jury-Token') or event.get('headers', {}).get('x-jury-token')
+            if not token:
+                return {'statusCode': 401, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется авторизация'}), 'isBase64Encoded': False}
+            jury_id = verify_jury_token(token, conn)
+            body = json.loads(event.get('body', '{}'))
+            program_row_id = body.get('program_row_id')
+            criterion_id = body.get('criterion_id')
+            contest_id = body.get('contest_id')
+            score = body.get('score')
+            comment = body.get('comment', '')
+            if not program_row_id or not criterion_id or not contest_id or score is None:
+                return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'program_row_id, criterion_id, contest_id, score обязательны'}), 'isBase64Encoded': False}
+            schema = 't_p73771717_multi_page_site_proj'
+            cur = conn.cursor()
+            cur.execute(f'''
+                INSERT INTO {schema}.program_criteria_scores (program_row_id, jury_member_id, criterion_id, contest_id, score, comment)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (program_row_id, jury_member_id, criterion_id) DO UPDATE
+                SET score = EXCLUDED.score, comment = EXCLUDED.comment, updated_at = NOW()
+                RETURNING id
+            ''', (program_row_id, jury_id, criterion_id, contest_id, float(score), comment))
+            score_id = cur.fetchone()[0]
+            conn.commit()
+            cur.close()
+            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True, 'score_id': score_id}), 'isBase64Encoded': False}
 
         # GET program_assignments - назначения жюри для участников программы (admin)
         if method == 'GET' and action == 'program_assignments':

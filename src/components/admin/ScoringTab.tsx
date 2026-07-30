@@ -5,6 +5,7 @@ import Icon from '@/components/ui/icon';
 import ScoringRulesCard, { ScoringRules } from './ScoringRulesCard';
 import ScoringJuryAccessCard from './ScoringJuryAccessCard';
 import ScoringResultsCard from './ScoringResultsCard';
+import NominationsCard from './NominationsCard';
 
 const API = 'https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d';
 const PROGRAM_API = 'https://functions.poehali.dev/9fcbf70c-fd6d-4489-bc77-1e4bcd6f1cb1';
@@ -96,7 +97,7 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
   const [togglingJury, setTogglingJury] = useState<number | null>(null);
   const [togglingAssign, setTogglingAssign] = useState<string | null>(null);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'setup' | 'results'>('setup');
+  const [activeTab, setActiveTab] = useState<'nominations' | 'setup' | 'results'>('nominations');
   const [exportingPdf, setExportingPdf] = useState(false);
 
   const contestTitle = contests.find(c => String(c.id) === selectedContest)?.title || 'результаты';
@@ -227,6 +228,9 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
         })()}
         {selectedContest && (
           <div className="flex gap-1 border rounded-lg p-1">
+            <button onClick={() => setActiveTab('nominations')} className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${activeTab === 'nominations' ? 'bg-secondary text-secondary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              Номинации
+            </button>
             <button onClick={() => setActiveTab('setup')} className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${activeTab === 'setup' ? 'bg-secondary text-secondary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               Настройка
             </button>
@@ -242,6 +246,8 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
           <Icon name="BarChart3" size={48} className="mx-auto mb-4" />
           <p>Выберите конкурс для просмотра</p>
         </div>
+      ) : activeTab === 'nominations' ? (
+        <NominationsCard contestId={selectedContest} />
       ) : loadingData ? (
         <div className="text-center py-12 text-muted-foreground">
           <Icon name="Loader" size={32} className="mx-auto mb-3 animate-spin" />

@@ -14,6 +14,14 @@ interface Contest {
   end_date: string;
 }
 
+interface Criterion {
+  id: number;
+  name: string;
+  max_score: number;
+  score: number | null;
+  comment: string;
+}
+
 interface ProgramRow {
   id: number;
   order_number: number;
@@ -28,6 +36,8 @@ interface ProgramRow {
   score: number | null;
   comment: string | null;
   score_id: number | null;
+  nomination_id: number | null;
+  criteria: Criterion[];
 }
 
 const JuryPanelPage = () => {
@@ -36,6 +46,7 @@ const JuryPanelPage = () => {
   const [selectedContest, setSelectedContest] = useState<Contest | null>(null);
   const [rows, setRows] = useState<ProgramRow[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [activeCriterionIndex, setActiveCriterionIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingRows, setLoadingRows] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -76,6 +87,7 @@ const JuryPanelPage = () => {
   const handleContestSelect = async (contest: Contest) => {
     setSelectedContest(contest);
     setCurrentIndex(0);
+    setActiveCriterionIndex(0);
     setLoadingRows(true);
     const token = getToken();
     try {
@@ -108,10 +120,38 @@ const JuryPanelPage = () => {
     }
   };
 
+  const handleCriterionScore = async (criterionId: number, score: number) => {
+    const row = rows[currentIndex];
+    if (!row || !selectedContest) return;
+    const criterion = row.criteria.find(c => c.id === criterionId);
+    if (!criterion || criterion.score !== null) return;
+    setSaving(true);
+    const token = getToken();
+    try {
+      await fetch(`${API}?action=criteria_score`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Jury-Token': token },
+        body: JSON.stringify({ program_row_id: row.id, criterion_id: criterionId, contest_id: selectedContest.id, score, comment: '' }),
+      });
+      setRows(prev => prev.map((r, i) => i === currentIndex
+        ? { ...r, criteria: r.criteria.map(c => c.id === criterionId ? { ...c, score } : c) }
+        : r));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleLogout = () => { localStorage.clear(); navigate('/jury-login'); };
 
   const currentRow = rows[currentIndex] ?? null;
-  const isScored = currentRow?.score !== null && currentRow?.score !== undefined;
+  const hasCriteria = (currentRow?.criteria?.length ?? 0) > 0;
+  const isScored = hasCriteria
+    ? currentRow!.criteria.every(c => c.score !== null)
+    : currentRow?.score !== null && currentRow?.score !== undefined;
+
+  useEffect(() => {
+    setActiveCriterionIndex(0);
+  }, [currentIndex]);
 
   if (loading) {
     return (
@@ -170,7 +210,10 @@ const JuryPanelPage = () => {
 
   // Экран оценивания — прогресс только по назначенным участникам
   const assignedRows = rows.filter(r => r.assigned);
-  const scoredCount = assignedRows.filter(r => r.score !== null).length;
+  const isRowScored = (r: ProgramRow) => (r.criteria?.length ?? 0) > 0
+    ? r.criteria.every(c => c.score !== null)
+    : r.score !== null;
+  const scoredCount = assignedRows.filter(isRowScored).length;
   const progress = assignedRows.length > 0 ? Math.round((scoredCount / assignedRows.length) * 100) : 0;
 
   return (
@@ -280,6 +323,64 @@ const JuryPanelPage = () => {
                       ))}
                     </div>
                   </div>
+                ) : hasCriteria ? (
+                  <div>
+                    {/* Вкладки критериев */}
+                    <div className="flex gap-1.5 flex-wrap mb-4">
+                      {currentRow.criteria.map((c, i) => (
+                        <button
+                          key={c.id}
+                          onClick={() => setActiveCriterionIndex(i)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-all flex items-center gap-1.5
+                            ${i === activeCriterionIndex ? 'border-secondary bg-secondary/10 text-secondary' : 'border-border text-muted-foreground hover:border-secondary/50'}`}
+                        >
+                          {c.score !== null && <Icon name="CheckCircle2" size={13} className="text-green-500" />}
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    {(() => {
+                      const criterion = currentRow.criteria[activeCriterionIndex];
+                      if (!criterion) return null;
+                      const options = Array.from({ length: criterion.max_score }, (_, i) => i + 1);
+                      const criterionScored = criterion.score !== null;
+                      return (
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-medium">{criterion.name}</p>
+                            <span className="text-xs text-muted-foreground">максимум {criterion.max_score} баллов</span>
+                          </div>
+                          {criterionScored ? (
+                            <div className="text-center py-3">
+                              <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 rounded-xl px-6 py-3">
+                                <Icon name="CheckCircle" size={20} />
+                                <span className="font-semibold">Оценка: {criterion.score} из {criterion.max_score}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-5 gap-2">
+                              {options.map(s => (
+                                <button key={s} disabled={saving} onClick={() => handleCriterionScore(criterion.id, s)}
+                                  className="h-11 rounded-lg text-base font-bold border-2 border-green-500 bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500 hover:text-white active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                                  {saving ? <Icon name="Loader" size={14} className="mx-auto animate-spin" /> : s}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {isScored && (
+                      <div className="mt-4 text-center">
+                        <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 rounded-xl px-4 py-2 text-sm">
+                          <Icon name="CheckCircle2" size={16} />
+                          Все критерии оценены: {currentRow.criteria.reduce((s, c) => s + (c.score ?? 0), 0)} баллов
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ) : isScored ? (
                   <div className="text-center py-4">
                     <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 rounded-xl px-6 py-3 mb-3">
@@ -345,7 +446,7 @@ const JuryPanelPage = () => {
                 title={r.participant_name}
                 className={`w-6 h-6 rounded-full text-xs font-bold transition-all
                   ${i === currentIndex ? 'ring-2 ring-secondary ring-offset-1' : ''}
-                  ${r.score !== null ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}
+                  ${isRowScored(r) ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}
               >
                 {r.order_number}
               </button>
