@@ -1,43 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import Icon from '@/components/ui/icon';
 import * as XLSX from 'xlsx';
 import DiplomaPrintModal from './diploma/DiplomaPrintModal';
+import { Contest, NominationOption, ProgramRow } from './program/programTypes';
+import ProgramToolbar from './program/ProgramToolbar';
+import ProgramAddRowForm from './program/ProgramAddRowForm';
+import ProgramTable from './program/ProgramTable';
 
 const API_URL = 'https://functions.poehali.dev/9fcbf70c-fd6d-4489-bc77-1e4bcd6f1cb1';
-
-interface ProgramRow {
-  id: number;
-  order_number: number;
-  region: string;
-  directing_party: string;
-  participant_name: string;
-  age: string;
-  nomination: string;
-  piece_title: string;
-  duration: string;
-  diploma_number: string;
-  director_name: string;
-  participation_format: string;
-  nomination_id: number | null;
-}
-
-interface NominationOption {
-  id: number;
-  name: string;
-}
-
-interface Contest {
-  id: number;
-  title: string;
-  location?: string;
-  event_date?: string;
-  end_date?: string;
-}
 
 interface ContestProgramTabProps {
   contests: Contest[];
@@ -228,127 +199,22 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
     }
   };
 
-  const columns = [
-    { key: 'order_number', label: '№', width: 'w-12' },
-    { key: 'diploma_number', label: 'Номер диплома', width: 'w-32' },
-    { key: 'region', label: 'Регион', width: 'w-28' },
-    { key: 'directing_party', label: 'Направляющая сторона', width: 'w-40' },
-    { key: 'participant_name', label: 'ФИО / Коллектив', width: 'w-40' },
-    { key: 'director_name', label: 'ФИО руководителя', width: 'w-40' },
-    { key: 'age', label: 'Возраст', width: 'w-20' },
-    { key: 'nomination', label: 'Номинация', width: 'w-32' },
-    { key: 'piece_title', label: 'Произведение / номер', width: 'w-40' },
-    { key: 'duration', label: 'Хронометраж', width: 'w-28' },
-    { key: 'participation_format', label: 'Формат участия', width: 'w-28' },
-  ] as const;
-
-  const now = new Date();
-  const activeContests = contests.filter(c => !c.end_date || new Date(c.end_date) >= now);
-  const pastContests = contests.filter(c => c.end_date && new Date(c.end_date) < now);
-  const archiveYears = Array.from(
-    new Set(pastContests.map(c => new Date(c.end_date!).getFullYear()))
-  ).sort((a, b) => b - a);
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <div className="w-96">
-          <Select value={selectedContestId} onValueChange={setSelectedContestId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Выберите конкурс" />
-            </SelectTrigger>
-            <SelectContent>
-              {activeContests.length > 0 && (
-                <>
-                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Текущие</div>
-                  {activeContests.map(c => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      <span className="font-medium">{c.title}</span>
-                      {(c.event_date || c.location) && (
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          {[c.event_date, c.location].filter(Boolean).join(' · ')}
-                        </span>
-                      )}
-                    </SelectItem>
-                  ))}
-                </>
-              )}
-              {archiveYears.map(year => (
-                <>
-                  <div key={`y-${year}`} className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1">Архив {year}</div>
-                  {pastContests
-                    .filter(c => new Date(c.end_date!).getFullYear() === year)
-                    .map(c => (
-                      <SelectItem key={c.id} value={String(c.id)}>
-                        <span className="font-medium text-muted-foreground">{c.title}</span>
-                        {(c.event_date || c.location) && (
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            {[c.event_date, c.location].filter(Boolean).join(' · ')}
-                          </span>
-                        )}
-                      </SelectItem>
-                    ))}
-                </>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {selectedContestId && (() => {
-          const c = contests.find(c => String(c.id) === selectedContestId);
-          return (c?.location || c?.event_date) ? (
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              {c?.location && <span className="flex items-center gap-1"><Icon name="MapPin" size={14} />{c.location}</span>}
-              {c?.event_date && <span className="flex items-center gap-1"><Icon name="Calendar" size={14} />{c.event_date}</span>}
-            </div>
-          ) : null;
-        })()}
-        {selectedContestId && (
-          <>
-            <Button onClick={() => setShowAddForm(true)} disabled={showAddForm}>
-              <Icon name="Plus" className="mr-2 h-4 w-4" />
-              Добавить строку
-            </Button>
-            <Button variant="outline" onClick={handleExportExcel} disabled={rows.length === 0}>
-              <Icon name="Download" className="mr-2 h-4 w-4" />
-              Экспорт Excel
-            </Button>
-            <Button variant="outline" onClick={() => setShowPrintModal(true)} disabled={rows.length === 0}>
-              <Icon name="Printer" className="mr-2 h-4 w-4" />
-              Напечатать дипломы
-            </Button>
-            <label>
-              <Button variant="outline" asChild>
-                <span className="cursor-pointer">
-                  <Icon name="Upload" className="mr-2 h-4 w-4" />
-                  Импорт Excel
-                </span>
-              </Button>
-              <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportExcel} />
-            </label>
-          </>
-        )}
-      </div>
-
-      {selectedContestId && availableFormats.length > 0 && (
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Формат участия:</span>
-          <div className="w-56">
-            <Select value={formatFilter} onValueChange={setFormatFilter}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все ({rows.length})</SelectItem>
-                {availableFormats.map(fmt => (
-                  <SelectItem key={fmt} value={fmt}>
-                    {fmt} ({rows.filter(r => r.participation_format === fmt).length})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )}
+      <ProgramToolbar
+        contests={contests}
+        selectedContestId={selectedContestId}
+        onSelectedContestIdChange={setSelectedContestId}
+        rows={rows}
+        showAddForm={showAddForm}
+        onShowAddForm={() => setShowAddForm(true)}
+        onExportExcel={handleExportExcel}
+        onShowPrintModal={() => setShowPrintModal(true)}
+        onImportExcel={handleImportExcel}
+        availableFormats={availableFormats}
+        formatFilter={formatFilter}
+        onFormatFilterChange={setFormatFilter}
+      />
 
       {selectedContestId && (
         <>
@@ -356,148 +222,25 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
             <h3 className="text-lg font-semibold mb-4">Программа конкурса</h3>
 
             {showAddForm && (
-              <div className="mb-4 p-4 border rounded-lg bg-muted/30 space-y-3">
-                <h4 className="font-medium">Новая строка</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">Регион</label>
-                    <Input value={newRow.region} onChange={e => setNewRow(p => ({ ...p, region: e.target.value }))} placeholder="Регион" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">Направляющая сторона</label>
-                    <Input value={newRow.directing_party} onChange={e => setNewRow(p => ({ ...p, directing_party: e.target.value }))} placeholder="Организация" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">ФИО / Коллектив</label>
-                    <Input value={newRow.participant_name} onChange={e => setNewRow(p => ({ ...p, participant_name: e.target.value }))} placeholder="ФИО или название" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">ФИО руководителя</label>
-                    <Input value={newRow.director_name} onChange={e => setNewRow(p => ({ ...p, director_name: e.target.value }))} placeholder="ФИО руководителя" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">Возраст</label>
-                    <Input value={newRow.age} onChange={e => setNewRow(p => ({ ...p, age: e.target.value }))} placeholder="Возраст" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">Номинация</label>
-                    {nominationOptions.length > 0 ? (
-                      <Select
-                        value={newRow.nomination_id ? String(newRow.nomination_id) : ''}
-                        onValueChange={v => {
-                          const opt = nominationOptions.find(o => String(o.id) === v);
-                          setNewRow(p => ({ ...p, nomination_id: opt?.id ?? null, nomination: opt?.name ?? '' }));
-                        }}
-                      >
-                        <SelectTrigger><SelectValue placeholder="Выберите номинацию" /></SelectTrigger>
-                        <SelectContent>
-                          {nominationOptions.map(o => <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input value={newRow.nomination} onChange={e => setNewRow(p => ({ ...p, nomination: e.target.value }))} placeholder="Номинация (создайте номинации во вкладке «Оценивание»)" />
-                    )}
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-xs font-medium mb-1 block">Произведение / номер</label>
-                    <Input value={newRow.piece_title} onChange={e => setNewRow(p => ({ ...p, piece_title: e.target.value }))} placeholder="Название" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">Хронометраж</label>
-                    <Input value={newRow.duration} onChange={e => setNewRow(p => ({ ...p, duration: e.target.value }))} placeholder="мм:сс" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">Формат участия</label>
-                    <Input value={newRow.participation_format} onChange={e => setNewRow(p => ({ ...p, participation_format: e.target.value }))} placeholder="Очно / Заочно / Онлайн" />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={handleAddRow}>Добавить</Button>
-                  <Button variant="outline" onClick={() => { setShowAddForm(false); setNewRow(emptyRow()); }}>Отмена</Button>
-                </div>
-              </div>
+              <ProgramAddRowForm
+                newRow={newRow}
+                onNewRowChange={setNewRow}
+                nominationOptions={nominationOptions}
+                onAddRow={handleAddRow}
+                onCancel={() => { setShowAddForm(false); setNewRow(emptyRow()); }}
+              />
             )}
 
-            {loading ? (
-              <div className="text-center py-8 text-muted-foreground">Загрузка...</div>
-            ) : rows.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">Программа пуста. Добавьте первую строку.</div>
-            ) : filteredRows.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">Нет строк с выбранным форматом участия.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      {columns.map(col => (
-                        <th key={col.key} className={`text-left py-2 px-2 font-medium text-muted-foreground ${col.width}`}>{col.label}</th>
-                      ))}
-                      <th className="text-left py-2 px-2 font-medium text-muted-foreground w-20">Действия</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRows.map(row => (
-                      <tr key={row.id} className="border-b hover:bg-muted/30">
-                        {editingRow?.id === row.id ? (
-                          <>
-                            {columns.map(col => (
-                              <td key={col.key} className="py-1 px-2">
-                                {col.key === 'nomination' && nominationOptions.length > 0 ? (
-                                  <Select
-                                    value={editingRow.nomination_id ? String(editingRow.nomination_id) : ''}
-                                    onValueChange={v => {
-                                      const opt = nominationOptions.find(o => String(o.id) === v);
-                                      setEditingRow(prev => prev ? { ...prev, nomination_id: opt?.id ?? null, nomination: opt?.name ?? '' } : null);
-                                    }}
-                                  >
-                                    <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Номинация" /></SelectTrigger>
-                                    <SelectContent>
-                                      {nominationOptions.map(o => <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>)}
-                                    </SelectContent>
-                                  </Select>
-                                ) : (
-                                  <Input
-                                    value={String(editingRow[col.key])}
-                                    onChange={e => setEditingRow(prev => prev ? { ...prev, [col.key]: col.key === 'order_number' ? Number(e.target.value) : e.target.value } : null)}
-                                    className="h-7 text-xs"
-                                  />
-                                )}
-                              </td>
-                            ))}
-                            <td className="py-1 px-2">
-                              <div className="flex gap-1">
-                                <Button size="sm" className="h-7 px-2" onClick={handleUpdateRow}>
-                                  <Icon name="Check" size={12} />
-                                </Button>
-                                <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => setEditingRow(null)}>
-                                  <Icon name="X" size={12} />
-                                </Button>
-                              </div>
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            {columns.map(col => (
-                              <td key={col.key} className="py-2 px-2">{row[col.key]}</td>
-                            ))}
-                            <td className="py-2 px-2">
-                              <div className="flex gap-1">
-                                <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingRow({ ...row })}>
-                                  <Icon name="Pencil" size={14} />
-                                </Button>
-                                <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => handleDeleteRow(row.id)}>
-                                  <Icon name="Trash2" size={14} />
-                                </Button>
-                              </div>
-                            </td>
-                          </>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <ProgramTable
+              loading={loading}
+              rows={rows}
+              filteredRows={filteredRows}
+              editingRow={editingRow}
+              onSetEditingRow={setEditingRow}
+              nominationOptions={nominationOptions}
+              onUpdateRow={handleUpdateRow}
+              onDeleteRow={handleDeleteRow}
+            />
           </Card>
         </>
       )}
