@@ -61,6 +61,8 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
   const [nominationOptions, setNominationOptions] = useState<NominationOption[]>([]);
   const [nominationId, setNominationId] = useState<number | null>(null);
+  const [step1Attempted, setStep1Attempted] = useState(false);
+  const [step2Attempted, setStep2Attempted] = useState(false);
 
   const CUSTOM_FILE_MAX_SIZE = 15 * 1024 * 1024;
   const CUSTOM_AUDIO_MAX_SIZE = 50 * 1024 * 1024;
@@ -278,25 +280,31 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
               <div>
                 <label className="block text-sm font-medium mb-2">Город <span className="text-destructive">*</span></label>
                 <Select value={selectedCity} onValueChange={handleCityChange} disabled={loadingContests}>
-                  <SelectTrigger>
+                  <SelectTrigger className={step1Attempted && !selectedCity ? 'border-destructive ring-1 ring-destructive' : ''}>
                     <SelectValue placeholder={loadingContests ? 'Загрузка...' : cities.length === 0 ? 'Нет активных конкурсов' : 'Выберите город'} />
                   </SelectTrigger>
                   <SelectContent>
                     {cities.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                {step1Attempted && !selectedCity && (
+                  <p className="text-xs text-destructive mt-1">Выберите город</p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2">Конкурс <span className="text-destructive">*</span></label>
                 <Select value={contestId} onValueChange={setContestId} disabled={!selectedCity}>
-                  <SelectTrigger>
+                  <SelectTrigger className={step1Attempted && !contestId ? 'border-destructive ring-1 ring-destructive' : ''}>
                     <SelectValue placeholder={!selectedCity ? 'Сначала выберите город' : contestsInCity.length === 0 ? 'Нет конкурсов в этом городе' : 'Выберите конкурс'} />
                   </SelectTrigger>
                   <SelectContent>
                     {contestsInCity.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                {step1Attempted && !contestId && (
+                  <p className="text-xs text-destructive mt-1">Выберите конкурс</p>
+                )}
               </div>
 
               {contestId && (() => {
@@ -340,7 +348,10 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
 
               {customFields.length > 0 && (
                 <div className="space-y-4">
-                  {customFields.map(f => (
+                  {customFields.map(f => {
+                    const isEmpty = f.is_required && !customValues[f.field_name]?.trim();
+                    const showError = step2Attempted && isEmpty;
+                    return (
                     <div key={f.id}>
                       <label className="block text-sm font-medium mb-2">
                         {f.field_label} {f.is_required && <span className="text-destructive">*</span>}
@@ -355,7 +366,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
                               setCustomValues(v => ({ ...v, [f.field_name]: opt?.name ?? '' }));
                             }}
                           >
-                            <SelectTrigger><SelectValue placeholder="Выберите номинацию" /></SelectTrigger>
+                            <SelectTrigger className={showError ? 'border-destructive ring-1 ring-destructive' : ''}><SelectValue placeholder="Выберите номинацию" /></SelectTrigger>
                             <SelectContent>
                               {nominationOptions.map(o => <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>)}
                             </SelectContent>
@@ -367,13 +378,14 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
                         <Textarea
                           value={customValues[f.field_name] || ''}
                           onChange={e => setCustomValues(v => ({ ...v, [f.field_name]: e.target.value }))}
+                          className={showError ? 'border-destructive ring-1 ring-destructive' : ''}
                         />
                       ) : f.field_type === 'select' ? (
                         <Select
                           value={customValues[f.field_name] || ''}
                           onValueChange={val => setCustomValues(v => ({ ...v, [f.field_name]: val }))}
                         >
-                          <SelectTrigger><SelectValue placeholder="Выберите" /></SelectTrigger>
+                          <SelectTrigger className={showError ? 'border-destructive ring-1 ring-destructive' : ''}><SelectValue placeholder="Выберите" /></SelectTrigger>
                           <SelectContent>
                             {f.options.split(',').map(o => o.trim()).filter(Boolean).map(o => (
                               <SelectItem key={o} value={o}>{o}</SelectItem>
@@ -409,7 +421,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
                             }}
                           />
                           <label htmlFor={`custom-file-${f.id}`}>
-                            <Button type="button" variant="outline" className="w-full cursor-pointer" asChild>
+                            <Button type="button" variant="outline" className={`w-full cursor-pointer ${showError ? 'border-destructive ring-1 ring-destructive' : ''}`} asChild>
                               <span>
                                 <Icon name="Upload" size={16} className="mr-2" />
                                 {customFileValues[f.field_name] ? customFileValues[f.field_name].name : 'Выбрать файл'}
@@ -438,7 +450,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
                             }}
                           />
                           <label htmlFor={`custom-audio-${f.id}`}>
-                            <Button type="button" variant="outline" className="w-full cursor-pointer" asChild>
+                            <Button type="button" variant="outline" className={`w-full cursor-pointer ${showError ? 'border-destructive ring-1 ring-destructive' : ''}`} asChild>
                               <span>
                                 <Icon name="Music" size={16} className="mr-2" />
                                 {customAudioFileValues[f.field_name] ? customAudioFileValues[f.field_name].name : 'Выбрать фонограмму'}
@@ -452,10 +464,15 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
                           type={f.field_type}
                           value={customValues[f.field_name] || ''}
                           onChange={e => setCustomValues(v => ({ ...v, [f.field_name]: e.target.value }))}
+                          className={showError ? 'border-destructive ring-1 ring-destructive' : ''}
                         />
                       )}
+                      {showError && (
+                        <p className="text-xs text-destructive mt-1">Это поле обязательно для заполнения</p>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -472,16 +489,27 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
           {step < totalSteps ? (
             <Button
               className="flex-1 bg-secondary hover:bg-secondary/90"
-              onClick={() => setStep(s => s + 1)}
-              disabled={!contestId}
+              onClick={() => {
+                if (!selectedCity || !contestId) {
+                  setStep1Attempted(true);
+                  return;
+                }
+                setStep(s => s + 1);
+              }}
             >
               Далее <Icon name="ArrowRight" size={16} className="ml-2" />
             </Button>
           ) : (
             <Button
               className="flex-1 bg-secondary hover:bg-secondary/90"
-              onClick={handleSubmit}
-              disabled={submitting || customFields.some(f => f.is_required && !customValues[f.field_name]?.trim())}
+              onClick={() => {
+                if (customFields.some(f => f.is_required && !customValues[f.field_name]?.trim())) {
+                  setStep2Attempted(true);
+                  return;
+                }
+                handleSubmit();
+              }}
+              disabled={submitting}
             >
               {submitting ? <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Отправка...</> : <><Icon name="Send" size={16} className="mr-2" />Отправить заявку</>}
             </Button>

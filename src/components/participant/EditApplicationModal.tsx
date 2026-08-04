@@ -56,6 +56,7 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
   const [submitting, setSubmitting] = useState(false);
   const [nominationOptions, setNominationOptions] = useState<NominationOption[]>([]);
   const [nominationId, setNominationId] = useState<number | null>(application.nomination_id ?? null);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   const CUSTOM_FILE_MAX_SIZE = 15 * 1024 * 1024;
   const CUSTOM_AUDIO_MAX_SIZE = 50 * 1024 * 1024;
@@ -208,7 +209,10 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
 
           {customFields.length > 0 && (
             <div className="space-y-4">
-              {customFields.map(f => (
+              {customFields.map(f => {
+                const isEmpty = f.is_required && !customValues[f.field_name]?.trim();
+                const showError = submitAttempted && isEmpty;
+                return (
                 <div key={f.id}>
                   <label className="block text-sm font-medium mb-2">
                     {f.field_label} {f.is_required && <span className="text-destructive">*</span>}
@@ -223,7 +227,7 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
                           setCustomValues(v => ({ ...v, [f.field_name]: opt?.name ?? '' }));
                         }}
                       >
-                        <SelectTrigger><SelectValue placeholder="Выберите номинацию" /></SelectTrigger>
+                        <SelectTrigger className={showError ? 'border-destructive ring-1 ring-destructive' : ''}><SelectValue placeholder="Выберите номинацию" /></SelectTrigger>
                         <SelectContent>
                           {nominationOptions.map(o => <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>)}
                         </SelectContent>
@@ -235,13 +239,14 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
                     <Textarea
                       value={customValues[f.field_name] || ''}
                       onChange={e => setCustomValues(v => ({ ...v, [f.field_name]: e.target.value }))}
+                      className={showError ? 'border-destructive ring-1 ring-destructive' : ''}
                     />
                   ) : f.field_type === 'select' ? (
                     <Select
                       value={customValues[f.field_name] || ''}
                       onValueChange={val => setCustomValues(v => ({ ...v, [f.field_name]: val }))}
                     >
-                      <SelectTrigger><SelectValue placeholder="Выберите" /></SelectTrigger>
+                      <SelectTrigger className={showError ? 'border-destructive ring-1 ring-destructive' : ''}><SelectValue placeholder="Выберите" /></SelectTrigger>
                       <SelectContent>
                         {f.options.split(',').map(o => o.trim()).filter(Boolean).map(o => (
                           <SelectItem key={o} value={o}>{o}</SelectItem>
@@ -277,7 +282,7 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
                         }}
                       />
                       <label htmlFor={`edit-custom-file-${f.id}`}>
-                        <Button type="button" variant="outline" className="w-full cursor-pointer" asChild>
+                        <Button type="button" variant="outline" className={`w-full cursor-pointer ${showError ? 'border-destructive ring-1 ring-destructive' : ''}`} asChild>
                           <span>
                             <Icon name="Upload" size={16} className="mr-2" />
                             {customFileValues[f.field_name]?.name || customValues[f.field_name] || 'Выбрать файл'}
@@ -306,7 +311,7 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
                         }}
                       />
                       <label htmlFor={`edit-custom-audio-${f.id}`}>
-                        <Button type="button" variant="outline" className="w-full cursor-pointer" asChild>
+                        <Button type="button" variant="outline" className={`w-full cursor-pointer ${showError ? 'border-destructive ring-1 ring-destructive' : ''}`} asChild>
                           <span>
                             <Icon name="Music" size={16} className="mr-2" />
                             {customAudioFileValues[f.field_name]?.name || customValues[f.field_name] || 'Выбрать фонограмму'}
@@ -320,10 +325,15 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
                       type={f.field_type}
                       value={customValues[f.field_name] || ''}
                       onChange={e => setCustomValues(v => ({ ...v, [f.field_name]: e.target.value }))}
+                      className={showError ? 'border-destructive ring-1 ring-destructive' : ''}
                     />
                   )}
+                  {showError && (
+                    <p className="text-xs text-destructive mt-1">Это поле обязательно для заполнения</p>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -334,8 +344,14 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
           </Button>
           <Button
             className="flex-1 bg-secondary hover:bg-secondary/90"
-            onClick={handleSubmit}
-            disabled={submitting || loadingCustomFields || customFields.some(f => f.is_required && !customValues[f.field_name]?.trim())}
+            onClick={() => {
+              if (customFields.some(f => f.is_required && !customValues[f.field_name]?.trim())) {
+                setSubmitAttempted(true);
+                return;
+              }
+              handleSubmit();
+            }}
+            disabled={submitting || loadingCustomFields}
           >
             {submitting ? <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Сохранение...</> : <><Icon name="Save" size={16} className="mr-2" />Сохранить изменения</>}
           </Button>
