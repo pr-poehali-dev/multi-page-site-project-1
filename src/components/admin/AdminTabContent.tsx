@@ -33,6 +33,7 @@ interface AdminTabContentProps {
   handleDeleteApplication: (id: number) => Promise<void>;
   handleToggleEditingLock: (id: number, locked: boolean) => Promise<void>;
   handleToggleContestLock: (contestId: number, locked: boolean) => Promise<void>;
+  handleUpdateFields: (payload: Record<string, unknown>) => Promise<boolean>;
   loadApplications: () => void;
 
   handleCreateClick: () => void;
@@ -86,6 +87,7 @@ const AdminTabContent = ({
   handleDeleteApplication,
   handleToggleEditingLock,
   handleToggleContestLock,
+  handleUpdateFields,
   loadApplications,
   handleCreateClick,
   openEditModal,
@@ -141,6 +143,7 @@ const AdminTabContent = ({
           onDeleteApplication={handleDeleteApplication}
           onToggleEditingLock={handleToggleEditingLock}
           onToggleContestLock={handleToggleContestLock}
+          onUpdateFields={handleUpdateFields}
           onRefresh={loadApplications}
         />
       );

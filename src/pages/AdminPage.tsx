@@ -56,7 +56,7 @@ const AdminPage = () => {
     setShowEditModal: setShowEditConcertModal,
   } = useAdminConcerts();
 
-  const { applications, loading: applicationsLoading, updateStatus, toggleEditingLock, loadApplications } = useAdminApplications(statusFilter, contestFilter, activeTab === 'applications');
+  const { applications, loading: applicationsLoading, updateStatus, toggleEditingLock, updateFields, loadApplications } = useAdminApplications(statusFilter, contestFilter, activeTab === 'applications');
 
   const handleToggleEditingLock = async (applicationId: number, locked: boolean) => {
     const result = await toggleEditingLock(applicationId, locked);
@@ -66,6 +66,23 @@ const AdminPage = () => {
         description: locked ? 'Участник больше не сможет менять эту заявку' : 'Участник снова может редактировать заявку',
       });
     }
+  };
+
+  const handleUpdateFields = async (payload: Record<string, unknown>): Promise<boolean> => {
+    const result = await updateFields(payload);
+    if (result) {
+      toast({
+        title: 'Заявка обновлена',
+        description: 'Изменения сохранены',
+      });
+      return true;
+    }
+    toast({
+      title: 'Ошибка',
+      description: 'Не удалось сохранить изменения',
+      variant: 'destructive',
+    });
+    return false;
   };
 
   const handleToggleContestLock = async (contestId: number, locked: boolean) => {
@@ -289,6 +306,7 @@ const AdminPage = () => {
             handleDeleteApplication={handleDeleteApplication}
             handleToggleEditingLock={handleToggleEditingLock}
             handleToggleContestLock={handleToggleContestLock}
+            handleUpdateFields={handleUpdateFields}
             loadApplications={loadApplications}
             handleCreateClick={handleCreateClick}
             openEditModal={openEditModal}

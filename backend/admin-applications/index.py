@@ -96,7 +96,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
     Админ API для заявок и галереи
     GET /applications - получить все заявки с фильтрацией
-    PUT /applications - обновить статус заявки
+    PUT /applications - обновить статус заявки (status, admin_comment) или заморозку (editing_locked)
+    PUT /applications?action=update_fields - редактирование админом полей заявки и контактных данных участника
     GET /gallery - получить элементы галереи
     POST /gallery - создать элемент галереи (загрузка файла)
     PUT /gallery/{id} - обновить элемент галереи
@@ -391,6 +392,94 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'isBase64Encoded': False
                 }
         
+        elif endpoint != 'gallery' and method == 'PUT' and query_string_params.get('action') == 'update_fields':
+            # Редактирование админом полей заявки и контактных данных участника
+            body = json.loads(event.get('body', '{}'))
+            app_id = body.get('application_id')
+
+            if not app_id:
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'application_id обязателен'}),
+                    'isBase64Encoded': False
+                }
+
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(f'SELECT participant_id, contest_id FROM {SCHEMA}.applications WHERE id = %s', (app_id,))
+                existing = cur.fetchone()
+                if not existing:
+                    return {
+                        'statusCode': 404,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'error': 'Заявка не найдена'}),
+                        'isBase64Encoded': False
+                    }
+
+                custom_fields = body.get('custom_fields')
+                nomination_id = body.get('nomination_id')
+
+                cur.execute(f'''
+                    UPDATE {SCHEMA}.applications
+                    SET category = %s, performance_title = %s, participation_format = %s,
+                        nomination = %s, nomination_id = %s, experience = %s, achievements = %s,
+                        additional_info = %s, custom_fields = %s
+                    WHERE id = %s
+                ''', (
+                    body.get('category', ''),
+                    body.get('performance_title', ''),
+                    body.get('participation_format', ''),
+                    body.get('nomination', ''),
+                    nomination_id,
+                    body.get('experience', ''),
+                    body.get('achievements', ''),
+                    body.get('additional_info', ''),
+                    json.dumps(custom_fields) if custom_fields is not None else '{}',
+                    app_id
+                ))
+
+                cur.execute(f'''
+                    UPDATE {SCHEMA}.participants
+                    SET full_name = %s, contact_position = %s, email = %s, phone = %s, vk_link = %s, city = %s
+                    WHERE id = %s
+                ''', (
+                    body.get('full_name', ''),
+                    body.get('contact_position', ''),
+                    body.get('email', ''),
+                    body.get('phone', ''),
+                    body.get('vk_link', ''),
+                    body.get('city', ''),
+                    existing['participant_id']
+                ))
+
+                # Если заявка уже занесена в программу конкурса - синхронизируем ключевые данные
+                cur.execute(f'SELECT id FROM {SCHEMA}.contest_program WHERE application_id = %s', (app_id,))
+                program_row = cur.fetchone()
+                if program_row:
+                    cur.execute(f'''
+                        UPDATE {SCHEMA}.contest_program
+                        SET participant_name = %s, nomination = %s, nomination_id = %s,
+                            piece_title = %s, participation_format = %s, director_name = %s,
+                            region = %s, updated_at = CURRENT_TIMESTAMP
+                        WHERE application_id = %s
+                    ''', (
+                        body.get('full_name', ''),
+                        body.get('nomination', ''),
+                        nomination_id,
+                        body.get('performance_title', ''),
+                        body.get('participation_format', ''),
+                        body.get('contact_position', ''),
+                        body.get('city', ''),
+                        app_id
+                    ))
+
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'success': True, 'message': 'Заявка обновлена'}),
+                'isBase64Encoded': False
+            }
+
         elif endpoint != 'gallery' and method == 'PUT':
             # Обновление статуса заявки или заморозка/разморозка редактирования
             body = json.loads(event.get('body', '{}'))

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { Application, CustomFieldDef } from './applicationTypes';
 import ApplicationDetails from './ApplicationDetails';
+import ApplicationEditForm, { ApplicationEditPayload } from './ApplicationEditForm';
 
 const statuses: Record<string, string> = {
   pending: 'На рассмотрении',
@@ -24,6 +25,8 @@ const getStatusBadgeClass = (status: string) => {
 interface ApplicationCardProps {
   app: Application;
   expandedId: number | null;
+  editingId: number | null;
+  savingEdit: boolean;
   fieldDefsByContest: Record<number, CustomFieldDef[]>;
   onToggleExpand: (app: Application) => void;
   onUpdateStatus: (applicationId: number, newStatus: string, adminComment?: string) => void;
@@ -31,11 +34,16 @@ interface ApplicationCardProps {
   onToggleEditingLock: (applicationId: number, locked: boolean) => void;
   onToggleContestLock: (contestId: number, locked: boolean) => void;
   onOpenRejectDialog: (appId: number, status: 'rejected' | 'pending') => void;
+  onStartEdit: (app: Application) => void;
+  onCancelEdit: () => void;
+  onSaveEdit: (payload: ApplicationEditPayload) => void;
 }
 
 const ApplicationCard = ({
   app,
   expandedId,
+  editingId,
+  savingEdit,
   fieldDefsByContest,
   onToggleExpand,
   onUpdateStatus,
@@ -43,6 +51,9 @@ const ApplicationCard = ({
   onToggleEditingLock,
   onToggleContestLock,
   onOpenRejectDialog,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
 }: ApplicationCardProps) => {
   return (
     <Card className="overflow-hidden">
@@ -159,6 +170,15 @@ const ApplicationCard = ({
             <Button
               size="sm"
               variant="outline"
+              className={editingId === app.id ? 'text-primary hover:bg-primary/10' : ''}
+              onClick={() => (editingId === app.id ? onCancelEdit() : onStartEdit(app))}
+            >
+              <Icon name="Pencil" size={16} className="mr-1" />
+              Редактировать
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
               onClick={() => onToggleExpand(app)}
             >
               <Icon
@@ -169,42 +189,54 @@ const ApplicationCard = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border">
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Конкурс</p>
-            <p className="text-sm font-medium">{app.contest_title}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Категория</p>
-            <p className="text-sm font-medium">{app.category}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Название номера</p>
-            <p className="text-sm font-medium">{app.performance_title || '—'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Номинация</p>
-            <p className="text-sm font-medium">{app.nomination_name || app.nomination || '—'}</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Формат</p>
-            <p className="text-sm font-medium">{app.participation_format === 'offline' ? 'Очное' : app.participation_format === 'online' ? 'Заочное' : '—'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Опыт</p>
-            <p className="text-sm font-medium">{app.experience || '—'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Дата подачи</p>
-            <p className="text-sm font-medium">
-              {new Date(app.submitted_at).toLocaleDateString('ru-RU')}
-            </p>
-          </div>
-        </div>
+        {editingId !== app.id && (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Конкурс</p>
+                <p className="text-sm font-medium">{app.contest_title}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Категория</p>
+                <p className="text-sm font-medium">{app.category}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Название номера</p>
+                <p className="text-sm font-medium">{app.performance_title || '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Номинация</p>
+                <p className="text-sm font-medium">{app.nomination_name || app.nomination || '—'}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Формат</p>
+                <p className="text-sm font-medium">{app.participation_format === 'offline' ? 'Очное' : app.participation_format === 'online' ? 'Заочное' : '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Опыт</p>
+                <p className="text-sm font-medium">{app.experience || '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Дата подачи</p>
+                <p className="text-sm font-medium">
+                  {new Date(app.submitted_at).toLocaleDateString('ru-RU')}
+                </p>
+              </div>
+            </div>
+          </>
+        )}
 
-        {expandedId === app.id && (
+        {editingId === app.id ? (
+          <ApplicationEditForm
+            app={app}
+            fieldDefsByContest={fieldDefsByContest}
+            saving={savingEdit}
+            onSave={onSaveEdit}
+            onCancel={onCancelEdit}
+          />
+        ) : expandedId === app.id && (
           <ApplicationDetails app={app} fieldDefsByContest={fieldDefsByContest} />
         )}
       </div>

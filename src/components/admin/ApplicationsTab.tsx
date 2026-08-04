@@ -7,6 +7,7 @@ import MaintenanceNoticeSettings from './MaintenanceNoticeSettings';
 import { Application, CustomFieldDef } from './applications/applicationTypes';
 import ApplicationsFilters from './applications/ApplicationsFilters';
 import ApplicationCard from './applications/ApplicationCard';
+import { ApplicationEditPayload } from './applications/ApplicationEditForm';
 
 const CONTESTS_API = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
 
@@ -24,6 +25,7 @@ interface ApplicationsTabProps {
   onDeleteApplication: (applicationId: number) => void;
   onToggleEditingLock: (applicationId: number, locked: boolean) => void;
   onToggleContestLock: (contestId: number, locked: boolean) => void;
+  onUpdateFields: (payload: ApplicationEditPayload) => Promise<boolean>;
   onRefresh?: () => void;
 }
 
@@ -40,9 +42,12 @@ const ApplicationsTab = ({
   onDeleteApplication,
   onToggleEditingLock,
   onToggleContestLock,
+  onUpdateFields,
   onRefresh,
 }: ApplicationsTabProps) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [fieldDefsByContest, setFieldDefsByContest] = useState<Record<number, CustomFieldDef[]>>({});
   const [rejectDialog, setRejectDialog] = useState<{ appId: number; status: 'rejected' | 'pending' } | null>(null);
 
@@ -62,6 +67,22 @@ const ApplicationsTab = ({
     setExpandedId(next);
     if (next !== null && app.custom_fields && Object.keys(app.custom_fields).length > 0) {
       loadFieldDefs(app.contest_id);
+    }
+  };
+
+  const handleStartEdit = (app: Application) => {
+    setEditingId(app.id);
+    if (app.custom_fields && Object.keys(app.custom_fields).length > 0) {
+      loadFieldDefs(app.contest_id);
+    }
+  };
+
+  const handleSaveEdit = async (payload: ApplicationEditPayload) => {
+    setSavingEdit(true);
+    const success = await onUpdateFields(payload);
+    setSavingEdit(false);
+    if (success) {
+      setEditingId(null);
     }
   };
 
@@ -121,6 +142,8 @@ const ApplicationsTab = ({
               key={app.id}
               app={app}
               expandedId={expandedId}
+              editingId={editingId}
+              savingEdit={savingEdit}
               fieldDefsByContest={fieldDefsByContest}
               onToggleExpand={toggleExpand}
               onUpdateStatus={onUpdateStatus}
@@ -128,6 +151,9 @@ const ApplicationsTab = ({
               onToggleEditingLock={onToggleEditingLock}
               onToggleContestLock={onToggleContestLock}
               onOpenRejectDialog={(appId, status) => setRejectDialog({ appId, status })}
+              onStartEdit={handleStartEdit}
+              onCancelEdit={() => setEditingId(null)}
+              onSaveEdit={handleSaveEdit}
             />
           ))}
         </div>
