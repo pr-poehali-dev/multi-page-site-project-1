@@ -3,6 +3,7 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
+# автообновление status по датам приёма заявок при GET /contests
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -88,6 +89,28 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 def get_contests(conn) -> Dict[str, Any]:
     '''Получение всех конкурсов'''
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        # Автообновление статусов по датам — админу не нужно переключать вручную.
+        # Учитываем только конкурсы с заполненными start_date/end_date.
+        cur.execute('''
+            UPDATE contests
+            SET status = 'completed'
+            WHERE end_date IS NOT NULL AND end_date < CURRENT_DATE
+              AND status IS DISTINCT FROM 'completed'
+        ''')
+        cur.execute('''
+            UPDATE contests
+            SET status = 'active'
+            WHERE start_date IS NOT NULL AND end_date IS NOT NULL
+              AND start_date <= CURRENT_DATE AND end_date >= CURRENT_DATE
+              AND status IS DISTINCT FROM 'active'
+        ''')
+        cur.execute('''
+            UPDATE contests
+            SET status = 'upcoming'
+            WHERE start_date IS NOT NULL AND start_date > CURRENT_DATE
+              AND status IS DISTINCT FROM 'upcoming'
+        ''')
+
         cur.execute('''
             SELECT 
                 id,
