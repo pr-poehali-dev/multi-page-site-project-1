@@ -48,7 +48,7 @@ const buildContestFolderName = (title: string, location?: string, eventDate?: st
 const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId }: NewApplicationModalProps) => {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
-  const [contests, setContests] = useState<Array<{ id: number; title: string; location?: string; event_date?: string; status: string }>>([]);
+  const [contests, setContests] = useState<Array<{ id: number; title: string; location?: string; event_date?: string; status: string; end_date?: string }>>([]);
   const [loadingContests, setLoadingContests] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -73,7 +73,12 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
       try {
         const res = await fetch(CONTESTS_URL);
         const data = await res.json();
-        const activeContests = (data.contests || []).filter((c: { status: string }) => c.status === 'active');
+        const now = new Date();
+        const activeContests = (data.contests || []).filter((c: { status: string; end_date?: string }) => {
+          if (c.status !== 'active') return false;
+          if (!c.end_date) return true;
+          return new Date(c.end_date) >= now;
+        });
         setContests(activeContests);
 
         if (initialContestId) {
