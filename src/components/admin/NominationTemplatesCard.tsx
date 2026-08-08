@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { adminHeaders } from '@/config/adminApi';
 
 const API = 'https://functions.poehali.dev/9fcbf70c-fd6d-4489-bc77-1e4bcd6f1cb1';
 
@@ -40,7 +41,7 @@ const NominationTemplatesCard = () => {
   const loadTemplates = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}?action=nomination_templates`);
+      const res = await fetch(`${API}?action=nomination_templates`, { headers: adminHeaders() });
       const data = await res.json();
       setTemplates(data.templates || []);
     } catch {
@@ -58,7 +59,7 @@ const NominationTemplatesCard = () => {
     try {
       const res = await fetch(`${API}?action=nomination_template_create`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ name: newTemplateName.trim() }),
       });
       const data = await res.json();
@@ -79,7 +80,7 @@ const NominationTemplatesCard = () => {
     try {
       await fetch(`${API}?action=nomination_template_update&id=${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ name }),
       });
       setTemplates(prev => prev.map(t => t.id === id ? { ...t, name } : t));
@@ -92,7 +93,7 @@ const NominationTemplatesCard = () => {
   const handleDeleteTemplate = async (id: number) => {
     if (!confirm('Удалить шаблон? Номинации, уже назначенные конкурсам, не пострадают.')) return;
     try {
-      await fetch(`${API}?action=nomination_template_delete&id=${id}`, { method: 'DELETE' });
+      await fetch(`${API}?action=nomination_template_delete&id=${id}`, { method: 'DELETE', headers: adminHeaders() });
       setTemplates(prev => prev.filter(t => t.id !== id));
     } catch {
       toast({ title: 'Ошибка', description: 'Не удалось удалить шаблон', variant: 'destructive' });
@@ -105,7 +106,7 @@ const NominationTemplatesCard = () => {
     try {
       const res = await fetch(`${API}?action=nomination_template_item_create`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ template_id: templateId, name }),
       });
       const data = await res.json();
@@ -124,7 +125,7 @@ const NominationTemplatesCard = () => {
     try {
       await fetch(`${API}?action=nomination_template_item_update&id=${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ name }),
       });
       setTemplates(prev => prev.map(t => ({ ...t, items: t.items.map(i => i.id === id ? { ...i, name } : i) })));
@@ -136,7 +137,7 @@ const NominationTemplatesCard = () => {
 
   const handleDeleteItem = async (templateId: number, itemId: number) => {
     try {
-      await fetch(`${API}?action=nomination_template_item_delete&id=${itemId}`, { method: 'DELETE' });
+      await fetch(`${API}?action=nomination_template_item_delete&id=${itemId}`, { method: 'DELETE', headers: adminHeaders() });
       setTemplates(prev => prev.map(t => t.id === templateId ? { ...t, items: t.items.filter(i => i.id !== itemId) } : t));
     } catch {
       toast({ title: 'Ошибка', description: 'Не удалось удалить номинацию', variant: 'destructive' });
@@ -149,7 +150,7 @@ const NominationTemplatesCard = () => {
     try {
       const res = await fetch(`${API}?action=nomination_template_criterion_create`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ template_item_id: itemId, name: draft.name.trim(), max_score: Number(draft.max_score) || 10 }),
       });
       const data = await res.json();
@@ -170,7 +171,7 @@ const NominationTemplatesCard = () => {
     try {
       await fetch(`${API}?action=nomination_template_criterion_update&id=${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ name, max_score: Number(max_score) || 10 }),
       });
       setTemplates(prev => prev.map(t => ({
@@ -188,7 +189,7 @@ const NominationTemplatesCard = () => {
 
   const handleDeleteCriterion = async (templateId: number, itemId: number, criterionId: number) => {
     try {
-      await fetch(`${API}?action=nomination_template_criterion_delete&id=${criterionId}`, { method: 'DELETE' });
+      await fetch(`${API}?action=nomination_template_criterion_delete&id=${criterionId}`, { method: 'DELETE', headers: adminHeaders() });
       setTemplates(prev => prev.map(t => t.id === templateId
         ? { ...t, items: t.items.map(i => i.id === itemId ? { ...i, criteria: i.criteria.filter(c => c.id !== criterionId) } : i) }
         : t));

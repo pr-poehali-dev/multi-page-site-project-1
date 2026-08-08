@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
+import { adminHeaders } from '@/config/adminApi';
 
 const API = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
 
@@ -46,7 +47,7 @@ const ParticipantsTab = () => {
   const loadParticipants = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}?action=list`);
+      const res = await fetch(`${API}?action=list`, { headers: adminHeaders() });
       const data = await res.json();
       setParticipants(data.participants || []);
     } catch { setParticipants([]); }
@@ -63,11 +64,11 @@ const ParticipantsTab = () => {
     setChatParticipant(p);
     setMessagesLoading(true);
     try {
-      const res = await fetch(`${API}?action=chat&participant_id=${p.id}`);
+      const res = await fetch(`${API}?action=chat&participant_id=${p.id}`, { headers: adminHeaders() });
       const data = await res.json();
       setMessages(data.messages || []);
       // Помечаем прочитанными
-      await fetch(`${API}?action=read&participant_id=${p.id}`, { method: 'PUT' });
+      await fetch(`${API}?action=read&participant_id=${p.id}`, { method: 'PUT', headers: adminHeaders() });
       setParticipants(ps => ps.map(x => x.id === p.id ? { ...x, unread_count: 0 } : x));
     } catch { setMessages([]); }
     finally { setMessagesLoading(false); }
@@ -79,7 +80,7 @@ const ParticipantsTab = () => {
     try {
       const res = await fetch(`${API}?action=send`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ participant_id: chatParticipant.id, message: msgText.trim(), sender: 'admin' }),
       });
       const data = await res.json();
@@ -94,7 +95,7 @@ const ParticipantsTab = () => {
   const deleteParticipant = async (p: Participant) => {
     if (!confirm(`Удалить аккаунт «${p.full_name}»? Данные будут обнулены.`)) return;
     try {
-      await fetch(`${API}?action=delete&id=${p.id}`, { method: 'PUT' });
+      await fetch(`${API}?action=delete&id=${p.id}`, { method: 'PUT', headers: adminHeaders() });
       setParticipants(ps => ps.filter(x => x.id !== p.id));
       if (chatParticipant?.id === p.id) setChatParticipant(null);
       toast({ title: 'Аккаунт удалён' });

@@ -7,6 +7,7 @@ import { Contest, NominationOption, ProgramRow } from './program/programTypes';
 import ProgramToolbar from './program/ProgramToolbar';
 import ProgramAddRowForm from './program/ProgramAddRowForm';
 import ProgramTable from './program/ProgramTable';
+import { adminHeaders } from '@/config/adminApi';
 
 const API_URL = 'https://functions.poehali.dev/9fcbf70c-fd6d-4489-bc77-1e4bcd6f1cb1';
 
@@ -79,7 +80,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
           };
           const res = await fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminHeaders(),
             body: JSON.stringify(payload),
           });
           const result = await res.json();
@@ -118,7 +119,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
   const loadProgram = useCallback(async (contestId: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}?contest_id=${contestId}`);
+      const res = await fetch(`${API_URL}?contest_id=${contestId}`, { headers: adminHeaders() });
       const data = await res.json();
       setRows(data.rows || []);
     } catch {
@@ -130,7 +131,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
 
   const loadNominations = useCallback(async (contestId: string) => {
     try {
-      const res = await fetch(`${API_URL}?action=nominations&contest_id=${contestId}`);
+      const res = await fetch(`${API_URL}?action=nominations&contest_id=${contestId}`, { headers: adminHeaders() });
       const data = await res.json();
       setNominationOptions((data.nominations || []).map((n: { id: number; name: string }) => ({ id: n.id, name: n.name })));
     } catch {
@@ -154,7 +155,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ contest_id: Number(selectedContestId), ...newRow }),
       });
       const data = await res.json();
@@ -174,7 +175,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
     try {
       await fetch(API_URL, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify(editingRow),
       });
       setRows(prev => prev.map(r => r.id === editingRow.id ? editingRow : r));
@@ -189,7 +190,7 @@ const ContestProgramTab = ({ contests }: ContestProgramTabProps) => {
     try {
       await fetch(API_URL, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ id }),
       });
       setRows(prev => prev.filter(r => r.id !== id));

@@ -21,6 +21,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import ApplicationFieldOptionsEditor from './ApplicationFieldOptionsEditor';
+import { adminHeaders } from '@/config/adminApi';
 
 const API = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
 
@@ -168,7 +169,7 @@ const ApplicationFormBuilderTab = ({ contests }: Props) => {
   const loadTemplates = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}?action=templates`);
+      const res = await fetch(`${API}?action=templates`, { headers: adminHeaders() });
       const data = await res.json();
       setTemplates(data.templates || []);
     } catch { setTemplates([]); }
@@ -183,7 +184,7 @@ const ApplicationFormBuilderTab = ({ contests }: Props) => {
     try {
       const res = await fetch(`${API}?action=template_create`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ name: newTemplateName.trim() }),
       });
       const data = await res.json();
@@ -199,7 +200,7 @@ const ApplicationFormBuilderTab = ({ contests }: Props) => {
   const deleteTemplate = async (t: Template) => {
     if (!confirm(`Удалить шаблон «${t.name}»? Он будет отвязан от всех конкурсов.`)) return;
     try {
-      await fetch(`${API}?action=template_delete&id=${t.id}`, { method: 'DELETE' });
+      await fetch(`${API}?action=template_delete&id=${t.id}`, { method: 'DELETE', headers: adminHeaders() });
       setTemplates(ts => ts.filter(x => x.id !== t.id));
       toast({ title: 'Шаблон удалён' });
     } catch { toast({ title: 'Ошибка удаления', variant: 'destructive' }); }
@@ -209,7 +210,7 @@ const ApplicationFormBuilderTab = ({ contests }: Props) => {
     setActiveTemplate(t);
     setView('editor');
     try {
-      const res = await fetch(`${API}?action=template_fields&template_id=${t.id}`);
+      const res = await fetch(`${API}?action=template_fields&template_id=${t.id}`, { headers: adminHeaders() });
       const data = await res.json();
       setFields((data.fields || []).map((f: FormField) => ({ ...f, options: f.options || '', _uid: makeUid() })));
     } catch { setFields([]); }
@@ -258,7 +259,7 @@ const ApplicationFormBuilderTab = ({ contests }: Props) => {
     try {
       await fetch(`${API}?action=fields_save`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({
           template_id: activeTemplate.id,
           fields: fields.map((f, i) => ({ ...f, sort_order: i })),
@@ -274,7 +275,7 @@ const ApplicationFormBuilderTab = ({ contests }: Props) => {
     try {
       await fetch(`${API}?action=assign_template`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ contest_id: contestId, template_id: templateId }),
       });
       toast({ title: templateId ? 'Форма назначена конкурсу' : 'Форма снята с конкурса' });

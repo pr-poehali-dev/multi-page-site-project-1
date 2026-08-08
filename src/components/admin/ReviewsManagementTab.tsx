@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { compressImage } from '@/lib/compressImage';
+import { adminHeaders } from '@/config/adminApi';
 
 const REVIEWS_URL = 'https://functions.poehali.dev/7b3c1e0e-bd68-4b73-9377-740689560912?entity=reviews';
 const UPLOAD_URL = 'https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3';
@@ -39,7 +40,7 @@ const ReviewsManagementTab = () => {
   const loadReviews = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${REVIEWS_URL}&action=all`);
+      const res = await fetch(`${REVIEWS_URL}&action=all`, { headers: adminHeaders() });
       const data = await res.json();
       setReviews(data.reviews || []);
     } catch {
@@ -57,7 +58,7 @@ const ReviewsManagementTab = () => {
     setBusyId(review.id);
     try {
       const action = review.is_published ? 'unpublish' : 'publish';
-      const res = await fetch(`${REVIEWS_URL}&id=${review.id}&action=${action}`, { method: 'PUT' });
+      const res = await fetch(`${REVIEWS_URL}&id=${review.id}&action=${action}`, { method: 'PUT', headers: adminHeaders() });
       if (!res.ok) throw new Error();
       setReviews(prev => prev.map(r => r.id === review.id ? { ...r, is_published: !r.is_published } : r));
       toast({ title: review.is_published ? 'Отзыв снят с публикации' : 'Отзыв опубликован' });
@@ -72,7 +73,7 @@ const ReviewsManagementTab = () => {
     if (!confirm(`Удалить отзыв от "${review.full_name}"?`)) return;
     setBusyId(review.id);
     try {
-      const res = await fetch(`${REVIEWS_URL}&id=${review.id}`, { method: 'DELETE' });
+      const res = await fetch(`${REVIEWS_URL}&id=${review.id}`, { method: 'DELETE', headers: adminHeaders() });
       if (!res.ok) throw new Error();
       setReviews(prev => prev.filter(r => r.id !== review.id));
       toast({ title: 'Отзыв удалён' });
@@ -103,7 +104,7 @@ const ReviewsManagementTab = () => {
       });
       const res = await fetch(UPLOAD_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({
           files: [{ fileName: compressed.name, fileType: compressed.type, fileSize: compressed.size, fileData: b64 }],
         }),
@@ -128,7 +129,7 @@ const ReviewsManagementTab = () => {
     try {
       const res = await fetch(`${REVIEWS_URL}&id=${editing.id}&action=update`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({
           full_name: editFullName.trim(),
           team_name: editTeamName.trim(),

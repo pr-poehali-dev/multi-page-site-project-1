@@ -8,6 +8,7 @@ import { Application, CustomFieldDef } from './applications/applicationTypes';
 import ApplicationsFilters from './applications/ApplicationsFilters';
 import ApplicationCard from './applications/ApplicationCard';
 import { ApplicationEditPayload } from './applications/ApplicationEditForm';
+import { adminHeaders } from '@/config/adminApi';
 
 const CONTESTS_API = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
 
@@ -54,7 +55,7 @@ const ApplicationsTab = ({
   const loadFieldDefs = useCallback(async (contestId: number) => {
     if (fieldDefsByContest[contestId]) return;
     try {
-      const res = await fetch(`${CONTESTS_API}?action=contest_form&contest_id=${contestId}`);
+      const res = await fetch(`${CONTESTS_API}?action=contest_form&contest_id=${contestId}`, { headers: adminHeaders() });
       const data = await res.json();
       setFieldDefsByContest(prev => ({ ...prev, [contestId]: data.fields || [] }));
     } catch {

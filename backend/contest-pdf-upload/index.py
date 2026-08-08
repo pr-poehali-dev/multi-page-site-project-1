@@ -17,7 +17,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Token',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Token, X-Api-Key',
                 'Access-Control-Max-Age': '86400'
             },
             'body': '',
@@ -31,6 +31,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'body': json.dumps({'error': 'Метод не поддерживается'}),
             'isBase64Encoded': False
         }
+
+    expected_key = os.environ.get('ADMIN_API_KEY')
+    if expected_key:
+        headers = event.get('headers') or {}
+        provided_key = headers.get('X-Api-Key') or headers.get('x-api-key')
+        if provided_key != expected_key:
+            return {
+                'statusCode': 401,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Требуется X-Api-Key'}),
+                'isBase64Encoded': False
+            }
 
     body = json.loads(event.get('body', '{}') or '{}')
     file_name = body.get('file_name')

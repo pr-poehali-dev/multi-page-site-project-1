@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { adminHeaders } from '@/config/adminApi';
 
 const SETTINGS_URL = 'https://functions.poehali.dev/7b3c1e0e-bd68-4b73-9377-740689560912?entity=settings&key=maintenance_notice';
 
@@ -36,7 +37,7 @@ const MaintenanceNoticeSettings = () => {
     try {
       const res = await fetch(SETTINGS_URL, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ enabled: nextEnabled, message: nextMessage }),
       });
       if (!res.ok) throw new Error();

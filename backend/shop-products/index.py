@@ -45,7 +45,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Api-Key',
                 'Access-Control-Max-Age': '86400',
             },
             'body': '',
@@ -55,6 +55,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     params = event.get('queryStringParameters') or {}
     action = params.get('action', '')
     CORS = {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}
+
+    if method != 'GET':
+        expected_key = os.environ.get('ADMIN_API_KEY')
+        if expected_key:
+            headers = event.get('headers') or {}
+            provided_key = headers.get('X-Api-Key') or headers.get('x-api-key')
+            if provided_key != expected_key:
+                return {'statusCode': 401, 'headers': CORS, 'body': json.dumps({'error': 'Требуется X-Api-Key'})}
 
     conn = get_conn()
     conn.autocommit = True

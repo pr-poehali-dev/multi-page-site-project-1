@@ -92,16 +92,26 @@ def generate_diploma_number(conn) -> str:
     return f'{series}{str(next_num).zfill(6)}'
 
 
+def check_api_key(event: Dict[str, Any]) -> bool:
+    '''Проверка ключа доступа для админских операций (X-Api-Key)'''
+    expected = os.environ.get('ADMIN_API_KEY')
+    if not expected:
+        return True
+    headers = event.get('headers') or {}
+    token = headers.get('X-Api-Key') or headers.get('x-api-key')
+    return token == expected
+
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
     Админ API для заявок и галереи
-    GET /applications - получить все заявки с фильтрацией
-    PUT /applications - обновить статус заявки (status, admin_comment) или заморозку (editing_locked)
-    PUT /applications?action=update_fields - редактирование админом полей заявки и контактных данных участника
-    GET /gallery - получить элементы галереи
-    POST /gallery - создать элемент галереи (загрузка файла)
-    PUT /gallery/{id} - обновить элемент галереи
-    DELETE /gallery/{id} - удалить элемент галереи
+    GET /applications - получить все заявки с фильтрацией (требует X-Api-Key)
+    PUT /applications - обновить статус заявки (status, admin_comment) или заморозку (editing_locked) (требует X-Api-Key)
+    PUT /applications?action=update_fields - редактирование админом полей заявки и контактных данных участника (требует X-Api-Key)
+    GET /gallery - получить элементы галереи (публично)
+    POST /gallery - создать элемент галереи (загрузка файла) (требует X-Api-Key)
+    PUT /gallery/{id} - обновить элемент галереи (требует X-Api-Key)
+    DELETE /gallery/{id} - удалить элемент галереи (требует X-Api-Key)
     '''
     method: str = event.get('httpMethod', 'GET')
     
@@ -112,13 +122,28 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Token',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Token, X-Api-Key',
                 'Access-Control-Max-Age': '86400'
             },
             'body': '',
             'isBase64Encoded': False
         }
-    
+
+    # Определение эндпоинта
+    query_string_params = event.get('queryStringParameters') or {}
+    endpoint = query_string_params.get('endpoint', '')
+    path_params = event.get('pathParams') or {}
+
+    # Публичен только просмотр галереи (для отображения на сайте). Всё остальное — только с ключом.
+    is_public_gallery_get = endpoint == 'gallery' and method == 'GET'
+    if not is_public_gallery_get and not check_api_key(event):
+        return {
+            'statusCode': 401,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Требуется X-Api-Key'}),
+            'isBase64Encoded': False
+        }
+
     # Подключение к БД  
     dsn = os.environ.get('DATABASE_URL')
     if not dsn:
@@ -133,11 +158,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     conn = psycopg2.connect(dsn)
     conn.autocommit = True
-    
-    # Определение эндпоинта
-    query_string_params = event.get('queryStringParameters') or {}
-    endpoint = query_string_params.get('endpoint', '')
-    path_params = event.get('pathParams') or {}
     
     try:
         # === GALLERY ENDPOINTS ===

@@ -4,13 +4,24 @@ import psycopg2
 import hashlib
 from typing import Dict, Any
 
+
+def check_api_key(event: Dict[str, Any]) -> bool:
+    '''Проверка ключа доступа для админских операций (X-Api-Key)'''
+    expected = os.environ.get('ADMIN_API_KEY')
+    if not expected:
+        return True
+    headers = event.get('headers') or {}
+    token = headers.get('X-Api-Key') or headers.get('x-api-key')
+    return token == expected
+
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
     Управление составом жюри: получение, создание, обновление, удаление и установка логина/пароля
-    GET - получить всех членов жюри
-    POST - создать нового члена жюри
-    PUT - обновить данные члена жюри
-    DELETE - удалить члена жюри
+    GET - получить всех членов жюри (публично)
+    POST - создать нового члена жюри (требует X-Api-Key)
+    PUT - обновить данные члена жюри, включая логин/пароль (требует X-Api-Key)
+    DELETE - удалить члена жюри (требует X-Api-Key)
     '''
     method: str = event.get('httpMethod', 'GET')
     
@@ -20,10 +31,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Api-Key',
                 'Access-Control-Max-Age': '86400'
             },
             'body': '',
+            'isBase64Encoded': False
+        }
+
+    if method != 'GET' and not check_api_key(event):
+        return {
+            'statusCode': 401,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Требуется X-Api-Key'}),
             'isBase64Encoded': False
         }
     

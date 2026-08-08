@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { adminHeaders } from '@/config/adminApi';
 
 interface Contest {
   id: number;
@@ -51,7 +52,7 @@ const ResultModal = ({
   useEffect(() => {
     const loadContests = async () => {
       try {
-        const response = await fetch('https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3');
+        const response = await fetch('https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3', { headers: adminHeaders() });
         const data = await response.json();
         setContests(data.contests || []);
       } catch (error) {
@@ -86,7 +87,7 @@ const ResultModal = ({
 
           const response = await fetch('https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminHeaders(),
             body: JSON.stringify({
               applicationId: 0,
               files: [{

@@ -25,6 +25,16 @@ def json_serial(obj):
 _conn = None
 
 
+def check_admin_key(event: Dict[str, Any]) -> bool:
+    '''Проверка ключа доступа для админских операций (X-Api-Key)'''
+    expected = os.environ.get('ADMIN_API_KEY')
+    if not expected:
+        return True
+    headers = event.get('headers') or {}
+    token = headers.get('X-Api-Key') or headers.get('x-api-key')
+    return token == expected
+
+
 def get_db_connection():
     '''Возвращает переиспользуемое подключение к базе данных (кэш между вызовами функции)'''
     global _conn
@@ -63,6 +73,8 @@ def handle_settings(event: Dict[str, Any], conn) -> Dict[str, Any]:
             return {'statusCode': 200, 'headers': CORS, 'body': json.dumps(dict(row))}
 
         if method == 'PUT':
+            if not check_admin_key(event):
+                return {'statusCode': 401, 'headers': CORS, 'body': json.dumps({'error': 'Требуется X-Api-Key'})}
             body = json.loads(event.get('body') or '{}')
             enabled = bool(body.get('enabled', False))
             message = body.get('message')
@@ -114,6 +126,9 @@ def handle_news(event: Dict[str, Any], conn) -> Dict[str, Any]:
             rows = [dict(r) for r in cur.fetchall()]
             return {'statusCode': 200, 'headers': CORS,
                     'body': json.dumps({'news': rows}, default=json_serial)}
+
+        if not check_admin_key(event):
+            return {'statusCode': 401, 'headers': CORS, 'body': json.dumps({'error': 'Требуется X-Api-Key'})}
 
         if method == 'GET':
             cur.execute(f'SELECT * FROM {SCHEMA}.news ORDER BY created_at DESC')
@@ -214,12 +229,15 @@ def handle_reviews(event: Dict[str, Any], conn) -> Dict[str, Any]:
                     'body': json.dumps({'reviews': rows}, default=json_serial)}
 
         if method == 'GET':
+            if not check_admin_key(event):
+                return {'statusCode': 401, 'headers': CORS, 'body': json.dumps({'error': 'Требуется X-Api-Key'})}
             cur.execute(f'SELECT * FROM {SCHEMA}.reviews ORDER BY created_at DESC')
             rows = [dict(r) for r in cur.fetchall()]
             return {'statusCode': 200, 'headers': CORS,
                     'body': json.dumps({'reviews': rows}, default=json_serial)}
 
         if method == 'POST':
+            # Публично: любой посетитель сайта может оставить отзыв (уходит на модерацию)
             body = json.loads(event.get('body') or '{}')
             full_name = (body.get('full_name') or '').strip()
             team_name = (body.get('team_name') or '').strip()
@@ -238,6 +256,9 @@ def handle_reviews(event: Dict[str, Any], conn) -> Dict[str, Any]:
             conn.commit()
             return {'statusCode': 200, 'headers': CORS,
                     'body': json.dumps({'review': review}, default=json_serial)}
+
+        if not check_admin_key(event):
+            return {'statusCode': 401, 'headers': CORS, 'body': json.dumps({'error': 'Требуется X-Api-Key'})}
 
         if method == 'PUT':
             review_id = params.get('id')
@@ -314,7 +335,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Api-Key',
                 'Access-Control-Max-Age': '86400'
             },
             'body': '',
@@ -330,7 +351,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return handle_settings(event, conn)
     if query_params_pre.get('entity') == 'news':
         return handle_news(event, conn)
-    
+
+    if method != 'GET' and not check_admin_key(event):
+        return {
+            'statusCode': 401,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Требуется X-Api-Key'}),
+            'isBase64Encoded': False
+        }
+
     try:
         if method == 'GET':
             # Получить список партнёров

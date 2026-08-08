@@ -66,6 +66,7 @@ const RegisterPage = () => {
       if (response.ok && data.success) {
         localStorage.setItem('participantEmail', formData.email);
         localStorage.setItem('participantData', JSON.stringify(data));
+        if (data.token) localStorage.setItem('participantToken', data.token);
         toast({ title: 'Аккаунт создан!', description: 'Добро пожаловать в личный кабинет' });
         trackGoal('register_complete');
 

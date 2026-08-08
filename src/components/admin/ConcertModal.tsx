@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { adminHeaders } from '@/config/adminApi';
 
 interface ConcertModalProps {
   isOpen: boolean;
@@ -68,7 +69,7 @@ const ConcertModal = ({
 
           const response = await fetch('https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminHeaders(),
             body: JSON.stringify({
               applicationId: 0,
               files: [{

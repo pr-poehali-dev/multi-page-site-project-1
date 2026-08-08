@@ -153,7 +153,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Api-Key',
                 'Access-Control-Max-Age': '86400',
             },
             'body': '',
@@ -163,6 +163,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     params = event.get('queryStringParameters') or {}
     action = params.get('action', '')
     CORS = {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}
+
+    # Просмотр общего списка заказов (админка) и изменение статуса заказов — только с ключом.
+    # Оплата (pay/repay/callback/check), создание заказа и просмотр по email покупателя остаются публичными.
+    is_admin_list = method == 'GET' and not action and not params.get('email')
+    is_admin_write = method == 'PUT'
+    if is_admin_list or is_admin_write:
+        expected_key = os.environ.get('ADMIN_API_KEY')
+        if expected_key:
+            headers = event.get('headers') or {}
+            provided_key = headers.get('X-Api-Key') or headers.get('x-api-key')
+            if provided_key != expected_key:
+                return {'statusCode': 401, 'headers': CORS, 'body': json.dumps({'error': 'Требуется X-Api-Key'})}
 
     terminal_key = os.environ.get('TBANK_TERMINAL_KEY', '')
     password = os.environ.get('TBANK_PASSWORD', '')

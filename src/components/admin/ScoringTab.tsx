@@ -7,6 +7,7 @@ import ScoringJuryAccessCard from './ScoringJuryAccessCard';
 import ScoringResultsCard from './ScoringResultsCard';
 import NominationsCard from './NominationsCard';
 import NominationTemplatesCard from './NominationTemplatesCard';
+import { adminHeaders } from '@/config/adminApi';
 
 const API = 'https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d';
 const PROGRAM_API = 'https://functions.poehali.dev/9fcbf70c-fd6d-4489-bc77-1e4bcd6f1cb1';
@@ -107,10 +108,10 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
     setLoadingData(true);
     try {
       const [progRes, juryRes, assignRes, scoringRes] = await Promise.all([
-        fetch(`${API}?action=program_scores&contest_id=${contestId}`),
-        fetch(`${API}?action=jury_access&contest_id=${contestId}`),
-        fetch(`${API}?action=program_assignments&contest_id=${contestId}`),
-        fetch(`${PROGRAM_API}?contest_id=${contestId}`),
+        fetch(`${API}?action=program_scores&contest_id=${contestId}`, { headers: adminHeaders() }),
+        fetch(`${API}?action=jury_access&contest_id=${contestId}`, { headers: adminHeaders() }),
+        fetch(`${API}?action=program_assignments&contest_id=${contestId}`, { headers: adminHeaders() }),
+        fetch(`${PROGRAM_API}?contest_id=${contestId}`, { headers: adminHeaders() }),
       ]);
       const [prog, jury, assign, scoringData] = await Promise.all([progRes.json(), juryRes.json(), assignRes.json(), scoringRes.json()]);
       setProgramRows(prog.rows || []);
@@ -127,7 +128,7 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
   const loadResults = useCallback(async (contestId: string) => {
     setLoadingResults(true);
     try {
-      const res = await fetch(`${API}?action=results_table&contest_id=${contestId}`);
+      const res = await fetch(`${API}?action=results_table&contest_id=${contestId}`, { headers: adminHeaders() });
       const data = await res.json();
       setResults(data.rows || []);
     } catch {
@@ -156,7 +157,7 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
     try {
       await fetch(`${PROGRAM_API}?action=scoring`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ contest_id: Number(selectedContest), ...scoring }),
       });
       toast({ title: 'Система оценивания сохранена' });
@@ -173,7 +174,7 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
     try {
       await fetch(`${API}?action=jury_access`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ contest_id: Number(selectedContest), jury_member_id: juryMember.id, has_access: !juryMember.has_access }),
       });
       setJuryList(prev => prev.map(j => j.id === juryMember.id ? { ...j, has_access: !j.has_access } : j));
@@ -192,7 +193,7 @@ const ScoringTab = ({ contests, selectedContest, onContestChange }: ScoringTabPr
     try {
       await fetch(`${API}?action=program_assignment`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ program_row_id: rowId, jury_member_id: juryMember.id, contest_id: Number(selectedContest), assigned: !isAssigned }),
       });
       if (isAssigned) {

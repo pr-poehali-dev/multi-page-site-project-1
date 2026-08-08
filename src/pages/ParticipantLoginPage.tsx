@@ -45,6 +45,7 @@ const ParticipantLoginPage = () => {
         const data = await response.json();
         localStorage.setItem('participantEmail', email);
         localStorage.setItem('participantData', JSON.stringify(data));
+        if (data.token) localStorage.setItem('participantToken', data.token);
         toast({ title: 'Вход выполнен', description: `Добро пожаловать, ${data.participant.full_name}!` });
         navigate(contestId ? `/participant-cabinet?apply=${contestId}` : '/participant-cabinet');
       } else if (response.status === 403) {

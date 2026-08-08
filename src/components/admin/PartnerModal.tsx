@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { adminHeaders } from '@/config/adminApi';
 
 interface PartnerModalProps {
   isOpen: boolean;
@@ -58,7 +59,7 @@ const PartnerModal = ({
 
           const response = await fetch('https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminHeaders(),
             body: JSON.stringify({
               applicationId: 0,
               files: [{

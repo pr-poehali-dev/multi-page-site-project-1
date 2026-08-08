@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { adminHeaders } from '@/config/adminApi';
 
 const API = 'https://functions.poehali.dev/9fcbf70c-fd6d-4489-bc77-1e4bcd6f1cb1';
 
@@ -47,7 +48,7 @@ const NominationsCard = ({ contestId }: NominationsCardProps) => {
     if (!contestId) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API}?action=nominations&contest_id=${contestId}`);
+      const res = await fetch(`${API}?action=nominations&contest_id=${contestId}`, { headers: adminHeaders() });
       const data = await res.json();
       setNominations(data.nominations || []);
     } catch {
@@ -59,7 +60,7 @@ const NominationsCard = ({ contestId }: NominationsCardProps) => {
 
   const loadTemplates = useCallback(async () => {
     try {
-      const res = await fetch(`${API}?action=nomination_templates`);
+      const res = await fetch(`${API}?action=nomination_templates`, { headers: adminHeaders() });
       const data = await res.json();
       setTemplates((data.templates || []).map((t: { id: number; name: string }) => ({ id: t.id, name: t.name })));
     } catch {
@@ -76,7 +77,7 @@ const NominationsCard = ({ contestId }: NominationsCardProps) => {
     try {
       const res = await fetch(`${API}?action=apply_nomination_template`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ contest_id: Number(contestId), template_id: Number(selectedTemplateId) }),
       });
       const data = await res.json();
@@ -98,7 +99,7 @@ const NominationsCard = ({ contestId }: NominationsCardProps) => {
     try {
       const res = await fetch(`${API}?action=nomination_create`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ contest_id: Number(contestId), name: newNominationName.trim() }),
       });
       const data = await res.json();
@@ -119,7 +120,7 @@ const NominationsCard = ({ contestId }: NominationsCardProps) => {
     try {
       await fetch(`${API}?action=nomination_update&id=${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ name }),
       });
       setNominations(prev => prev.map(n => n.id === id ? { ...n, name } : n));
@@ -131,7 +132,7 @@ const NominationsCard = ({ contestId }: NominationsCardProps) => {
 
   const handleDeleteNomination = async (id: number) => {
     try {
-      await fetch(`${API}?action=nomination_delete&id=${id}`, { method: 'DELETE' });
+      await fetch(`${API}?action=nomination_delete&id=${id}`, { method: 'DELETE', headers: adminHeaders() });
       setNominations(prev => prev.filter(n => n.id !== id));
     } catch {
       toast({ title: 'Ошибка', description: 'Не удалось удалить номинацию', variant: 'destructive' });
@@ -144,7 +145,7 @@ const NominationsCard = ({ contestId }: NominationsCardProps) => {
     try {
       const res = await fetch(`${API}?action=criterion_create`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ nomination_id: nominationId, name: draft.name.trim(), max_score: Number(draft.max_score) || 10 }),
       });
       const data = await res.json();
@@ -163,7 +164,7 @@ const NominationsCard = ({ contestId }: NominationsCardProps) => {
     try {
       await fetch(`${API}?action=criterion_update&id=${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ name, max_score: Number(max_score) || 10 }),
       });
       setNominations(prev => prev.map(n => ({
@@ -178,7 +179,7 @@ const NominationsCard = ({ contestId }: NominationsCardProps) => {
 
   const handleDeleteCriterion = async (nominationId: number, criterionId: number) => {
     try {
-      await fetch(`${API}?action=criterion_delete&id=${criterionId}`, { method: 'DELETE' });
+      await fetch(`${API}?action=criterion_delete&id=${criterionId}`, { method: 'DELETE', headers: adminHeaders() });
       setNominations(prev => prev.map(n => n.id === nominationId ? { ...n, criteria: n.criteria.filter(c => c.id !== criterionId) } : n));
     } catch {
       toast({ title: 'Ошибка', description: 'Не удалось удалить критерий', variant: 'destructive' });

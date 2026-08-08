@@ -1,5 +1,7 @@
 import json
 import os
+import secrets
+from datetime import datetime, timedelta
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
@@ -11,17 +13,39 @@ def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
 
+def check_admin_key(event: Dict[str, Any]) -> bool:
+    '''Проверка ключа доступа для админских операций (X-Api-Key)'''
+    expected = os.environ.get('ADMIN_API_KEY')
+    if not expected:
+        return True
+    headers = event.get('headers') or {}
+    token = headers.get('X-Api-Key') or headers.get('x-api-key')
+    return token == expected
+
+
+def create_session_token(conn, participant_id: int) -> str:
+    '''Создаёт сессионный токен участника со сроком действия 30 дней'''
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.utcnow() + timedelta(days=30)
+    with conn.cursor() as cur:
+        cur.execute(
+            f'INSERT INTO {SCHEMA}.participant_sessions (participant_id, session_token, expires_at) VALUES (%s, %s, %s)',
+            (participant_id, token, expires_at)
+        )
+    return token
+
+
 SCHEMA = os.environ.get('MAIN_DB_SCHEMA', 't_p73771717_multi_page_site_proj')
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
     Авторизация участников и управление ими.
     POST - авторизация (email+password)
-    GET ?action=list - список всех участников (для админа)
+    GET ?action=list - список всех участников (для админа, требует X-Api-Key)
     GET ?action=chat&participant_id=X - чат с участником
     POST ?action=send - отправить сообщение (body: {participant_id, message, sender})
     PUT ?action=read&participant_id=X - пометить прочитанными
-    PUT ?action=delete&id=X - удалить участника
+    PUT ?action=delete&id=X - удалить участника (требует X-Api-Key)
     GET ?email=xxx - получить заявки по email (legacy)
     '''
     method: str = event.get('httpMethod', 'GET')
@@ -32,7 +56,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Api-Key',
                 'Access-Control-Max-Age': '86400'
             },
             'body': '',
@@ -95,7 +119,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     )
                     participant = dict(cur.fetchone())
 
-                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True, 'participant': participant, 'applications': []}), 'isBase64Encoded': False}
+                token = create_session_token(conn, participant['id'])
+                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True, 'participant': participant, 'applications': [], 'token': token}), 'isBase64Encoded': False}
 
             # Отправка сообщения в чат
             if action == 'send':
@@ -216,13 +241,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 
                 participant_data = dict(participant)
                 del participant_data['password_hash']
+
+                token = create_session_token(conn, participant['id'])
                 
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
                     'body': json.dumps({
                         'participant': participant_data,
-                        'applications': applications
+                        'applications': applications,
+                        'token': token
                     }),
                     'isBase64Encoded': False
                 }
@@ -231,6 +259,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             params = event.get('queryStringParameters') or {}
             action = params.get('action')
             if action == 'delete':
+                if not check_admin_key(event):
+                    return {'statusCode': 401, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется X-Api-Key'}), 'isBase64Encoded': False}
                 pid = params.get('id')
                 if not pid:
                     return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Укажите id'}), 'isBase64Encoded': False}
@@ -261,6 +291,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
             # Список участников для администратора
             if action == 'list':
+                if not check_admin_key(event):
+                    return {'statusCode': 401, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется X-Api-Key'}), 'isBase64Encoded': False}
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
                     cur.execute(f'''
                         SELECT p.id, p.full_name, p.contact_position, p.email, p.phone, p.vk_link, p.city, p.created_at,

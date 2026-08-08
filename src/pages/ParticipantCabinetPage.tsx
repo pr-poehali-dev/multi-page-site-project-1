@@ -235,6 +235,7 @@ const ParticipantCabinetPage = () => {
   const handleLogout = () => {
     localStorage.removeItem('participantEmail');
     localStorage.removeItem('participantData');
+    localStorage.removeItem('participantToken');
     toast({ title: 'Выход выполнен', description: 'До встречи!' });
     navigate('/');
   };
