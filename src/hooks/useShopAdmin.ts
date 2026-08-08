@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { adminHeaders } from '@/config/adminApi';
 
 const PRODUCTS_URL = 'https://functions.poehali.dev/eddcb40d-3bae-4f75-9c69-390ad1190d83';
 const ORDERS_URL = 'https://functions.poehali.dev/b020db38-8100-400d-9e53-2dbfcafd5f48';
@@ -99,7 +100,7 @@ export const useShopAdmin = () => {
   const loadOrders = async (catId: string) => {
     setOrdersLoading(true);
     try {
-      const res = await fetch(`${ORDERS_URL}?category_id=${catId}`);
+      const res = await fetch(`${ORDERS_URL}?category_id=${catId}`, { headers: adminHeaders() });
       const data = await res.json();
       setOrders(data.orders || []);
     } catch { setOrders([]); }
@@ -120,7 +121,7 @@ export const useShopAdmin = () => {
     setSavingCat(true);
     try {
       const res = await fetch(`${PRODUCTS_URL}?action=category_create`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: adminHeaders(),
         body: JSON.stringify({ name: newCatName.trim(), sort_order: categories.length }),
       });
       const data = await res.json();
@@ -137,7 +138,7 @@ export const useShopAdmin = () => {
     setSavingCat(true);
     try {
       const res = await fetch(`${PRODUCTS_URL}?action=category_update&id=${cat.id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        method: 'PUT', headers: adminHeaders(),
         body: JSON.stringify({ name }),
       });
       if (!res.ok) throw new Error();
@@ -151,7 +152,7 @@ export const useShopAdmin = () => {
 
   const deleteCategory = async (cat: Category) => {
     if (!confirm(`Удалить раздел «${cat.name}»? Товары останутся без раздела.`)) return;
-    await fetch(`${PRODUCTS_URL}?action=category_delete&id=${cat.id}`, { method: 'PUT' });
+    await fetch(`${PRODUCTS_URL}?action=category_delete&id=${cat.id}`, { method: 'PUT', headers: adminHeaders() });
     setCategories(cs => cs.filter(c => c.id !== cat.id));
     if (selectedCatId === String(cat.id)) setSelectedCatId('');
     toast({ title: 'Раздел удалён' });
@@ -162,7 +163,7 @@ export const useShopAdmin = () => {
     setCategories(cs => cs.map(c => c.id === cat.id ? { ...c, is_active: nextActive } : c));
     try {
       const res = await fetch(`${PRODUCTS_URL}?action=category_update&id=${cat.id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        method: 'PUT', headers: adminHeaders(),
         body: JSON.stringify({ is_active: nextActive }),
       });
       if (!res.ok) throw new Error();
@@ -188,11 +189,11 @@ export const useShopAdmin = () => {
       let res: Response;
       if (editingProduct) {
         res = await fetch(`${PRODUCTS_URL}?action=update&id=${editingProduct.id}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
+          method: 'PUT', headers: adminHeaders(), body: JSON.stringify(form),
         });
       } else {
         res = await fetch(`${PRODUCTS_URL}?action=create`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
+          method: 'POST', headers: adminHeaders(), body: JSON.stringify(form),
         });
       }
       const data = await res.json();
@@ -215,7 +216,7 @@ export const useShopAdmin = () => {
         r.readAsDataURL(file);
       });
       const res = await fetch(`${PRODUCTS_URL}?action=upload_photo&id=${productId}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: adminHeaders(),
         body: JSON.stringify({ file_base64: b64, file_name: file.name }),
       });
       const data = await res.json();
@@ -233,8 +234,8 @@ export const useShopAdmin = () => {
     setFieldsProduct(p);
     try {
       const [resFields, resAll] = await Promise.all([
-        fetch(`${PRODUCTS_URL}?action=fields&product_id=${p.id}`),
-        fetch(`${PRODUCTS_URL}?action=all_fields`),
+        fetch(`${PRODUCTS_URL}?action=fields&product_id=${p.id}`, { headers: adminHeaders() }),
+        fetch(`${PRODUCTS_URL}?action=all_fields`, { headers: adminHeaders() }),
       ]);
       const [dataFields, dataAll] = await Promise.all([resFields.json(), resAll.json()]);
       setFields(dataFields.fields || []);
@@ -255,7 +256,7 @@ export const useShopAdmin = () => {
     setSavingFields(true);
     try {
       const res = await fetch(`${PRODUCTS_URL}?action=save_fields&product_id=${fieldsProduct.id}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fields }),
+        method: 'POST', headers: adminHeaders(), body: JSON.stringify({ fields }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -272,7 +273,7 @@ export const useShopAdmin = () => {
     const { id: _id, ...body } = copy;
     try {
       const res = await fetch(`${PRODUCTS_URL}?action=create`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        method: 'POST', headers: adminHeaders(), body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -292,7 +293,7 @@ export const useShopAdmin = () => {
   const deleteProduct = async (p: Product) => {
     if (!confirm(`Удалить товар «${p.name}»?`)) return;
     try {
-      await fetch(`${PRODUCTS_URL}?action=remove&id=${p.id}`, { method: 'PUT' });
+      await fetch(`${PRODUCTS_URL}?action=remove&id=${p.id}`, { method: 'PUT', headers: adminHeaders() });
       setProducts(ps => ps.filter(x => x.id !== p.id));
       toast({ title: 'Товар удалён' });
     } catch {
@@ -304,7 +305,7 @@ export const useShopAdmin = () => {
   const updateOrderStatus = async (orderId: number, status: string) => {
     try {
       await fetch(`${ORDERS_URL}?id=${orderId}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        method: 'PUT', headers: adminHeaders(),
         body: JSON.stringify({ status }),
       });
       setOrders(os => os.map(o => o.id === orderId ? { ...o, status } : o));
@@ -314,7 +315,7 @@ export const useShopAdmin = () => {
   const deleteOrder = async (orderId: number) => {
     if (!confirm('Удалить заказ?')) return;
     try {
-      await fetch(`${ORDERS_URL}?action=remove&id=${orderId}`, { method: 'PUT' });
+      await fetch(`${ORDERS_URL}?action=remove&id=${orderId}`, { method: 'PUT', headers: adminHeaders() });
       setOrders(os => os.filter(o => o.id !== orderId));
       toast({ title: 'Заказ удалён' });
     } catch {

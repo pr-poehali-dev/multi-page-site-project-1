@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { compressImage } from '@/lib/compressImage';
+import { adminHeaders } from '@/config/adminApi';
 
 const NEWS_URL = 'https://functions.poehali.dev/7b3c1e0e-bd68-4b73-9377-740689560912?entity=news';
 const UPLOAD_URL = 'https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3';
@@ -39,7 +40,7 @@ const NewsManagementTab = () => {
   const loadNews = async () => {
     setLoading(true);
     try {
-      const res = await fetch(NEWS_URL);
+      const res = await fetch(NEWS_URL, { headers: adminHeaders() });
       const data = await res.json();
       setNews(data.news || []);
     } catch {
@@ -82,7 +83,7 @@ const NewsManagementTab = () => {
       });
       const res = await fetch(UPLOAD_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({
           files: [{ fileName: compressed.name, fileType: compressed.type, fileSize: compressed.size, fileData: b64 }],
         }),
@@ -108,7 +109,7 @@ const NewsManagementTab = () => {
       const method = editing ? 'PUT' : 'POST';
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({
           title: form.title.trim(),
           content: form.content.trim(),
@@ -132,7 +133,7 @@ const NewsManagementTab = () => {
     try {
       const res = await fetch(`${NEWS_URL}&id=${item.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ is_published: !item.is_published }),
       });
       if (!res.ok) throw new Error();
@@ -149,7 +150,7 @@ const NewsManagementTab = () => {
     if (!confirm(`Удалить новость "${item.title}"?`)) return;
     setBusyId(item.id);
     try {
-      const res = await fetch(`${NEWS_URL}&id=${item.id}`, { method: 'DELETE' });
+      const res = await fetch(`${NEWS_URL}&id=${item.id}`, { method: 'DELETE', headers: adminHeaders() });
       if (!res.ok) throw new Error();
       setNews(prev => prev.filter(n => n.id !== item.id));
       toast({ title: 'Новость удалена' });

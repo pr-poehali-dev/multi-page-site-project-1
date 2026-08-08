@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { DiplomaTemplate, DiplomaTemplateField, DiplomaFont } from '@/types/diploma';
 import { compressImage } from '@/lib/compressImage';
+import { adminHeaders } from '@/config/adminApi';
 
 const API = 'https://functions.poehali.dev/9fcbf70c-fd6d-4489-bc77-1e4bcd6f1cb1';
 
@@ -14,7 +15,7 @@ export const useDiplomaTemplates = () => {
   const loadTemplates = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}?action=templates`);
+      const res = await fetch(`${API}?action=templates`, { headers: adminHeaders() });
       const data = await res.json();
       setTemplates(data.templates || []);
     } catch {
@@ -26,7 +27,7 @@ export const useDiplomaTemplates = () => {
 
   const loadFonts = useCallback(async () => {
     try {
-      const res = await fetch(`${API}?action=fonts`);
+      const res = await fetch(`${API}?action=fonts`, { headers: adminHeaders() });
       const data = await res.json();
       setFonts(data.fonts || []);
     } catch { setFonts([]); }
@@ -38,7 +39,7 @@ export const useDiplomaTemplates = () => {
     try {
       const res = await fetch(`${API}?action=template_create`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ name, template_type: templateType, orientation }),
       });
       const data = await res.json();
@@ -55,7 +56,7 @@ export const useDiplomaTemplates = () => {
   const deleteTemplate = useCallback(async (id: number) => {
     if (!confirm('Удалить шаблон? Это действие необратимо.')) return;
     try {
-      await fetch(`${API}?action=template_delete&id=${id}`, { method: 'DELETE' });
+      await fetch(`${API}?action=template_delete&id=${id}`, { method: 'DELETE', headers: adminHeaders() });
       setTemplates(prev => prev.filter(t => t.id !== id));
       toast({ title: 'Шаблон удалён' });
     } catch {
@@ -65,7 +66,7 @@ export const useDiplomaTemplates = () => {
 
   const loadTemplate = useCallback(async (id: number): Promise<{ template: DiplomaTemplate; fields: DiplomaTemplateField[] } | null> => {
     try {
-      const res = await fetch(`${API}?action=template&id=${id}`);
+      const res = await fetch(`${API}?action=template&id=${id}`, { headers: adminHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       return { template: data.template, fields: data.fields || [] };
@@ -79,7 +80,7 @@ export const useDiplomaTemplates = () => {
     try {
       const res = await fetch(`${API}?action=template_update&id=${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify(updates),
       });
       if (!res.ok) throw new Error();
@@ -100,7 +101,7 @@ export const useDiplomaTemplates = () => {
       });
       const res = await fetch(`${API}?action=upload_background&id=${id}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ file_base64: b64, file_name: compressed.name }),
       });
       const data = await res.json();
@@ -115,7 +116,7 @@ export const useDiplomaTemplates = () => {
 
   const deleteBackground = useCallback(async (id: number): Promise<boolean> => {
     try {
-      const res = await fetch(`${API}?action=delete_background&id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API}?action=delete_background&id=${id}`, { method: 'DELETE', headers: adminHeaders() });
       if (!res.ok) throw new Error();
       toast({ title: 'Подложка удалена' });
       return true;
@@ -129,7 +130,7 @@ export const useDiplomaTemplates = () => {
     try {
       const res = await fetch(`${API}?action=save_fields&template_id=${templateId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ fields }),
       });
       const data = await res.json();
@@ -152,7 +153,7 @@ export const useDiplomaTemplates = () => {
       });
       const res = await fetch(`${API}?action=upload_font`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ name, file_base64: b64, file_name: file.name }),
       });
       const data = await res.json();
@@ -168,7 +169,7 @@ export const useDiplomaTemplates = () => {
 
   const deleteFont = useCallback(async (id: number) => {
     try {
-      await fetch(`${API}?action=delete_font&id=${id}`, { method: 'DELETE' });
+      await fetch(`${API}?action=delete_font&id=${id}`, { method: 'DELETE', headers: adminHeaders() });
       setFonts(prev => prev.filter(f => f.id !== id));
       toast({ title: 'Шрифт удалён' });
     } catch {

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { adminHeaders } from '@/config/adminApi';
 
 interface JuryMember {
   id: number;
@@ -52,7 +53,7 @@ export const useAdminJury = () => {
     try {
       const response = await fetch('https://functions.poehali.dev/29a5a3ab-7964-41f0-baf5-d85b81b743bc', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify(juryFormData)
       });
       
@@ -72,7 +73,7 @@ export const useAdminJury = () => {
     try {
       const response = await fetch('https://functions.poehali.dev/29a5a3ab-7964-41f0-baf5-d85b81b743bc', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ id: selectedJuryMember.id, ...juryFormData })
       });
       
@@ -92,7 +93,8 @@ export const useAdminJury = () => {
     
     try {
       const response = await fetch(`https://functions.poehali.dev/29a5a3ab-7964-41f0-baf5-d85b81b743bc?id=${memberId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: adminHeaders()
       });
       
       if (response.ok) {
@@ -125,7 +127,7 @@ export const useAdminJury = () => {
     try {
       const response = await fetch('https://functions.poehali.dev/29a5a3ab-7964-41f0-baf5-d85b81b743bc', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({
           id: juryId,
           login,

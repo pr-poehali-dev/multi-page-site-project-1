@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { adminHeaders } from '@/config/adminApi';
 
 type Concert = {
   id: number;
@@ -75,7 +76,7 @@ export const useAdminConcerts = () => {
     try {
       const response = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify(formData),
       });
 
@@ -114,7 +115,7 @@ export const useAdminConcerts = () => {
     try {
       const response = await fetch(`${API_URL}?id=${selectedConcert.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify(formData),
       });
 
@@ -141,6 +142,7 @@ export const useAdminConcerts = () => {
     try {
       const response = await fetch(`${API_URL}?id=${concertId}`, {
         method: 'DELETE',
+        headers: adminHeaders(),
       });
 
       const result = await response.json();

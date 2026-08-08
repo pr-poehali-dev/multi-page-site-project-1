@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from './use-toast';
+import { adminHeaders } from '@/config/adminApi';
 
 interface GalleryItem {
   id: number;
@@ -52,7 +53,7 @@ export function useAdminGallery() {
     try {
       const response = await fetch(ADMIN_GALLERY_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify(fileData)
       });
 
@@ -80,7 +81,7 @@ export function useAdminGallery() {
     try {
       const response = await fetch(`${ADMIN_GALLERY_URL}&id=${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify(updates)
       });
 
@@ -107,7 +108,8 @@ export function useAdminGallery() {
   const deleteItem = async (id: number) => {
     try {
       const response = await fetch(`${ADMIN_GALLERY_URL}&id=${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: adminHeaders()
       });
 
       if (!response.ok) throw new Error('Delete failed');

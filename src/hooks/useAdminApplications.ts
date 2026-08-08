@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { adminHeaders } from '@/config/adminApi';
 
 interface Application {
   id: number;
@@ -23,7 +24,8 @@ export const useAdminApplications = (statusFilter: string, contestFilter: string
       if (contestFilter !== 'all') params.append('contest_id', contestFilter);
 
       const response = await fetch(
-        `https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?${params}`
+        `https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?${params}`,
+        { headers: adminHeaders() }
       );
       const data = await response.json();
       setApplications(data.applications || []);
@@ -40,7 +42,7 @@ export const useAdminApplications = (statusFilter: string, contestFilter: string
         'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b',
         {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: adminHeaders(),
           body: JSON.stringify({
             application_id: applicationId,
             status: newStatus,
@@ -67,7 +69,7 @@ export const useAdminApplications = (statusFilter: string, contestFilter: string
         'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?action=update_fields',
         {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: adminHeaders(),
           body: JSON.stringify(payload),
         }
       );
@@ -90,7 +92,7 @@ export const useAdminApplications = (statusFilter: string, contestFilter: string
         'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b',
         {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: adminHeaders(),
           body: JSON.stringify({
             application_id: applicationId,
             editing_locked: locked,

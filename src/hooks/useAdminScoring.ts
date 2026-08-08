@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { adminHeaders } from '@/config/adminApi';
 
 interface Participant {
   id: number;
@@ -25,7 +26,8 @@ export const useAdminScoring = () => {
     
     try {
       const response = await fetch(
-        `https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d?action=scores&contest_id=${contestId}`
+        `https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d?action=scores&contest_id=${contestId}`,
+        { headers: adminHeaders() }
       );
       
       if (!response.ok) {
@@ -55,7 +57,7 @@ export const useAdminScoring = () => {
     try {
       const response = await fetch(
         `https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d?action=delete_participant&participant_id=${participantId}`,
-        { method: 'DELETE' }
+        { method: 'DELETE', headers: adminHeaders() }
       );
 
       if (!response.ok) {

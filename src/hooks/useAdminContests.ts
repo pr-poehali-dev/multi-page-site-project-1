@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { adminHeaders } from '@/config/adminApi';
 
 interface Contest {
   id: number;
@@ -81,7 +82,7 @@ export const useAdminContests = () => {
     try {
       const response = await fetch('https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify(formData)
       });
       
@@ -101,7 +102,7 @@ export const useAdminContests = () => {
     try {
       const response = await fetch('https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ id: selectedContest.id, ...formData })
       });
       
@@ -121,7 +122,8 @@ export const useAdminContests = () => {
     
     try {
       const response = await fetch(`https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3?id=${contestId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: adminHeaders()
       });
       
       if (response.ok) {

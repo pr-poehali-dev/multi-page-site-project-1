@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { adminHeaders } from '@/config/adminApi';
 import { ContestFormData } from './ContestModalTypes';
 import ContestBasicFields from './ContestBasicFields';
 import ContestUploadFields from './ContestUploadFields';
@@ -63,7 +64,7 @@ const ContestModal = ({
 
           const response = await fetch('https://functions.poehali.dev/b0d40cbb-41ff-48a1-a800-101845d59a03', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminHeaders(),
             body: JSON.stringify({
               file_name: file.name,
               contest_id: contestId || 0,
@@ -113,7 +114,7 @@ const ContestModal = ({
 
           const response = await fetch('https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminHeaders(),
             body: JSON.stringify({
               applicationId: 0,
               files: [{ fileName: `logo_${file.name}`, fileType: file.type, fileSize: file.size, fileData: base64String }]
@@ -162,7 +163,7 @@ const ContestModal = ({
 
           const response = await fetch('https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminHeaders(),
             body: JSON.stringify({
               applicationId: 0,
               files: [{ fileName: `contest_logo_${file.name}`, fileType: file.type, fileSize: file.size, fileData: base64String }]
@@ -217,7 +218,7 @@ const ContestModal = ({
         const base64String = (event.target?.result as string).split(',')[1];
         const response = await fetch('https://functions.poehali.dev/511414f3-ced6-45f9-a821-bfcc988e50b0', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: adminHeaders(),
           body: JSON.stringify({ file_base64: base64String, file_name: file.name, contest_id: contestId || 0 })
         });
         const data = await response.json();
