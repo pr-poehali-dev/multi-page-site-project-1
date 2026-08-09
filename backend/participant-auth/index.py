@@ -35,6 +35,22 @@ def create_session_token(conn, participant_id: int) -> str:
     return token
 
 
+def get_participant_id_by_session(conn, event: Dict[str, Any]) -> int:
+    '''Определяет participant_id по сессионному токену из заголовка Authorization/X-Authorization: Bearer <token>'''
+    headers = event.get('headers') or {}
+    auth_header = headers.get('X-Authorization') or headers.get('x-authorization') or headers.get('Authorization') or headers.get('authorization') or ''
+    token = auth_header.replace('Bearer ', '').strip()
+    if not token:
+        return 0
+    with conn.cursor() as cur:
+        cur.execute(
+            f'SELECT participant_id FROM {SCHEMA}.participant_sessions WHERE session_token = %s AND expires_at > NOW()',
+            (token,)
+        )
+        row = cur.fetchone()
+    return row[0] if row else 0
+
+
 SCHEMA = os.environ.get('MAIN_DB_SCHEMA', 't_p73771717_multi_page_site_proj')
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -44,6 +60,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     GET ?action=list - список всех участников (для админа, требует X-Api-Key)
     GET ?action=chat&participant_id=X - чат с участником
     POST ?action=send - отправить сообщение (body: {participant_id, message, sender})
+    POST ?action=save_push_token - сохранить Expo push-токен участника (требует Authorization: Bearer <session_token>)
+    GET ?action=list_push_tokens - список всех push-токенов для рассылки (требует X-Api-Key)
     PUT ?action=read&participant_id=X - пометить прочитанными
     PUT ?action=delete&id=X - удалить участника (требует X-Api-Key)
     GET ?email=xxx - получить заявки по email (legacy)
@@ -56,7 +74,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, X-Api-Key',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Api-Key, Authorization, X-Authorization',
                 'Access-Control-Max-Age': '86400'
             },
             'body': '',
@@ -121,6 +139,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
                 token = create_session_token(conn, participant['id'])
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True, 'participant': participant, 'applications': [], 'token': token}), 'isBase64Encoded': False}
+
+            # Сохранение Expo push-токена участника (мобильное приложение)
+            if action == 'save_push_token':
+                pid = get_participant_id_by_session(conn, event)
+                if not pid:
+                    return {'statusCode': 401, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется авторизация'}), 'isBase64Encoded': False}
+                push_token = (body_data.get('pushToken') or '').strip()
+                if not push_token:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Укажите pushToken'}), 'isBase64Encoded': False}
+                with conn.cursor() as cur:
+                    cur.execute(f'UPDATE {SCHEMA}.participants SET push_token = %s WHERE id = %s', (push_token, pid))
+                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True}), 'isBase64Encoded': False}
 
             # Отправка сообщения в чат
             if action == 'send':
@@ -308,6 +338,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     for r in rows:
                         if r.get('created_at'): r['created_at'] = r['created_at'].isoformat()
                     return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'participants': [dict(r) for r in rows]}), 'isBase64Encoded': False}
+
+            # Список всех push-токенов для рассылки уведомлений (требует X-Api-Key)
+            elif action == 'list_push_tokens':
+                if not check_admin_key(event):
+                    return {'statusCode': 401, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется X-Api-Key'}), 'isBase64Encoded': False}
+                with conn.cursor() as cur:
+                    cur.execute(f"SELECT push_token FROM {SCHEMA}.participants WHERE push_token IS NOT NULL AND push_token != ''")
+                    tokens = [r[0] for r in cur.fetchall()]
+                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'tokens': tokens}), 'isBase64Encoded': False}
 
             # Количество непрочитанных сообщений от организаторов для участника
             elif action == 'unread':

@@ -16,6 +16,21 @@
         "applications": "array"
       },
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Save push token without auth should fail",
+      "method": "POST",
+      "path": "/?action=save_push_token",
+      "body": { "pushToken": "ExponentPushToken[test123]" },
+      "expectedStatus": 401,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "List push tokens without X-Api-Key should fail",
+      "method": "GET",
+      "path": "/?action=list_push_tokens",
+      "expectedStatus": 401,
+      "bodyMatcher": "partial"
     }
   ]
 }

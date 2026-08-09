@@ -194,4 +194,67 @@ Content-Type: application/json
 2. Построить экран с вопросами по `field_type`, отметить обязательные.
 3. Если есть файлы — загрузить их первыми, получить ссылки.
 4. Отправить `POST` на адрес заявок с собранным `customFields`.
+
+## Push-уведомления (Expo)
+
+Раздел: `https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904` (тот же адрес, что вход/регистрация участника).
+
+### 1. Сохранить push-токен участника
+
+Вызывается после входа в аккаунт, когда приложение сгенерировало Expo Push Token. Требует токен сессии участника (тот, что пришёл в поле `token` при входе/регистрации) — передаётся в заголовке `Authorization`.
+
+```
+POST https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904?action=save_push_token
+Content-Type: application/json
+Authorization: Bearer <session_token>
+
+{ "pushToken": "ExponentPushToken[abc123...]" }
+```
+
+Ответ: `{ "success": true }`. Без валидного токена сессии — `401`.
+
+### 2. Получить список токенов для рассылки (для админки/сервера)
+
+Защищено ключом администратора — вызывается только с серверной стороны (не из мобильного приложения).
+
+```
+GET https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904?action=list_push_tokens
+X-Api-Key: h99NJWtXVBQ59CqsSyxnIOZI-KwMC1ZpwzohKcM-WkA
+```
+
+Ответ:
+```json
+{ "tokens": ["ExponentPushToken[abc123...]", "ExponentPushToken[def456...]"] }
+```
+
+### 3. Отправка уведомления — напрямую через Expo Push Service
+
+Отправка не идёт через мой backend — уведомления шлются прямо в Expo (свой push-сервер не нужен):
+
+```
+POST https://exp.host/--/api/v2/push/send
+Content-Type: application/json
+Accept: application/json
+
+{
+  "to": "ExponentPushToken[abc123...]",
+  "title": "Новый конкурс открыт!",
+  "body": "Регистрация на «Таланты Нягань 2025» уже началась",
+  "data": { "screen": "FestivalDetail", "contestId": 42 }
+}
+```
+
+Массовая рассылка — до 100 токенов за один запрос (список объектов вместо одного):
+```json
+[
+  { "to": "ExponentPushToken[aaa...]", "title": "...", "body": "..." },
+  { "to": "ExponentPushToken[bbb...]", "title": "...", "body": "..." }
+]
+```
+
+### Как это работает в связке
+
+1. Мобильное приложение при входе участника получает `token` сессии → генерирует Expo Push Token → отправляет его на `action=save_push_token` с `Authorization: Bearer <token>`.
+2. Когда нужно разослать уведомление всем (например, при публикации нового конкурса), сервер/админка сайта запрашивает `action=list_push_tokens` с `X-Api-Key`, разбивает список на пачки по 100 и шлёт их в `https://exp.host/--/api/v2/push/send`.
+3. Один и тот же push-токен просто перезаписывается при повторном входе/переустановке — хранится по одному на участника.
 5. Успешный ответ: `{ "success": true, "applicationId": 45, "status": "pending" }`.
