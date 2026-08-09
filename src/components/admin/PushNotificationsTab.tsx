@@ -3,12 +3,19 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { adminHeaders } from '@/config/adminApi';
 
 const AUTH_URL = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
+const CONTESTS_URL = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
+
+interface Contest {
+  id: number;
+  title: string;
+}
 
 const PushNotificationsTab = () => {
   const { toast } = useToast();
@@ -17,6 +24,8 @@ const PushNotificationsTab = () => {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
+  const [contests, setContests] = useState<Contest[]>([]);
+  const [selectedContestId, setSelectedContestId] = useState<string>('none');
 
   const loadTokensCount = async () => {
     setLoadingTokens(true);
@@ -31,8 +40,19 @@ const PushNotificationsTab = () => {
     }
   };
 
+  const loadContests = async () => {
+    try {
+      const res = await fetch(CONTESTS_URL);
+      const data = await res.json();
+      setContests(data.contests || []);
+    } catch {
+      setContests([]);
+    }
+  };
+
   useEffect(() => {
     loadTokensCount();
+    loadContests();
   }, []);
 
   const handleSend = async () => {
@@ -52,6 +72,10 @@ const PushNotificationsTab = () => {
         return;
       }
 
+      const pushData = selectedContestId !== 'none'
+        ? { screen: 'FestivalDetail', contestId: Number(selectedContestId) }
+        : undefined;
+
       const chunkSize = 100;
       let sentCount = 0;
       for (let i = 0; i < tokens.length; i += chunkSize) {
@@ -60,6 +84,7 @@ const PushNotificationsTab = () => {
           to: token,
           title: title.trim(),
           body: body.trim(),
+          ...(pushData ? { data: pushData } : {}),
         }));
         const res = await fetch(EXPO_PUSH_URL, {
           method: 'POST',
@@ -72,6 +97,7 @@ const PushNotificationsTab = () => {
       toast({ title: 'Уведомление отправлено', description: `Разослано ${sentCount} из ${tokens.length} участникам` });
       setTitle('');
       setBody('');
+      setSelectedContestId('none');
     } catch {
       toast({ title: 'Ошибка отправки', description: 'Не удалось разослать уведомление', variant: 'destructive' });
     } finally {
@@ -114,6 +140,21 @@ const PushNotificationsTab = () => {
               rows={4}
               maxLength={300}
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Ссылка на конкурс (по желанию)</label>
+            <Select value={selectedContestId} onValueChange={setSelectedContestId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Без ссылки" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Без ссылки</SelectItem>
+                {contests.map(c => (
+                  <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">При нажатии на уведомление приложение откроет страницу выбранного конкурса</p>
           </div>
           <Button
             onClick={handleSend}

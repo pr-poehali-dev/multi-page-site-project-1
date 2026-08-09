@@ -12,16 +12,33 @@ from typing import Dict, Any
 import base64
 import uuid
 import boto3
+import requests
 
 SCHEMA = 't_p73771717_multi_page_site_proj'
 CABINET_URL = 'https://индиго-арт.рф/participant-cabinet'
 SUPPORT_EMAIL = 'indigo_fest@mail.ru'
+EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send'
 
 STATUS_LABELS = {
     'approved': 'одобрена',
     'rejected': 'отклонена',
     'pending': 'возвращена на доработку',
 }
+
+
+def send_push_notification(push_token: str, title: str, body: str, data: dict = None) -> None:
+    '''Отправляет push-уведомление через Expo Push Service одному пользователю'''
+    if not push_token:
+        return
+    message = {'to': push_token, 'title': title, 'body': body}
+    if data:
+        message['data'] = data
+    requests.post(
+        EXPO_PUSH_URL,
+        headers={'Content-Type': 'application/json', 'Accept': 'application/json'},
+        json=message,
+        timeout=10,
+    )
 
 
 def send_status_update_email(to_email: str, full_name: str, contest_title: str, new_status: str, admin_comment: str = '') -> None:
@@ -553,7 +570,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # Получаем данные заявки
                 cur.execute(
-                    '''SELECT a.*, p.full_name, p.contact_position, p.email, p.phone, p.vk_link, p.city, c.title as contest_title
+                    '''SELECT a.*, p.full_name, p.contact_position, p.email, p.phone, p.vk_link, p.city, p.push_token, c.title as contest_title
                        FROM applications a
                        JOIN participants p ON a.participant_id = p.id
                        JOIN contests c ON a.contest_id = c.id
@@ -668,6 +685,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 send_status_update_email(application['email'], application['full_name'], application['contest_title'], new_status, admin_comment)
             except Exception as email_err:
                 print(f'[EMAIL ERROR] {email_err}')
+
+            try:
+                status_label = STATUS_LABELS.get(new_status, new_status)
+                send_push_notification(
+                    application.get('push_token'),
+                    'Статус заявки изменён',
+                    f"Заявка на «{application['contest_title']}» {status_label}",
+                    {'screen': 'MyApplications', 'applicationId': app_id, 'contestId': application['contest_id']}
+                )
+            except Exception as push_err:
+                print(f'[PUSH ERROR] {push_err}')
             
             return {
                 'statusCode': 200,

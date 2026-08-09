@@ -1,9 +1,31 @@
 import json
 import os
 import psycopg2
+import requests
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
 # автообновление status по датам приёма заявок при GET /contests
+
+EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send'
+
+
+def broadcast_push_notification(conn, title: str, body: str, data: dict = None) -> None:
+    '''Рассылает push-уведомление всем участникам с сохранённым push-токеном (пачками по 100)'''
+    with conn.cursor() as cur:
+        cur.execute("SELECT push_token FROM participants WHERE push_token IS NOT NULL AND push_token != ''")
+        tokens = [row[0] for row in cur.fetchall()]
+    if not tokens:
+        return
+    chunk_size = 100
+    for i in range(0, len(tokens), chunk_size):
+        chunk = tokens[i:i + chunk_size]
+        messages = [{'to': token, 'title': title, 'body': body, **({'data': data} if data else {})} for token in chunk]
+        requests.post(
+            EXPO_PUSH_URL,
+            headers={'Content-Type': 'application/json', 'Accept': 'application/json'},
+            json=messages,
+            timeout=10,
+        )
 
 
 def check_api_key(event: Dict[str, Any]) -> bool:
@@ -229,6 +251,16 @@ def create_contest(conn, event: Dict[str, Any]) -> Dict[str, Any]:
         ''', (contest_key, title, description, start_date, end_date, status, pdf_url, rules, prizes, categories, poster_url, ticket_link, details_link, location, event_date, application_form_url, logo_url, application_type, form_template_id))
         
         result = cur.fetchone()
+
+        try:
+            broadcast_push_notification(
+                conn,
+                'Новый конкурс открыт!',
+                f'Регистрация на «{title}» уже началась',
+                {'screen': 'FestivalDetail', 'contestId': result['id']}
+            )
+        except Exception as push_err:
+            print(f'[PUSH ERROR] {push_err}')
         
         return {
             'statusCode': 201,
