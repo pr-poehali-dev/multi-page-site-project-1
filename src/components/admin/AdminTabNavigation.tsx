@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications';
 
 interface AdminTabNavigationProps {
   activeTab: TabType;
@@ -142,6 +142,13 @@ const AdminTabNavigation = ({ activeTab, onTabChange, onLogout }: AdminTabNaviga
         >
           <Icon name="Newspaper" className="mr-2 h-4 w-4" />
           Новости
+        </Button>
+        <Button
+          variant={activeTab === 'push-notifications' ? 'default' : 'outline'}
+          onClick={() => onTabChange('push-notifications')}
+        >
+          <Icon name="Bell" className="mr-2 h-4 w-4" />
+          Push-уведомления
         </Button>
       </div>
     </div>

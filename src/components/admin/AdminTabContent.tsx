@@ -14,8 +14,9 @@ import ApplicationFormBuilderTab from '@/components/admin/ApplicationFormBuilder
 import DiplomaTemplatesTab from '@/components/admin/DiplomaTemplatesTab';
 import ReviewsManagementTab from '@/components/admin/ReviewsManagementTab';
 import NewsManagementTab from '@/components/admin/NewsManagementTab';
+import PushNotificationsTab from '@/components/admin/PushNotificationsTab';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications';
 
 interface AdminTabContentProps {
   activeTab: TabType;
@@ -261,6 +262,11 @@ const AdminTabContent = ({
     case 'news':
       return (
         <NewsManagementTab />
+      );
+
+    case 'push-notifications':
+      return (
+        <PushNotificationsTab />
       );
 
     default:
