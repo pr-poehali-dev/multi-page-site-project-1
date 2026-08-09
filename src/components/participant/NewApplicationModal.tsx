@@ -58,6 +58,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [customFileValues, setCustomFileValues] = useState<Record<string, File>>({});
   const [customAudioFileValues, setCustomAudioFileValues] = useState<Record<string, File>>({});
+  const [noAudioValues, setNoAudioValues] = useState<Record<string, boolean>>({});
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
   const [nominationOptions, setNominationOptions] = useState<NominationOption[]>([]);
   const [nominationId, setNominationId] = useState<number | null>(null);
@@ -112,6 +113,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
         setCustomValues({});
         setCustomFileValues({});
         setCustomAudioFileValues({});
+        setNoAudioValues({});
         setNominationId(null);
       } catch { setCustomFields([]); setNominationOptions([]); }
       finally { setLoadingCustomFields(false); }
@@ -354,7 +356,8 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
               {customFields.length > 0 && (
                 <div className="space-y-4">
                   {customFields.map(f => {
-                    const isEmpty = f.is_required && !customValues[f.field_name]?.trim();
+                    const skipRequired = f.field_type === 'audio' && noAudioValues[f.field_name];
+                    const isEmpty = f.is_required && !skipRequired && !customValues[f.field_name]?.trim();
                     const showError = step2Attempted && isEmpty;
                     return (
                     <div key={f.id}>
@@ -442,6 +445,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
                             accept="audio/*"
                             id={`custom-audio-${f.id}`}
                             className="hidden"
+                            disabled={noAudioValues[f.field_name]}
                             onChange={e => {
                               const file = e.target.files?.[0];
                               if (!file) return;
@@ -455,7 +459,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
                             }}
                           />
                           <label htmlFor={`custom-audio-${f.id}`}>
-                            <Button type="button" variant="outline" className={`w-full cursor-pointer ${showError ? 'border-destructive ring-1 ring-destructive' : ''}`} asChild>
+                            <Button type="button" variant="outline" disabled={noAudioValues[f.field_name]} className={`w-full cursor-pointer ${showError ? 'border-destructive ring-1 ring-destructive' : ''}`} asChild>
                               <span>
                                 <Icon name="Music" size={16} className="mr-2" />
                                 {customAudioFileValues[f.field_name] ? customAudioFileValues[f.field_name].name : 'Выбрать фонограмму'}
@@ -463,6 +467,28 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
                             </Button>
                           </label>
                           <p className="text-xs text-muted-foreground mt-1">Загрузится на Яндекс.Диск, максимум 50 МБ</p>
+                          {f.is_required && (
+                            <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={!!noAudioValues[f.field_name]}
+                                onChange={e => {
+                                  const checked = e.target.checked;
+                                  setNoAudioValues(v => ({ ...v, [f.field_name]: checked }));
+                                  if (checked) {
+                                    setCustomAudioFileValues(v => {
+                                      const next = { ...v };
+                                      delete next[f.field_name];
+                                      return next;
+                                    });
+                                    setCustomValues(v => ({ ...v, [f.field_name]: '' }));
+                                  }
+                                }}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-muted-foreground">Без фонограммы</span>
+                            </label>
+                          )}
                         </div>
                       ) : (
                         <Input
@@ -508,7 +534,7 @@ const NewApplicationModal = ({ participant, onClose, onSuccess, initialContestId
             <Button
               className="flex-1 bg-secondary hover:bg-secondary/90"
               onClick={() => {
-                if (customFields.some(f => f.is_required && !customValues[f.field_name]?.trim())) {
+                if (customFields.some(f => f.is_required && !(f.field_type === 'audio' && noAudioValues[f.field_name]) && !customValues[f.field_name]?.trim())) {
                   setStep2Attempted(true);
                   return;
                 }
