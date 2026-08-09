@@ -69,3 +69,129 @@ X-Api-Key: h99NJWtXVBQ59CqsSyxnIOZI-KwMC1ZpwzohKcM-WkA
 
 { "title": "...", "start_date": "...", "end_date": "..." }
 ```
+
+## Динамическая форма заявки на конкурс
+
+У каждого конкурса организатор может назначить свою форму заявки (набор дополнительных вопросов). Приложению нужно запросить структуру формы и построить её на лету — вопросы у разных конкурсов разные.
+
+### 1. Получить форму, назначенную конкурсу (публично, без ключа)
+```
+GET https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3?action=contest_form&contest_id=42
+```
+
+Ответ:
+```json
+{
+  "fields": [
+    {
+      "field_name": "sys_age_category",
+      "field_label": "Возрастная категория",
+      "field_type": "select",
+      "options": "от 4 до 6 лет, от 7 до 9 лет, от 10 до 12 лет",
+      "is_required": true,
+      "sort_order": 1,
+      "system_key": "age_category"
+    },
+    {
+      "field_name": "custom_question_1",
+      "field_label": "Какой у вас стаж?",
+      "field_type": "text",
+      "options": "",
+      "is_required": false,
+      "sort_order": 6,
+      "system_key": null
+    },
+    {
+      "field_name": "recording_file",
+      "field_label": "Загрузить запись видео",
+      "field_type": "file",
+      "options": "",
+      "is_required": false,
+      "sort_order": 7,
+      "system_key": null
+    }
+  ],
+  "nominations": [
+    { "id": 101, "name": "Инструментальное творчество классическое" }
+  ]
+}
+```
+
+Если у конкурса нет назначенной формы — `fields` придёт пустым массивом, показывать доп. вопросы не нужно.
+
+### 2. Типы полей (`field_type`) и как их отрисовать
+
+| field_type | Что показать | Как хранить значение |
+|---|---|---|
+| `text`, `number`, `email`, `tel`, `date` | обычное поле ввода (тип соответствует полю) | строка |
+| `textarea` | многострочное поле | строка |
+| `select` | выпадающий список, варианты — `options` через запятую | выбранный текст варианта |
+| `checkbox` | переключатель да/нет | строка `"true"` или `"false"` |
+| `file` | загрузка документа/фото, до 15 МБ | ссылка на файл после загрузки (см. ниже) |
+| `audio` | загрузка фонограммы, до 50 МБ | ссылка на файл после загрузки (см. ниже) |
+
+Особый случай: если у поля `system_key: "nomination"` — вместо `options` нужно показать список из массива `nominations` (`{id, name}`), а не текстовые options.
+
+Поля сортируются по `sort_order`. Обязательные (`is_required: true`) нельзя оставлять пустыми при отправке.
+
+### 3. Как отправить заполненную форму
+
+Все ответы участника собираются в объект `customFields`, где ключ — это `field_name` поля:
+
+```
+POST https://functions.poehali.dev/065d2b6a-5112-4a26-a642-211398843a75
+Content-Type: application/json
+
+{
+  "fullName": "Иванов Иван",
+  "email": "user@example.com",
+  "phone": "+79990000000",
+  "city": "Москва",
+  "contestId": 42,
+  "nominationId": 101,
+  "customFields": {
+    "sys_age_category": "от 10 до 12 лет",
+    "custom_question_1": "12 лет",
+    "recording_file": "https://cdn.poehali.dev/projects/.../video.mp4"
+  }
+}
+```
+
+`nominationId` — это `id` выбранной номинации из массива `nominations` (заполняется только если в форме есть поле с `system_key: "nomination"`).
+
+### 4. Загрузка файлов из формы (типы `file` и `audio`)
+
+**Поле типа `file`** — загрузить одним запросом, файл в base64:
+```
+POST https://functions.poehali.dev/cfc99bc2-daff-4110-b9e4-c9699841a7d3
+Content-Type: application/json
+
+{
+  "files": [
+    { "fileName": "документ.pdf", "fileType": "application/pdf", "fileSize": 123456, "fileData": "<base64>" }
+  ]
+}
+```
+Ответ: `{ "files": [{ "fileUrl": "https://cdn.poehali.dev/..." }] }` — эту ссылку положить в `customFields` под тем же `field_name`. Лимит 15 МБ.
+
+**Поле типа `audio`** (фонограмма) — грузится напрямую на Яндекс.Диск в 3 шага:
+```
+1) POST .../cfc99bc2-daff-4110-b9e4-c9699841a7d3
+   { "target": "yandex", "contestTitle": "Название конкурса, Город, дата", "fileName": "фонограмма.mp3" }
+   → { "uploadUrl": "...", "path": "/..." }
+
+2) PUT <uploadUrl>
+   Body: <бинарные данные файла>
+
+3) POST .../cfc99bc2-daff-4110-b9e4-c9699841a7d3
+   { "target": "yandex", "step": "finalize", "path": "/..." }
+   → { "fileUrl": "https://disk.yandex.ru/..." }
+```
+Полученный `fileUrl` кладётся в `customFields`. Лимит 50 МБ.
+
+### Итоговая последовательность в приложении
+1. Участник выбирает конкурс → запросить форму (`action=contest_form&contest_id=...`).
+2. Построить экран с вопросами по `field_type`, отметить обязательные.
+3. Если есть файлы — загрузить их первыми, получить ссылки.
+4. Отправить `POST` на адрес заявок с собранным `customFields`.
+5. Успешный ответ: `{ "success": true, "applicationId": 45, "status": "pending" }`.
