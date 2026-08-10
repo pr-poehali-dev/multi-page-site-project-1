@@ -14,6 +14,7 @@ import { useAdminPartners } from '@/hooks/useAdminPartners';
 import AdminTabNavigation from '@/components/admin/AdminTabNavigation';
 import AdminTabContent from '@/components/admin/AdminTabContent';
 import AdminModalsContainer from '@/components/admin/AdminModalsContainer';
+import { adminHeaders } from '@/config/adminApi';
 
 const AdminPage = () => {
   const { toast } = useToast();
@@ -89,7 +90,7 @@ const AdminPage = () => {
     try {
       const response = await fetch('https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ id: contestId, applications_locked: locked }),
       });
       if (response.ok) {
@@ -131,6 +132,7 @@ const AdminPage = () => {
     try {
       const response = await fetch(`https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?id=${applicationId}`, {
         method: 'DELETE',
+        headers: adminHeaders(),
       });
 
       if (!response.ok) {
