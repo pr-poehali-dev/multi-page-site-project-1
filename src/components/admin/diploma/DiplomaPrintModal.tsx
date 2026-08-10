@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { useDiplomaTemplates } from '@/hooks/useDiplomaTemplates';
+import { adminHeaders } from '@/config/adminApi';
 import { loadCustomFonts } from '@/lib/loadCustomFonts';
 import { renderDiplomaToCanvas } from '@/lib/renderDiplomaToCanvas';
 import { DiplomaTemplateField, A4_WIDTH_MM, A4_HEIGHT_MM, MM_TO_PX } from '@/types/diploma';
@@ -85,7 +86,7 @@ const DiplomaPrintModal = ({ contest, rows, onClose }: DiplomaPrintModalProps) =
   }, [backgroundUrl]);
 
   useEffect(() => {
-    fetch(`${RESULTS_API}?action=results_table&contest_id=${contest.id}`)
+    fetch(`${RESULTS_API}?action=results_table&contest_id=${contest.id}`, { headers: adminHeaders() })
       .then(r => r.json())
       .then(d => {
         const map: Record<number, string> = {};
