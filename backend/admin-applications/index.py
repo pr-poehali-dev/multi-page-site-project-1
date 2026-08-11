@@ -271,9 +271,12 @@ def handle_vk_check(event: Dict[str, Any], conn) -> Dict[str, Any]:
         if not token:
             return {'statusCode': 500, 'headers': cors, 'body': json.dumps({'error': 'VK_SERVICE_TOKEN не настроен'}), 'isBase64Encoded': False}
 
-        check = vk_call('wall.getById', {'posts': f"{parsed['owner_id']}_{parsed['post_id']}"}, token)
-        if 'error' in check or not check.get('response'):
-            return {'statusCode': 400, 'headers': cors, 'body': json.dumps({'error': 'Пост не найден или сообщество недоступно. Проверьте ссылку и права токена'}), 'isBase64Encoded': False}
+        check = vk_call('wall.getComments', {'owner_id': parsed['owner_id'], 'post_id': parsed['post_id'], 'count': 1}, token)
+        if 'error' in check:
+            vk_error = check.get('error', {})
+            error_msg = vk_error.get('error_msg', 'неизвестная ошибка VK API')
+            print(f'[VK ERROR] set_post check={check}')
+            return {'statusCode': 400, 'headers': cors, 'body': json.dumps({'error': f'VK API: {error_msg}'}), 'isBase64Encoded': False}
 
         with conn.cursor() as cur:
             cur.execute(f'''
