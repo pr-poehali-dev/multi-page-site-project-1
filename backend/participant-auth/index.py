@@ -1,11 +1,19 @@
 import json
 import os
+import re
 import secrets
 from datetime import datetime, timedelta
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
 import hashlib
+
+VK_LINK_REGEX = re.compile(r'^https?://(www\.)?(vk\.com|vk\.ru|vkontakte\.ru)/[a-zA-Z0-9_.]{2,}$')
+
+
+def is_valid_vk_link(value: str) -> bool:
+    '''Проверяет корректность формата ссылки на профиль ВК'''
+    return bool(value) and bool(VK_LINK_REGEX.match(value.strip()))
 
 
 def hash_password(password: str) -> str:
@@ -117,6 +125,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
                 if not full_name or not contact_position or not email or not phone or not vk_link or not city or not password:
                     return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Заполните все поля'}), 'isBase64Encoded': False}
+                if not is_valid_vk_link(vk_link):
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Введите корректную ссылку на профиль ВК, например: https://vk.com/username'}), 'isBase64Encoded': False}
                 if len(password) < 6:
                     return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Пароль должен содержать минимум 6 символов'}), 'isBase64Encoded': False}
 
@@ -324,6 +334,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Укажите id'}), 'isBase64Encoded': False}
                 body_data = json.loads(event.get('body') or '{}')
                 vk_link = (body_data.get('vk_link') or '').strip()
+                if vk_link and not is_valid_vk_link(vk_link):
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Введите корректную ссылку на профиль ВК, например: https://vk.com/username'}), 'isBase64Encoded': False}
                 with conn.cursor() as cur:
                     cur.execute(f'UPDATE {SCHEMA}.participants SET vk_link = %s WHERE id = %s', (vk_link, pid))
                     if cur.rowcount == 0:

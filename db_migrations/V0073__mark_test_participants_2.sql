@@ -1,0 +1,1 @@
+UPDATE t_p73771717_multi_page_site_proj.participants SET full_name = '[test]', password_hash = NULL WHERE email IN ('test_vk_autocheck@test.local', 'test_vk_validation2@test.local');

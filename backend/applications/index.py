@@ -1,22 +1,102 @@
 import json
 import os
+import re
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
 import hashlib
+import requests
 
 CABINET_URL = 'https://индиго-арт.рф/participant-cabinet'
 SUPPORT_EMAIL = 'indigo_fest@mail.ru'
+EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send'
+VK_API_URL = 'https://api.vk.com/method'
+VK_VERSION = '5.199'
 
 
 def hash_password(password: str) -> str:
     '''Хеширование пароля SHA-256'''
     return hashlib.sha256(password.encode()).hexdigest()
+
+
+def vk_parse_post_url(url: str) -> Optional[Dict[str, int]]:
+    '''Извлекает owner_id и post_id из ссылки на пост ВК'''
+    match = re.search(r'wall(-?\d+)_(\d+)', url or '')
+    if not match:
+        return None
+    return {'owner_id': int(match.group(1)), 'post_id': int(match.group(2))}
+
+
+def vk_extract_screen_name(vk_link: str) -> Optional[str]:
+    '''Извлекает screen_name из ссылки на профиль ВК'''
+    if not vk_link:
+        return None
+    vk_link = vk_link.strip()
+    match = re.search(r'(?:vk\.com|vk\.ru|vkontakte\.ru)/([a-zA-Z0-9_.]+)', vk_link)
+    name = match.group(1) if match else vk_link.lstrip('@').strip('/')
+    name = name.split('?')[0].split('&')[0]
+    return name or None
+
+
+def vk_call(method: str, params: Dict[str, Any], token: str) -> Dict[str, Any]:
+    '''Вызов метода VK API'''
+    payload = {**params, 'access_token': token, 'v': VK_VERSION}
+    resp = requests.get(f'{VK_API_URL}/{method}', params=payload, timeout=8)
+    return resp.json()
+
+
+def check_vk_activity(vk_link: str, owner_id: int, post_id: int, group_id: int, token: str) -> Dict[str, Any]:
+    '''Проверяет лайк, репост и подписку на сообщество для одного участника по ссылке ВК'''
+    result = {'vk_resolved': False, 'vk_user_id': None, 'liked': False, 'reposted': False, 'subscribed': False}
+    screen_name = vk_extract_screen_name(vk_link)
+    if not screen_name:
+        return result
+    resolved = vk_call('utils.resolveScreenName', {'screen_name': screen_name}, token)
+    resp = resolved.get('response') or {}
+    if resp.get('type') != 'user':
+        return result
+    uid = resp.get('object_id')
+    if not uid:
+        return result
+    result['vk_resolved'] = True
+    result['vk_user_id'] = uid
+
+    like_check = vk_call('likes.isLiked', {'type': 'post', 'owner_id': owner_id, 'item_id': post_id, 'user_id': uid}, token)
+    like_resp = like_check.get('response') or {}
+    result['liked'] = bool(like_resp.get('liked'))
+    result['reposted'] = bool(like_resp.get('copied'))
+
+    member_check = vk_call('groups.isMember', {'group_id': group_id, 'user_id': uid}, token)
+    result['subscribed'] = bool(member_check.get('response'))
+
+    return result
+
+
+def send_push_notification(push_token: str, title: str, body: str, data: dict = None) -> None:
+    '''Отправляет push-уведомление через Expo Push Service одному пользователю'''
+    if not push_token:
+        return
+    message = {'to': push_token, 'title': title, 'body': body}
+    if data:
+        message['data'] = data
+    try:
+        resp = requests.post(
+            EXPO_PUSH_URL,
+            headers={'Content-Type': 'application/json', 'Accept': 'application/json'},
+            json=message,
+            timeout=10,
+        )
+        result = resp.json()
+        ticket = result.get('data', {})
+        if isinstance(ticket, dict) and ticket.get('status') == 'error':
+            print(f"[PUSH ERROR] token={push_token} error={ticket.get('message')} details={ticket.get('details')}")
+    except Exception as e:
+        print(f"[PUSH EXCEPTION] token={push_token} error={e}")
 
 def get_db_connection():
     '''Создает подключение к базе данных'''
@@ -63,6 +143,48 @@ def send_application_received_email(to_email: str, full_name: str, contest_title
             server.ehlo()
             server.login(smtp_user, smtp_password)
             server.sendmail(smtp_user, to_email, msg.as_string())
+
+
+def send_vk_reject_email(to_email: str, full_name: str, contest_title: str, reason_text: str) -> None:
+    '''Отправляет участнику письмо об автоматическом отклонении заявки по итогам проверки ВК'''
+    smtp_host = os.environ.get('SMTP_HOST')
+    smtp_port = os.environ.get('SMTP_PORT')
+    smtp_user = os.environ.get('SMTP_USER')
+    smtp_password = os.environ.get('SMTP_PASSWORD')
+    if not all([smtp_host, smtp_port, smtp_user, smtp_password, to_email]):
+        return
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = Header(f'Заявка на конкурс «{contest_title}» отклонена — ИНДИГО', 'utf-8')
+    msg['From'] = smtp_user
+    msg['To'] = to_email
+
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color: #dc2626;">Заявка отклонена</h2>
+      <p>Здравствуйте, {full_name}!</p>
+      <p>Ваша заявка на участие в конкурсе «<b>{contest_title}</b>» была автоматически отклонена: {reason_text}.</p>
+      <p>Пожалуйста, выполните условия участия и подайте заявку заново из <a href="{CABINET_URL}" style="color:#6d28d9;">личного кабинета участника</a>.</p>
+      <p style="color:#6b7280; font-size: 14px; margin-top: 24px;">
+        Если у вас есть вопросы, напишите нам в чат поддержки личного кабинета
+        или на почту <a href="mailto:{SUPPORT_EMAIL}" style="color:#6d28d9;">{SUPPORT_EMAIL}</a>.
+      </p>
+    </div>
+    """
+    msg.attach(MIMEText(html, 'html'))
+
+    if int(smtp_port) == 465:
+        with smtplib.SMTP_SSL(smtp_host, int(smtp_port)) as server:
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, to_email, msg.as_string())
+    else:
+        with smtplib.SMTP(smtp_host, int(smtp_port)) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, to_email, msg.as_string())
+
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
@@ -318,21 +440,96 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     (participant_id, contest_id, category, performance_title, participation_format, nomination, nomination_id, experience, achievements, additional_info, json.dumps(custom_fields))
                 )
                 application = cur.fetchone()
-                
+
                 conn.commit()
-                
+
                 try:
                     send_application_received_email(email, full_name, contest_title)
                 except Exception as email_err:
                     print(f'[EMAIL ERROR] {email_err}')
-                
+
+                final_status = application['status']
+
+                # Если для конкурса задан пост ВК — сразу проверяем лайк/репост/подписку
+                try:
+                    cur.execute('SELECT owner_id, post_id FROM vk_check_posts WHERE contest_id = %s', (contest_id,))
+                    vk_post = cur.fetchone()
+                    vk_token = os.environ.get('VK_USER_TOKEN')
+                    if vk_post and vk_token:
+                        cur.execute('SELECT vk_link, push_token FROM participants WHERE id = %s', (participant_id,))
+                        participant_row = cur.fetchone() or {}
+                        vk_link = participant_row.get('vk_link') or ''
+                        push_token = participant_row.get('push_token')
+
+                        check = check_vk_activity(vk_link, vk_post['owner_id'], vk_post['post_id'], abs(vk_post['owner_id']), vk_token)
+
+                        cur.execute(
+                            '''
+                            INSERT INTO vk_check_results (contest_id, application_id, vk_user_id, vk_resolved, liked, reposted, commented, subscribed, checked_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                            ON CONFLICT (contest_id, application_id) DO UPDATE SET
+                                vk_user_id = EXCLUDED.vk_user_id, vk_resolved = EXCLUDED.vk_resolved,
+                                liked = EXCLUDED.liked, reposted = EXCLUDED.reposted,
+                                subscribed = EXCLUDED.subscribed, checked_at = CURRENT_TIMESTAMP
+                            ''',
+                            (contest_id, application['id'], check['vk_user_id'], check['vk_resolved'], check['liked'], check['reposted'], False, check['subscribed'])
+                        )
+
+                        if not (check['vk_resolved'] and check['liked'] and check['reposted'] and check['subscribed']):
+                            reasons = []
+                            if not check['vk_resolved']:
+                                reasons.append('не удалось найти профиль ВК по указанной ссылке')
+                            else:
+                                if not check['liked']:
+                                    reasons.append('не поставлен лайк на пост')
+                                if not check['reposted']:
+                                    reasons.append('не сделан репост поста')
+                                if not check['subscribed']:
+                                    reasons.append('нет подписки на сообщество')
+                            reason_text = '; '.join(reasons)
+                            comment = f'Автоматический отказ по итогам проверки ВК: {reason_text}.'
+
+                            cur.execute(
+                                "UPDATE applications SET status = 'rejected', admin_comment = %s WHERE id = %s",
+                                (comment, application['id'])
+                            )
+                            conn.commit()
+                            final_status = 'rejected'
+
+                            chat_text = f'Заявка на «{contest_title}» автоматически отклонена: {reason_text}. Пожалуйста, выполните условия и подайте заявку повторно.'
+                            try:
+                                cur.execute(
+                                    "INSERT INTO chat_messages (participant_id, sender, message) VALUES (%s, 'admin', %s)",
+                                    (participant_id, chat_text)
+                                )
+                                conn.commit()
+                            except Exception as chat_err:
+                                print(f'[VK CHECK CHAT ERROR] {chat_err}')
+
+                            try:
+                                send_vk_reject_email(email, full_name, contest_title, reason_text)
+                            except Exception as reject_email_err:
+                                print(f'[VK CHECK EMAIL ERROR] {reject_email_err}')
+
+                            try:
+                                send_push_notification(
+                                    push_token,
+                                    'Заявка отклонена',
+                                    f'Заявка на «{contest_title}» отклонена по итогам проверки ВК',
+                                    {'screen': 'MyApplications', 'applicationId': application['id'], 'contestId': contest_id}
+                                )
+                            except Exception as push_err:
+                                print(f'[VK CHECK PUSH ERROR] {push_err}')
+                except Exception as vk_check_err:
+                    print(f'[VK CHECK ERROR] {vk_check_err}')
+
                 return {
                     'statusCode': 200,
                     'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'},
                     'body': json.dumps({
                         'success': True,
                         'applicationId': application['id'],
-                        'status': application['status'],
+                        'status': final_status,
                         'submittedAt': application['submitted_at'].isoformat(),
                         'message': 'Заявка успешно отправлена!'
                     }),
