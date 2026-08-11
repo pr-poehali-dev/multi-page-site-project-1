@@ -7,6 +7,7 @@ import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { adminHeaders } from '@/config/adminApi';
+import { isValidVkLink, VK_LINK_ERROR_MESSAGE } from '@/lib/vkValidation';
 
 const API = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
 
@@ -42,6 +43,9 @@ const ParticipantsTab = () => {
   const [msgText, setMsgText] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [editingVkId, setEditingVkId] = useState<number | null>(null);
+  const [vkDraft, setVkDraft] = useState('');
+  const [savingVk, setSavingVk] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const loadParticipants = async () => {
@@ -90,6 +94,41 @@ const ParticipantsTab = () => {
       }
     } catch { toast({ title: 'Ошибка отправки', variant: 'destructive' }); }
     finally { setSendingMsg(false); }
+  };
+
+  const startEditVk = (p: Participant) => {
+    setEditingVkId(p.id);
+    setVkDraft(p.vk_link || '');
+  };
+
+  const cancelEditVk = () => {
+    setEditingVkId(null);
+    setVkDraft('');
+  };
+
+  const saveVkLink = async (p: Participant) => {
+    const trimmed = vkDraft.trim();
+    if (trimmed && !isValidVkLink(trimmed)) {
+      toast({ title: 'Неверная ссылка на ВК', description: VK_LINK_ERROR_MESSAGE, variant: 'destructive' });
+      return;
+    }
+    setSavingVk(true);
+    try {
+      const res = await fetch(`${API}?action=update_vk_link&id=${p.id}`, {
+        method: 'PUT',
+        headers: adminHeaders(),
+        body: JSON.stringify({ vk_link: trimmed }),
+      });
+      if (!res.ok) throw new Error();
+      setParticipants(ps => ps.map(x => x.id === p.id ? { ...x, vk_link: trimmed } : x));
+      toast({ title: 'Ссылка ВК обновлена' });
+      setEditingVkId(null);
+      setVkDraft('');
+    } catch {
+      toast({ title: 'Ошибка сохранения', variant: 'destructive' });
+    } finally {
+      setSavingVk(false);
+    }
   };
 
   const deleteParticipant = async (p: Participant) => {
@@ -239,13 +278,52 @@ const ParticipantsTab = () => {
                   <div className="min-w-0">
                     <p className="font-semibold truncate">{p.full_name || '—'}</p>
                     <p className="text-sm text-muted-foreground truncate">{p.email || '—'}</p>
-                    <div className="flex gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
+                    <div className="flex gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap items-center">
                       {p.phone && <span>{p.phone}</span>}
                       {p.contact_position && <span>{p.contact_position}</span>}
                       {p.city && <span>{p.city}</span>}
                       {p.created_at && <span>Рег.: {new Date(p.created_at).toLocaleDateString('ru-RU')}</span>}
                       {p.applications_count > 0 && <span>Заявок: {p.applications_count}</span>}
                     </div>
+
+                    {editingVkId === p.id ? (
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <Input
+                          value={vkDraft}
+                          onChange={e => setVkDraft(e.target.value)}
+                          placeholder="https://vk.com/username"
+                          className="h-8 text-xs max-w-xs"
+                          autoFocus
+                          onKeyDown={e => e.key === 'Enter' && saveVkLink(p)}
+                          disabled={savingVk}
+                        />
+                        <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => saveVkLink(p)} disabled={savingVk}>
+                          {savingVk ? <Icon name="Loader2" size={14} className="animate-spin" /> : <Icon name="Check" size={14} className="text-green-600" />}
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-8 px-2" onClick={cancelEditVk} disabled={savingVk}>
+                          <Icon name="X" size={14} />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <Icon name="Link" size={12} className="text-muted-foreground shrink-0" />
+                        {p.vk_link ? (
+                          <a
+                            href={p.vk_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-secondary hover:underline truncate max-w-[240px]"
+                          >
+                            {p.vk_link}
+                          </a>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">ссылка ВК не указана</span>
+                        )}
+                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => startEditVk(p)}>
+                          <Icon name="Pencil" size={11} className="text-muted-foreground" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">

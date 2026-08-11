@@ -66,6 +66,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     PUT ?action=mark_notification_read&id=X - пометить уведомление прочитанным (требует Authorization: Bearer <session_token>)
     PUT ?action=read&participant_id=X - пометить прочитанными
     PUT ?action=delete&id=X - удалить участника (требует X-Api-Key)
+    PUT ?action=update_vk_link&id=X - обновить ссылку ВК участника (body: {vk_link}) (требует X-Api-Key)
     GET ?email=xxx - получить заявки по email (legacy)
     '''
     method: str = event.get('httpMethod', 'GET')
@@ -315,6 +316,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 with conn.cursor() as cur:
                     cur.execute(f"UPDATE {SCHEMA}.chat_messages SET is_read = TRUE WHERE participant_id = %s AND sender = %s", (pid, sender_to_mark))
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True}), 'isBase64Encoded': False}
+            elif action == 'update_vk_link':
+                if not check_admin_key(event):
+                    return {'statusCode': 401, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется X-Api-Key'}), 'isBase64Encoded': False}
+                pid = params.get('id')
+                if not pid:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Укажите id'}), 'isBase64Encoded': False}
+                body_data = json.loads(event.get('body') or '{}')
+                vk_link = (body_data.get('vk_link') or '').strip()
+                with conn.cursor() as cur:
+                    cur.execute(f'UPDATE {SCHEMA}.participants SET vk_link = %s WHERE id = %s', (vk_link, pid))
+                    if cur.rowcount == 0:
+                        return {'statusCode': 404, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Участник не найден'}), 'isBase64Encoded': False}
+                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True, 'vk_link': vk_link}), 'isBase64Encoded': False}
             elif action == 'mark_notification_read':
                 pid = get_participant_id_by_session(conn, event)
                 if not pid:
