@@ -22,7 +22,7 @@ SUPPORT_EMAIL = 'indigo_fest@mail.ru'
 EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send'
 VK_API_URL = 'https://api.vk.com/method'
 VK_VERSION = '5.199'
-VK_CHUNK_SIZE = 12
+VK_CHUNK_SIZE = 8  # 3 API-вызова на участника (resolve + likes.isLiked + groups.isMember) => 24 <= 25 лимит execute
 
 STATUS_LABELS = {
     'approved': 'одобрена',
@@ -330,6 +330,10 @@ def handle_vk_check(event: Dict[str, Any], conn) -> Dict[str, Any]:
                 continue
             code = vk_build_check_code(screen_names, owner_id, post_id, group_id)
             exec_result = vk_execute(code, token)
+            if 'error' in exec_result:
+                print(f'[VK ERROR] run_check chunk_error={exec_result["error"]}')
+                time.sleep(0.5)
+                continue
             response = exec_result.get('response', [])
             for p, r in zip(valid_chunk, response):
                 uid = r.get('user_id', 0)
