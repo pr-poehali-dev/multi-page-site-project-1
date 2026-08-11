@@ -9,13 +9,14 @@ from typing import Dict, Any
 EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send'
 
 
-def broadcast_push_notification(conn, title: str, body: str, data: dict = None) -> None:
-    '''Рассылает push-уведомление всем участникам с сохранённым push-токеном (пачками по 100)'''
+def broadcast_push_notification(conn, title: str, body: str, data: dict = None) -> int:
+    '''Рассылает push-уведомление всем участникам с сохранённым push-токеном (пачками по 100). Возвращает кол-во токенов, которым отправлено.'''
     with conn.cursor() as cur:
         cur.execute("SELECT push_token FROM participants WHERE push_token IS NOT NULL AND push_token != ''")
         tokens = [row[0] for row in cur.fetchall()]
     if not tokens:
-        return
+        return 0
+    sent_count = 0
     chunk_size = 100
     for i in range(0, len(tokens), chunk_size):
         chunk = tokens[i:i + chunk_size]
@@ -32,9 +33,38 @@ def broadcast_push_notification(conn, title: str, body: str, data: dict = None) 
             for token, ticket in zip(chunk, tickets if isinstance(tickets, list) else []):
                 if isinstance(ticket, dict) and ticket.get('status') == 'error':
                     print(f"[PUSH ERROR] token={token} error={ticket.get('message')} details={ticket.get('details')}")
+                else:
+                    sent_count += 1
             print(f"[PUSH BATCH] sent={len(chunk)} response={result}")
         except Exception as e:
             print(f"[PUSH EXCEPTION] batch_size={len(chunk)} error={e}")
+    return sent_count
+
+
+def send_push_action(conn, event: Dict[str, Any]) -> Dict[str, Any]:
+    '''Отправка push-уведомления всем участникам из админки (POST action=send_push)'''
+    body = json.loads(event.get('body', '{}'))
+    title = (body.get('title') or '').strip()
+    text = (body.get('body') or '').strip()
+    contest_id = body.get('contest_id')
+    if not title or not text:
+        return {
+            'statusCode': 400,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'Заполните заголовок и текст уведомления'}),
+            'isBase64Encoded': False
+        }
+    data = {'screen': 'FestivalDetail', 'contestId': int(contest_id)} if contest_id else None
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM participants WHERE push_token IS NOT NULL AND push_token != ''")
+        total = cur.fetchone()[0]
+    sent = broadcast_push_notification(conn, title, text, data)
+    return {
+        'statusCode': 200,
+        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+        'body': json.dumps({'sent': sent, 'total': total}),
+        'isBase64Encoded': False
+    }
 
 
 def check_api_key(event: Dict[str, Any]) -> bool:
@@ -113,6 +143,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return assign_template(conn, event)
         elif action == 'contest_form' and method == 'GET':
             return get_contest_form(conn, params.get('contest_id'))
+        elif action == 'send_push' and method == 'POST':
+            return send_push_action(conn, event)
 
         elif method == 'GET':
             return get_contests(conn)

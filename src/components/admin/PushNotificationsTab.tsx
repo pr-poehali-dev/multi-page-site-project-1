@@ -10,7 +10,6 @@ import { adminHeaders } from '@/config/adminApi';
 
 const AUTH_URL = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
 const CONTESTS_URL = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
-const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
 interface Contest {
   id: number;
@@ -62,39 +61,28 @@ const PushNotificationsTab = () => {
     }
     setSending(true);
     try {
-      const tokensRes = await fetch(`${AUTH_URL}?action=list_push_tokens`, { headers: adminHeaders() });
-      const tokensData = await tokensRes.json();
-      const tokens: string[] = tokensData.tokens || [];
+      const res = await fetch(`${CONTESTS_URL}?action=send_push`, {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify({
+          title: title.trim(),
+          body: body.trim(),
+          contest_id: selectedContestId !== 'none' ? Number(selectedContestId) : undefined,
+        }),
+      });
+      const data = await res.json();
 
-      if (tokens.length === 0) {
-        toast({ title: 'Нет ни одного участника с включёнными уведомлениями', variant: 'destructive' });
-        setSending(false);
+      if (!res.ok) {
+        toast({ title: 'Ошибка отправки', description: data.error || 'Не удалось разослать уведомление', variant: 'destructive' });
         return;
       }
 
-      const pushData = selectedContestId !== 'none'
-        ? { screen: 'FestivalDetail', contestId: Number(selectedContestId) }
-        : undefined;
-
-      const chunkSize = 100;
-      let sentCount = 0;
-      for (let i = 0; i < tokens.length; i += chunkSize) {
-        const chunk = tokens.slice(i, i + chunkSize);
-        const messages = chunk.map(token => ({
-          to: token,
-          title: title.trim(),
-          body: body.trim(),
-          ...(pushData ? { data: pushData } : {}),
-        }));
-        const res = await fetch(EXPO_PUSH_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify(messages),
-        });
-        if (res.ok) sentCount += chunk.length;
+      if (data.total === 0) {
+        toast({ title: 'Нет ни одного участника с включёнными уведомлениями', variant: 'destructive' });
+        return;
       }
 
-      toast({ title: 'Уведомление отправлено', description: `Разослано ${sentCount} из ${tokens.length} участникам` });
+      toast({ title: 'Уведомление отправлено', description: `Разослано ${data.sent} из ${data.total} участникам` });
       setTitle('');
       setBody('');
       setSelectedContestId('none');
