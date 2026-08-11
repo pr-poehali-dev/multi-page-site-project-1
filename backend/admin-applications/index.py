@@ -270,7 +270,6 @@ def handle_vk_check(event: Dict[str, Any], conn) -> Dict[str, Any]:
         token = os.environ.get('VK_USER_TOKEN')
         if not token:
             return {'statusCode': 500, 'headers': cors, 'body': json.dumps({'error': 'VK_USER_TOKEN не настроен'}), 'isBase64Encoded': False}
-        print(f'[VK DEBUG] token_len={len(token)} token_prefix={token[:10]} token_suffix={token[-5:]}')
 
         check = vk_call('wall.getComments', {'owner_id': parsed['owner_id'], 'post_id': parsed['post_id'], 'count': 1}, token)
         if 'error' in check:
