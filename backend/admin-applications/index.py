@@ -267,9 +267,9 @@ def handle_vk_check(event: Dict[str, Any], conn) -> Dict[str, Any]:
         if not parsed:
             return {'statusCode': 400, 'headers': cors, 'body': json.dumps({'error': 'Не удалось распознать ссылку. Формат: https://vk.com/wall-123456_789'}), 'isBase64Encoded': False}
 
-        token = os.environ.get('VK_SERVICE_TOKEN')
+        token = os.environ.get('VK_APP_SERVICE_TOKEN')
         if not token:
-            return {'statusCode': 500, 'headers': cors, 'body': json.dumps({'error': 'VK_SERVICE_TOKEN не настроен'}), 'isBase64Encoded': False}
+            return {'statusCode': 500, 'headers': cors, 'body': json.dumps({'error': 'VK_APP_SERVICE_TOKEN не настроен'}), 'isBase64Encoded': False}
 
         check = vk_call('wall.getComments', {'owner_id': parsed['owner_id'], 'post_id': parsed['post_id'], 'count': 1}, token)
         if 'error' in check:
@@ -292,9 +292,9 @@ def handle_vk_check(event: Dict[str, Any], conn) -> Dict[str, Any]:
         if not contest_id:
             return {'statusCode': 400, 'headers': cors, 'body': json.dumps({'error': 'contest_id обязателен'}), 'isBase64Encoded': False}
 
-        token = os.environ.get('VK_SERVICE_TOKEN')
+        token = os.environ.get('VK_APP_SERVICE_TOKEN')
         if not token:
-            return {'statusCode': 500, 'headers': cors, 'body': json.dumps({'error': 'VK_SERVICE_TOKEN не настроен'}), 'isBase64Encoded': False}
+            return {'statusCode': 500, 'headers': cors, 'body': json.dumps({'error': 'VK_APP_SERVICE_TOKEN не настроен'}), 'isBase64Encoded': False}
 
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(f'SELECT owner_id, post_id FROM {SCHEMA}.vk_check_posts WHERE contest_id = %s', (int(contest_id),))
