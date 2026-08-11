@@ -1,0 +1,2 @@
+ALTER TABLE t_p73771717_multi_page_site_proj.vk_check_results
+    DROP CONSTRAINT vk_check_results_application_id_fkey;

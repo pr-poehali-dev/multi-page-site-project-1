@@ -1040,12 +1040,36 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'isBase64Encoded': False
                 }
             
-            with conn.cursor() as cur:
-                # Сначала удаляем связанные файлы
-                cur.execute('DELETE FROM application_files WHERE application_id = %s', (app_id,))
-                # Затем удаляем саму заявку
-                cur.execute('DELETE FROM applications WHERE id = %s', (app_id,))
-            
+            try:
+                with conn.cursor() as cur:
+                    # Удаляем все записи, ссылающиеся на заявку, в правильном порядке
+                    cur.execute(f'SELECT id FROM {SCHEMA}.contest_program WHERE application_id = %s', (app_id,))
+                    program_rows = [r[0] for r in cur.fetchall()]
+                    if program_rows:
+                        cur.execute(f'DELETE FROM {SCHEMA}.program_criteria_scores WHERE program_row_id = ANY(%s)', (program_rows,))
+                        cur.execute(f'DELETE FROM {SCHEMA}.contest_program WHERE application_id = %s', (app_id,))
+
+                    cur.execute(f'DELETE FROM {SCHEMA}.vk_check_results WHERE application_id = %s', (app_id,))
+                    cur.execute(f'DELETE FROM {SCHEMA}.application_files WHERE application_id = %s', (app_id,))
+                    cur.execute(f'DELETE FROM {SCHEMA}.applications WHERE id = %s', (app_id,))
+                    deleted = cur.rowcount
+            except Exception as delete_err:
+                print(f'[DELETE APPLICATION ERROR] app_id={app_id} error={delete_err}')
+                return {
+                    'statusCode': 500,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': f'Не удалось удалить заявку: {delete_err}'}),
+                    'isBase64Encoded': False
+                }
+
+            if deleted == 0:
+                return {
+                    'statusCode': 404,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Заявка не найдена'}),
+                    'isBase64Encoded': False
+                }
+
             return {
                 'statusCode': 200,
                 'headers': {
