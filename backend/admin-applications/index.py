@@ -697,12 +697,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
             try:
                 status_label = STATUS_LABELS.get(new_status, new_status)
+                push_title = 'Статус заявки изменён'
+                push_body = f"Заявка на «{application['contest_title']}» {status_label}"
                 send_push_notification(
                     application.get('push_token'),
-                    'Статус заявки изменён',
-                    f"Заявка на «{application['contest_title']}» {status_label}",
+                    push_title,
+                    push_body,
                     {'screen': 'MyApplications', 'applicationId': app_id, 'contestId': application['contest_id']}
                 )
+                with conn.cursor() as ncur:
+                    ncur.execute(
+                        f'INSERT INTO {SCHEMA}.notifications (title, body, contest_id, participant_id) VALUES (%s, %s, %s, %s)',
+                        (push_title, push_body, application['contest_id'], application.get('participant_id'))
+                    )
             except Exception as push_err:
                 print(f'[PUSH ERROR] {push_err}')
             

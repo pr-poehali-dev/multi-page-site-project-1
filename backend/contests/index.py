@@ -54,10 +54,15 @@ def send_push_action(conn, event: Dict[str, Any]) -> Dict[str, Any]:
             'body': json.dumps({'error': 'Заполните заголовок и текст уведомления'}),
             'isBase64Encoded': False
         }
-    data = {'screen': 'FestivalDetail', 'contestId': int(contest_id)} if contest_id else None
+    contest_id_int = int(contest_id) if contest_id else None
+    data = {'screen': 'FestivalDetail', 'contestId': contest_id_int} if contest_id_int else None
     with conn.cursor() as cur:
         cur.execute("SELECT COUNT(*) FROM participants WHERE push_token IS NOT NULL AND push_token != ''")
         total = cur.fetchone()[0]
+        cur.execute(
+            "INSERT INTO notifications (title, body, contest_id) VALUES (%s, %s, %s)",
+            (title, text, contest_id_int)
+        )
     sent = broadcast_push_notification(conn, title, text, data)
     return {
         'statusCode': 200,

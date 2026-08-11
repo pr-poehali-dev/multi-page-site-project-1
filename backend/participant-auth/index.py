@@ -62,6 +62,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     POST ?action=send - отправить сообщение (body: {participant_id, message, sender})
     POST ?action=save_push_token - сохранить Expo push-токен участника (требует Authorization: Bearer <session_token>)
     GET ?action=list_push_tokens - список всех push-токенов для рассылки (требует X-Api-Key)
+    GET ?action=notifications - история push-уведомлений участника (требует Authorization: Bearer <session_token>)
+    PUT ?action=mark_notification_read&id=X - пометить уведомление прочитанным (требует Authorization: Bearer <session_token>)
     PUT ?action=read&participant_id=X - пометить прочитанными
     PUT ?action=delete&id=X - удалить участника (требует X-Api-Key)
     GET ?email=xxx - получить заявки по email (legacy)
@@ -313,6 +315,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 with conn.cursor() as cur:
                     cur.execute(f"UPDATE {SCHEMA}.chat_messages SET is_read = TRUE WHERE participant_id = %s AND sender = %s", (pid, sender_to_mark))
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True}), 'isBase64Encoded': False}
+            elif action == 'mark_notification_read':
+                pid = get_participant_id_by_session(conn, event)
+                if not pid:
+                    return {'statusCode': 401, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется авторизация'}), 'isBase64Encoded': False}
+                notification_id = params.get('id')
+                if not notification_id:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Укажите id'}), 'isBase64Encoded': False}
+                with conn.cursor() as cur:
+                    cur.execute(
+                        f'INSERT INTO {SCHEMA}.notification_reads (notification_id, participant_id) VALUES (%s, %s) ON CONFLICT DO NOTHING',
+                        (notification_id, pid)
+                    )
+                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True}), 'isBase64Encoded': False}
             return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Неизвестное действие'}), 'isBase64Encoded': False}
 
         elif method == 'GET':
@@ -347,6 +362,26 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     cur.execute(f"SELECT push_token FROM {SCHEMA}.participants WHERE push_token IS NOT NULL AND push_token != ''")
                     tokens = [r[0] for r in cur.fetchall()]
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'tokens': tokens}), 'isBase64Encoded': False}
+
+            # История push-уведомлений участника (общая рассылка + персональные по его заявкам)
+            elif action == 'notifications':
+                pid = get_participant_id_by_session(conn, event)
+                if not pid:
+                    return {'statusCode': 401, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется авторизация'}), 'isBase64Encoded': False}
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(f'''
+                        SELECT n.id, n.title, n.body, n.contest_id, n.created_at,
+                               (nr.participant_id IS NOT NULL) AS is_read
+                        FROM {SCHEMA}.notifications n
+                        LEFT JOIN {SCHEMA}.notification_reads nr ON nr.notification_id = n.id AND nr.participant_id = %s
+                        WHERE n.participant_id IS NULL OR n.participant_id = %s
+                        ORDER BY n.created_at DESC
+                        LIMIT 50
+                    ''', (pid, pid))
+                    rows = cur.fetchall()
+                    for r in rows:
+                        if r.get('created_at'): r['created_at'] = r['created_at'].isoformat()
+                    return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'notifications': [dict(r) for r in rows]}), 'isBase64Encoded': False}
 
             # Количество непрочитанных сообщений от организаторов для участника
             elif action == 'unread':
