@@ -33,12 +33,21 @@ def send_push_notification(push_token: str, title: str, body: str, data: dict = 
     message = {'to': push_token, 'title': title, 'body': body}
     if data:
         message['data'] = data
-    requests.post(
-        EXPO_PUSH_URL,
-        headers={'Content-Type': 'application/json', 'Accept': 'application/json'},
-        json=message,
-        timeout=10,
-    )
+    try:
+        resp = requests.post(
+            EXPO_PUSH_URL,
+            headers={'Content-Type': 'application/json', 'Accept': 'application/json'},
+            json=message,
+            timeout=10,
+        )
+        result = resp.json()
+        ticket = result.get('data', {})
+        if isinstance(ticket, dict) and ticket.get('status') == 'error':
+            print(f"[PUSH ERROR] token={push_token} error={ticket.get('message')} details={ticket.get('details')}")
+        else:
+            print(f"[PUSH OK] token={push_token} response={result}")
+    except Exception as e:
+        print(f"[PUSH EXCEPTION] token={push_token} error={e}")
 
 
 def send_status_update_email(to_email: str, full_name: str, contest_title: str, new_status: str, admin_comment: str = '') -> None:

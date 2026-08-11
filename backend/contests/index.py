@@ -20,12 +20,21 @@ def broadcast_push_notification(conn, title: str, body: str, data: dict = None) 
     for i in range(0, len(tokens), chunk_size):
         chunk = tokens[i:i + chunk_size]
         messages = [{'to': token, 'title': title, 'body': body, **({'data': data} if data else {})} for token in chunk]
-        requests.post(
-            EXPO_PUSH_URL,
-            headers={'Content-Type': 'application/json', 'Accept': 'application/json'},
-            json=messages,
-            timeout=10,
-        )
+        try:
+            resp = requests.post(
+                EXPO_PUSH_URL,
+                headers={'Content-Type': 'application/json', 'Accept': 'application/json'},
+                json=messages,
+                timeout=10,
+            )
+            result = resp.json()
+            tickets = result.get('data', [])
+            for token, ticket in zip(chunk, tickets if isinstance(tickets, list) else []):
+                if isinstance(ticket, dict) and ticket.get('status') == 'error':
+                    print(f"[PUSH ERROR] token={token} error={ticket.get('message')} details={ticket.get('details')}")
+            print(f"[PUSH BATCH] sent={len(chunk)} response={result}")
+        except Exception as e:
+            print(f"[PUSH EXCEPTION] batch_size={len(chunk)} error={e}")
 
 
 def check_api_key(event: Dict[str, Any]) -> bool:
