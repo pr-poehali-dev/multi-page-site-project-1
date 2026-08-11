@@ -79,7 +79,7 @@ const RegisterStepPersonal = <T extends PersonalData,>({ formData, setFormData }
 
       <div>
         <label className="block text-sm font-medium mb-2">
-          Ссылка на страницу в ВК <span className="text-destructive">*</span>
+          Ссылка на личную страницу в ВК <span className="text-destructive">*</span>
         </label>
         <Input
           type="url"
