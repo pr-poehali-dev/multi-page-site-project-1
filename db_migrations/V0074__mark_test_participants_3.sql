@@ -1,0 +1,1 @@
+UPDATE t_p73771717_multi_page_site_proj.participants SET full_name = '[test]', password_hash = NULL WHERE email IN ('test_group_link@test.local', 'test_group_link2@test.local', 'test_user_profile@test.local');

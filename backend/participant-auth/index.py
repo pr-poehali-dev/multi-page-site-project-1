@@ -5,15 +5,57 @@ import secrets
 from datetime import datetime, timedelta
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import hashlib
+import requests
 
 VK_LINK_REGEX = re.compile(r'^https?://(www\.)?(vk\.com|vk\.ru|vkontakte\.ru)/[a-zA-Z0-9_.]{2,}$')
+VK_API_URL = 'https://api.vk.com/method'
+VK_VERSION = '5.199'
 
 
 def is_valid_vk_link(value: str) -> bool:
     '''Проверяет корректность формата ссылки на профиль ВК'''
     return bool(value) and bool(VK_LINK_REGEX.match(value.strip()))
+
+
+def extract_vk_screen_name(vk_link: str) -> Optional[str]:
+    '''Извлекает screen_name из ссылки на профиль ВК'''
+    match = re.search(r'(?:vk\.com|vk\.ru|vkontakte\.ru)/([a-zA-Z0-9_.]+)', vk_link or '')
+    if not match:
+        return None
+    return match.group(1).split('?')[0].split('&')[0]
+
+
+def check_vk_link_is_user(vk_link: str) -> Optional[str]:
+    '''
+    Проверяет через VK API, что ссылка ведёт на личный профиль пользователя, а не на группу/сообщество.
+    Возвращает None если всё ок, иначе — текст ошибки для пользователя.
+    Если токен не настроен или VK API недоступен — проверка пропускается (не блокирует регистрацию).
+    '''
+    token = os.environ.get('VK_USER_TOKEN')
+    if not token:
+        return None
+    screen_name = extract_vk_screen_name(vk_link)
+    if not screen_name:
+        return None
+    try:
+        resp = requests.get(
+            f'{VK_API_URL}/utils.resolveScreenName',
+            params={'screen_name': screen_name, 'access_token': token, 'v': VK_VERSION},
+            timeout=6,
+        )
+        data = resp.json().get('response')
+    except Exception:
+        return None
+    if not data:
+        return 'Не удалось найти такую страницу ВК. Проверьте правильность ссылки'
+    obj_type = data.get('type')
+    if obj_type == 'group':
+        return 'Это ссылка на группу/сообщество ВК. Укажите ссылку на вашу личную страницу'
+    if obj_type != 'user':
+        return 'Ссылка должна вести на личную страницу ВК, а не на другой объект'
+    return None
 
 
 def hash_password(password: str) -> str:
@@ -127,6 +169,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Заполните все поля'}), 'isBase64Encoded': False}
                 if not is_valid_vk_link(vk_link):
                     return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Введите корректную ссылку на профиль ВК, например: https://vk.com/username'}), 'isBase64Encoded': False}
+                vk_check_error = check_vk_link_is_user(vk_link)
+                if vk_check_error:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': vk_check_error}), 'isBase64Encoded': False}
                 if len(password) < 6:
                     return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Пароль должен содержать минимум 6 символов'}), 'isBase64Encoded': False}
 
