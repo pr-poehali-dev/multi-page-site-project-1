@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications' | 'vk-check';
 
 interface AdminTabNavigationProps {
   activeTab: TabType;
@@ -149,6 +149,13 @@ const AdminTabNavigation = ({ activeTab, onTabChange, onLogout }: AdminTabNaviga
         >
           <Icon name="Bell" className="mr-2 h-4 w-4" />
           Push-уведомления
+        </Button>
+        <Button
+          variant={activeTab === 'vk-check' ? 'default' : 'outline'}
+          onClick={() => onTabChange('vk-check')}
+        >
+          <Icon name="ThumbsUp" className="mr-2 h-4 w-4" />
+          Проверка ВК
         </Button>
       </div>
     </div>

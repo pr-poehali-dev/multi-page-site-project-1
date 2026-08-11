@@ -15,8 +15,9 @@ import DiplomaTemplatesTab from '@/components/admin/DiplomaTemplatesTab';
 import ReviewsManagementTab from '@/components/admin/ReviewsManagementTab';
 import NewsManagementTab from '@/components/admin/NewsManagementTab';
 import PushNotificationsTab from '@/components/admin/PushNotificationsTab';
+import VkCheckTab from '@/components/admin/VkCheckTab';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications' | 'vk-check';
 
 interface AdminTabContentProps {
   activeTab: TabType;
@@ -267,6 +268,11 @@ const AdminTabContent = ({
     case 'push-notifications':
       return (
         <PushNotificationsTab />
+      );
+
+    case 'vk-check':
+      return (
+        <VkCheckTab contests={contests} />
       );
 
     default:

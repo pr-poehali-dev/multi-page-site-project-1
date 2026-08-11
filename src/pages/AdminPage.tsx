@@ -19,7 +19,7 @@ import { adminHeaders } from '@/config/adminApi';
 const AdminPage = () => {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications' | 'vk-check'>('applications');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [contestFilter, setContestFilter] = useState('all');
@@ -251,6 +251,7 @@ const AdminPage = () => {
       case 'diplomas': return false;
       case 'reviews': return false;
       case 'news': return false;
+      case 'vk-check': return contestsLoading;
       case 'jury': return juryLoading;
       case 'jury-accounts': return juryLoading;
       default: return false;
@@ -259,7 +260,7 @@ const AdminPage = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (activeTab === 'contests' || activeTab === 'scoring' || activeTab === 'gallery' || activeTab === 'program' || activeTab === 'shop' || activeTab === 'form-builder') {
+      if (activeTab === 'contests' || activeTab === 'scoring' || activeTab === 'gallery' || activeTab === 'program' || activeTab === 'shop' || activeTab === 'form-builder' || activeTab === 'vk-check') {
         loadContests();
       }
       if (activeTab === 'concerts') {
