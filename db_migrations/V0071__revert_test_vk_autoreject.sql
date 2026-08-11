@@ -1,0 +1,1 @@
+UPDATE t_p73771717_multi_page_site_proj.applications SET status = 'pending', admin_comment = NULL WHERE id IN (130, 131);

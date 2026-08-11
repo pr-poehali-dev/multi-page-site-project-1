@@ -289,6 +289,8 @@ def handle_vk_check(event: Dict[str, Any], conn) -> Dict[str, Any]:
     if method == 'POST' and action == 'run_check':
         body_data = json.loads(event.get('body') or '{}')
         contest_id = body_data.get('contest_id')
+        auto_reject = bool(body_data.get('auto_reject'))
+        custom_comment = (body_data.get('reject_comment') or '').strip()
         if not contest_id:
             return {'statusCode': 400, 'headers': cors, 'body': json.dumps({'error': 'contest_id обязателен'}), 'isBase64Encoded': False}
 
@@ -307,9 +309,10 @@ def handle_vk_check(event: Dict[str, Any], conn) -> Dict[str, Any]:
 
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(f'''
-                SELECT a.id AS application_id, p.vk_link
+                SELECT a.id AS application_id, a.status, p.vk_link, p.full_name, p.email, p.push_token, c.title AS contest_title
                 FROM {SCHEMA}.applications a
                 JOIN {SCHEMA}.participants p ON p.id = a.participant_id
+                JOIN {SCHEMA}.contests c ON c.id = a.contest_id
                 WHERE a.contest_id = %s AND p.vk_link IS NOT NULL AND p.vk_link != ''
             ''', (int(contest_id),))
             participants = cur.fetchall()
@@ -360,7 +363,58 @@ def handle_vk_check(event: Dict[str, Any], conn) -> Dict[str, Any]:
                         subscribed = EXCLUDED.subscribed, checked_at = CURRENT_TIMESTAMP
                 ''', (int(contest_id), r['application_id'], r['vk_user_id'], r['vk_resolved'], r['liked'], r['reposted'], r['commented'], r['subscribed']))
 
-        return {'statusCode': 200, 'headers': cors, 'body': json.dumps({'success': True, 'checked': len(results), 'total_with_vk_link': len(participants)}), 'isBase64Encoded': False}
+        rejected_count = 0
+        if auto_reject:
+            participants_by_id = {p['application_id']: p for p in participants}
+            with conn.cursor() as cur:
+                for r in results:
+                    if r['vk_resolved'] and r['liked'] and r['reposted'] and r['subscribed']:
+                        continue
+                    reasons = []
+                    if not r['vk_resolved']:
+                        reasons.append('не удалось найти профиль ВК по указанной ссылке')
+                    else:
+                        if not r['liked']:
+                            reasons.append('не поставлен лайк на пост')
+                        if not r['reposted']:
+                            reasons.append('не сделан репост поста')
+                        if not r['subscribed']:
+                            reasons.append('нет подписки на сообщество')
+                    reason_text = '; '.join(reasons)
+                    comment = f'Автоматический отказ по итогам проверки ВК: {reason_text}.'
+                    if custom_comment:
+                        comment += f' {custom_comment}'
+
+                    cur.execute(
+                        f"UPDATE {SCHEMA}.applications SET status = 'rejected', admin_comment = %s WHERE id = %s AND status = 'pending'",
+                        (comment, r['application_id'])
+                    )
+                    if cur.rowcount == 0:
+                        continue
+                    rejected_count += 1
+
+                    p = participants_by_id.get(r['application_id'])
+                    if p:
+                        try:
+                            send_status_update_email(p.get('email'), p.get('full_name'), p.get('contest_title'), 'rejected', comment)
+                        except Exception as email_err:
+                            print(f'[VK AUTO-REJECT EMAIL ERROR] {email_err}')
+                        try:
+                            send_push_notification(
+                                p.get('push_token'),
+                                'Заявка отклонена',
+                                f"Заявка на «{p.get('contest_title')}» отклонена по итогам проверки ВК",
+                                {'screen': 'MyApplications', 'applicationId': r['application_id'], 'contestId': int(contest_id)}
+                            )
+                        except Exception as push_err:
+                            print(f'[VK AUTO-REJECT PUSH ERROR] {push_err}')
+
+        return {'statusCode': 200, 'headers': cors, 'body': json.dumps({
+            'success': True,
+            'checked': len(results),
+            'total_with_vk_link': len(participants),
+            'rejected': rejected_count,
+        }), 'isBase64Encoded': False}
 
     return {'statusCode': 404, 'headers': cors, 'body': json.dumps({'error': 'Неизвестный эндпоинт'}), 'isBase64Encoded': False}
 
@@ -377,7 +431,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     DELETE /gallery/{id} - удалить элемент галереи (требует X-Api-Key)
     GET /?endpoint=vk_check&contest_id=X - получить пост и результаты проверки ВК по конкурсу (требует X-Api-Key)
     POST /?endpoint=vk_check&action=set_post - сохранить ссылку на пост ВК для конкурса (требует X-Api-Key)
-    POST /?endpoint=vk_check&action=run_check - запустить проверку лайков/репостов/комментариев ВК (требует X-Api-Key)
+    POST /?endpoint=vk_check&action=run_check - запустить проверку лайков/репостов/комментариев/подписки ВК, опционально с авто-отклонением (body: {contest_id, auto_reject, reject_comment}) (требует X-Api-Key)
     '''
     method: str = event.get('httpMethod', 'GET')
     

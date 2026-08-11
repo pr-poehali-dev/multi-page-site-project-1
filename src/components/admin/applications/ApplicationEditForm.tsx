@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import Icon from '@/components/ui/icon';
 import { Application, CustomFieldDef } from './applicationTypes';
+import { isValidVkLink, VK_LINK_ERROR_MESSAGE } from '@/lib/vkValidation';
 
 export interface ApplicationEditPayload {
   application_id: number;
@@ -55,6 +56,9 @@ const ApplicationEditForm = ({ app, fieldDefsByContest, saving, onSave, onCancel
   const defs = fieldDefsByContest[app.contest_id] || [];
   const customFieldKeys = Object.keys(app.custom_fields || {});
 
+  const [vkTouched, setVkTouched] = useState(false);
+  const vkError = vkTouched && form.vk_link && !isValidVkLink(form.vk_link);
+
   const setField = (key: keyof typeof form, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
   };
@@ -64,6 +68,10 @@ const ApplicationEditForm = ({ app, fieldDefsByContest, saving, onSave, onCancel
   };
 
   const handleSave = () => {
+    if (form.vk_link && !isValidVkLink(form.vk_link)) {
+      setVkTouched(true);
+      return;
+    }
     onSave({
       application_id: app.id,
       ...form,
@@ -97,7 +105,13 @@ const ApplicationEditForm = ({ app, fieldDefsByContest, saving, onSave, onCancel
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Ссылка ВК</Label>
-          <Input value={form.vk_link} onChange={e => setField('vk_link', e.target.value)} />
+          <Input
+            value={form.vk_link}
+            onChange={e => setField('vk_link', e.target.value)}
+            onBlur={() => setVkTouched(true)}
+            className={vkError ? 'border-destructive' : ''}
+          />
+          {vkError && <p className="text-xs text-destructive">{VK_LINK_ERROR_MESSAGE}</p>}
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Категория</Label>

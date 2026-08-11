@@ -9,6 +9,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSEO } from '@/hooks/useSEO';
 import RegisterStepPersonal from '@/components/register/RegisterStepPersonal';
 import { trackGoal } from '@/lib/analytics';
+import { isValidVkLink, VK_LINK_ERROR_MESSAGE } from '@/lib/vkValidation';
 
 const REGISTER_URL = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
 
@@ -51,6 +52,10 @@ const RegisterPage = () => {
     }
     if (formData.password.length < 6) {
       toast({ title: 'Пароль слишком короткий', description: 'Минимум 6 символов', variant: 'destructive' });
+      return;
+    }
+    if (!isValidVkLink(formData.vkLink)) {
+      toast({ title: 'Неверная ссылка на ВК', description: VK_LINK_ERROR_MESSAGE, variant: 'destructive' });
       return;
     }
 

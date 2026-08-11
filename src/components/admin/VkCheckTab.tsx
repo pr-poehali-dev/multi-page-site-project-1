@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Icon from '@/components/ui/icon';
@@ -59,6 +62,8 @@ const VkCheckTab = ({ contests }: VkCheckTabProps) => {
   const [loading, setLoading] = useState(false);
   const [savingPost, setSavingPost] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [autoReject, setAutoReject] = useState(false);
+  const [rejectComment, setRejectComment] = useState('');
 
   const loadData = useCallback(async (contestId: string) => {
     if (!contestId) {
@@ -117,14 +122,19 @@ const VkCheckTab = ({ contests }: VkCheckTabProps) => {
       const res = await fetch(`${VK_CHECK_URL}&action=run_check`, {
         method: 'POST',
         headers: adminHeaders(),
-        body: JSON.stringify({ contest_id: Number(selectedContestId) }),
+        body: JSON.stringify({
+          contest_id: Number(selectedContestId),
+          auto_reject: autoReject,
+          reject_comment: rejectComment.trim(),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         toast({ title: 'Ошибка', description: data.error || 'Не удалось выполнить проверку', variant: 'destructive' });
         return;
       }
-      toast({ title: 'Проверка завершена', description: `Проверено ${data.checked} из ${data.total_with_vk_link} участников со ссылкой ВК` });
+      const rejectedText = autoReject && typeof data.rejected === 'number' ? `, отклонено заявок: ${data.rejected}` : '';
+      toast({ title: 'Проверка завершена', description: `Проверено ${data.checked} из ${data.total_with_vk_link} участников со ссылкой ВК${rejectedText}` });
       loadData(selectedContestId);
     } catch {
       toast({ title: 'Ошибка', description: 'Не удалось выполнить проверку', variant: 'destructive' });
@@ -178,6 +188,30 @@ const VkCheckTab = ({ contests }: VkCheckTabProps) => {
                   </p>
                 )}
               </div>
+
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+                <div>
+                  <Label htmlFor="auto-reject" className="text-sm font-medium cursor-pointer">
+                    Автоматически отклонять заявки
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Заявки, где не найден лайк, репост или подписка, будут отклонены с автокомментарием о причине
+                  </p>
+                </div>
+                <Switch id="auto-reject" checked={autoReject} onCheckedChange={setAutoReject} />
+              </div>
+
+              {autoReject && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">Комментарий к отказу (необязательно)</label>
+                  <Textarea
+                    value={rejectComment}
+                    onChange={e => setRejectComment(e.target.value)}
+                    placeholder="Например: подайте заявку повторно после выполнения условий"
+                    rows={2}
+                  />
+                </div>
+              )}
 
               <Button
                 onClick={handleRunCheck}

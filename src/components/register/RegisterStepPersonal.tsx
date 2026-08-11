@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { isValidVkLink, VK_LINK_ERROR_MESSAGE } from '@/lib/vkValidation';
 
 type PersonalData = {
   fullName: string;
@@ -16,6 +18,9 @@ interface RegisterStepPersonalProps<T extends PersonalData> {
 }
 
 const RegisterStepPersonal = <T extends PersonalData,>({ formData, setFormData }: RegisterStepPersonalProps<T>) => {
+  const [vkTouched, setVkTouched] = useState(false);
+  const vkError = vkTouched && formData.vkLink && !isValidVkLink(formData.vkLink);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <h2 className="text-2xl font-heading font-bold mb-6">Личные данные</h2>
@@ -81,8 +86,13 @@ const RegisterStepPersonal = <T extends PersonalData,>({ formData, setFormData }
           placeholder="https://vk.com/username"
           value={formData.vkLink}
           onChange={(e) => setFormData({ ...formData, vkLink: e.target.value })}
+          onBlur={() => setVkTouched(true)}
+          className={vkError ? 'border-destructive' : ''}
           required
         />
+        {vkError && (
+          <p className="text-xs text-destructive mt-1">{VK_LINK_ERROR_MESSAGE}</p>
+        )}
       </div>
 
       <div>
