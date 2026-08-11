@@ -1,0 +1,24 @@
+{
+  "tests": [
+    {
+      "name": "Get check status without contest_id",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get check status for contest",
+      "method": "GET",
+      "path": "/?contest_id=1",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "applications": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
