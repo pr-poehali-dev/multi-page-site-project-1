@@ -34,6 +34,16 @@
         "success": true
       },
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "VK check requires contest_id",
+      "method": "GET",
+      "path": "/?endpoint=vk_check",
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
     }
   ]
 }

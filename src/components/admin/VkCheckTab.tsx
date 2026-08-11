@@ -8,7 +8,7 @@ import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { adminHeaders } from '@/config/adminApi';
 
-const VK_CHECK_URL = 'https://functions.poehali.dev/VK_CHECK_FUNCTION_ID';
+const VK_CHECK_URL = 'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?endpoint=vk_check';
 
 interface Contest {
   id: number;
@@ -67,7 +67,7 @@ const VkCheckTab = ({ contests }: VkCheckTabProps) => {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${VK_CHECK_URL}?contest_id=${contestId}`, { headers: adminHeaders() });
+      const res = await fetch(`${VK_CHECK_URL}&contest_id=${contestId}`, { headers: adminHeaders() });
       const data = await res.json();
       setPost(data.post || null);
       setPostUrl(data.post?.post_url || '');
@@ -90,7 +90,7 @@ const VkCheckTab = ({ contests }: VkCheckTabProps) => {
     }
     setSavingPost(true);
     try {
-      const res = await fetch(`${VK_CHECK_URL}?action=set_post`, {
+      const res = await fetch(`${VK_CHECK_URL}&action=set_post`, {
         method: 'POST',
         headers: adminHeaders(),
         body: JSON.stringify({ contest_id: Number(selectedContestId), post_url: postUrl.trim() }),
@@ -113,7 +113,7 @@ const VkCheckTab = ({ contests }: VkCheckTabProps) => {
     if (!selectedContestId) return;
     setChecking(true);
     try {
-      const res = await fetch(`${VK_CHECK_URL}?action=run_check`, {
+      const res = await fetch(`${VK_CHECK_URL}&action=run_check`, {
         method: 'POST',
         headers: adminHeaders(),
         body: JSON.stringify({ contest_id: Number(selectedContestId) }),
