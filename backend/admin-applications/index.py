@@ -146,7 +146,7 @@ def vk_extract_screen_name(vk_link: str) -> Optional[str]:
     if not vk_link:
         return None
     vk_link = vk_link.strip()
-    match = re.search(r'(?:vk\.com|vkontakte\.ru)/([a-zA-Z0-9_.]+)', vk_link)
+    match = re.search(r'(?:vk\.com|vk\.ru|vkontakte\.ru)/([a-zA-Z0-9_.]+)', vk_link)
     name = match.group(1) if match else vk_link.lstrip('@').strip('/')
     name = name.split('?')[0].split('&')[0]
     return name or None
