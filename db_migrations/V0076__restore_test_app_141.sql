@@ -1,0 +1,1 @@
+UPDATE t_p73771717_multi_page_site_proj.applications SET contest_id = 45, status = 'rejected', admin_comment = 'Автоматический отказ по итогам проверки ВК: не удалось найти профиль ВК по указанной ссылке.' WHERE id = 141;

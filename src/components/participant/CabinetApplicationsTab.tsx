@@ -34,13 +34,15 @@ interface CabinetApplicationsTabProps {
   onEditApplication: (application: Application) => void;
 }
 
-const getStatusBadge = (status: string) => {
+const getStatusBadge = (status: string, hasAdminComment?: boolean) => {
   const statusMap = {
     pending: { label: 'На рассмотрении', variant: 'secondary' as const },
     approved: { label: 'Одобрена', variant: 'default' as const },
     rejected: { label: 'Отклонена', variant: 'destructive' as const }
   };
-  const statusInfo = statusMap[status as keyof typeof statusMap] || statusMap.pending;
+  const statusInfo = status === 'pending' && hasAdminComment
+    ? { label: 'Возвращена на доработку', variant: 'destructive' as const }
+    : statusMap[status as keyof typeof statusMap] || statusMap.pending;
   return (
     <Badge variant={statusInfo.variant} className={statusInfo.variant === 'default' ? 'bg-green-600 hover:bg-green-700' : ''}>
       {statusInfo.label}
@@ -148,7 +150,7 @@ const CabinetApplicationsTab = ({ applications, fieldLabelsByContest, onNewAppli
                     </CardDescription>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    {getStatusBadge(app.status)}
+                    {getStatusBadge(app.status, !!app.admin_comment)}
                     {!isArchived && (
                       <Button
                         variant="outline"

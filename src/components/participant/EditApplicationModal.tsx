@@ -33,6 +33,8 @@ interface ApplicationToEdit {
   location?: string;
   event_date?: string;
   nomination_id?: number | null;
+  status?: string;
+  admin_comment?: string;
 }
 
 interface EditApplicationModalProps {
@@ -58,6 +60,7 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
   const [nominationOptions, setNominationOptions] = useState<NominationOption[]>([]);
   const [nominationId, setNominationId] = useState<number | null>(application.nomination_id ?? null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const isResubmit = application.status === 'rejected' || (application.status === 'pending' && !!application.admin_comment);
 
   const CUSTOM_FILE_MAX_SIZE = 15 * 1024 * 1024;
   const CUSTOM_AUDIO_MAX_SIZE = 50 * 1024 * 1024;
@@ -168,7 +171,14 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
           );
           localStorage.setItem('participantData', JSON.stringify(parsed));
         }
-        toast({ title: 'Заявка обновлена' });
+        const wasResubmitted = application.status === 'rejected' || (application.status === 'pending' && !!application.admin_comment);
+        if (wasResubmitted && result.status === 'rejected') {
+          toast({ title: 'Заявка снова отклонена', description: 'Проверьте выполнение условий участия и попробуйте ещё раз', variant: 'destructive' });
+        } else if (wasResubmitted) {
+          toast({ title: 'Заявка отправлена повторно на рассмотрение' });
+        } else {
+          toast({ title: 'Заявка обновлена' });
+        }
         onSuccess();
       } else {
         toast({ title: 'Ошибка', description: result.error || 'Не удалось сохранить заявку', variant: 'destructive' });
@@ -186,7 +196,7 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
 
         <div className="flex items-center justify-between p-6 border-b shrink-0">
           <div>
-            <h2 className="text-xl font-heading font-bold">Редактирование заявки</h2>
+            <h2 className="text-xl font-heading font-bold">{isResubmit ? 'Исправление заявки' : 'Редактирование заявки'}</h2>
             <p className="text-sm text-muted-foreground">{application.contest_title}</p>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose}>
@@ -195,6 +205,12 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {isResubmit && !loadingCustomFields && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex gap-2 items-start">
+              <Icon name="Info" size={16} className="text-blue-600 shrink-0 mt-0.5" />
+              <p className="text-sm text-blue-800">После сохранения заявка будет автоматически отправлена организатору повторно на рассмотрение.</p>
+            </div>
+          )}
           {loadingCustomFields && (
             <div className="text-center py-4">
               <Icon name="Loader2" size={20} className="mx-auto animate-spin text-muted-foreground" />
@@ -378,7 +394,13 @@ const EditApplicationModal = ({ application, onClose, onSuccess }: EditApplicati
             }}
             disabled={submitting || loadingCustomFields}
           >
-            {submitting ? <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Сохранение...</> : <><Icon name="Save" size={16} className="mr-2" />Сохранить изменения</>}
+            {submitting ? (
+              <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />{isResubmit ? 'Отправка...' : 'Сохранение...'}</>
+            ) : isResubmit ? (
+              <><Icon name="Send" size={16} className="mr-2" />Отправить повторно</>
+            ) : (
+              <><Icon name="Save" size={16} className="mr-2" />Сохранить изменения</>
+            )}
           </Button>
         </div>
       </div>

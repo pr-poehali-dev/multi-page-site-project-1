@@ -1,0 +1,1 @@
+UPDATE t_p73771717_multi_page_site_proj.applications SET contest_id = 5, status = 'rejected', admin_comment = 'Тестовая причина отказа' WHERE id = 141;

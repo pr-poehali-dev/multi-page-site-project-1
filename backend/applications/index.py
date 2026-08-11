@@ -103,6 +103,94 @@ def get_db_connection():
     dsn = os.environ.get('DATABASE_URL')
     return psycopg2.connect(dsn, cursor_factory=RealDictCursor)
 
+
+def run_vk_check_and_maybe_reject(cur, conn, contest_id: int, application_id: int, participant_id: int,
+                                   email: str, full_name: str, contest_title: str) -> Optional[str]:
+    '''
+    Если для конкурса задан пост ВК — проверяет лайк/репост/подписку участника.
+    Если условия не выполнены — переводит заявку в статус rejected, пишет комментарий,
+    отправляет email, сообщение в чат ЛК и push-уведомление.
+    Возвращает итоговый статус заявки ('rejected' или None если проверка не проводилась/прошла).
+    '''
+    try:
+        cur.execute('SELECT owner_id, post_id FROM vk_check_posts WHERE contest_id = %s', (contest_id,))
+        vk_post = cur.fetchone()
+        vk_token = os.environ.get('VK_USER_TOKEN')
+        if not vk_post or not vk_token:
+            return None
+
+        cur.execute('SELECT vk_link, push_token FROM participants WHERE id = %s', (participant_id,))
+        participant_row = cur.fetchone() or {}
+        vk_link = participant_row.get('vk_link') or ''
+        push_token = participant_row.get('push_token')
+
+        check = check_vk_activity(vk_link, vk_post['owner_id'], vk_post['post_id'], abs(vk_post['owner_id']), vk_token)
+
+        cur.execute(
+            '''
+            INSERT INTO vk_check_results (contest_id, application_id, vk_user_id, vk_resolved, liked, reposted, commented, subscribed, checked_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+            ON CONFLICT (contest_id, application_id) DO UPDATE SET
+                vk_user_id = EXCLUDED.vk_user_id, vk_resolved = EXCLUDED.vk_resolved,
+                liked = EXCLUDED.liked, reposted = EXCLUDED.reposted,
+                subscribed = EXCLUDED.subscribed, checked_at = CURRENT_TIMESTAMP
+            ''',
+            (contest_id, application_id, check['vk_user_id'], check['vk_resolved'], check['liked'], check['reposted'], False, check['subscribed'])
+        )
+        conn.commit()
+
+        if check['vk_resolved'] and check['liked'] and check['reposted'] and check['subscribed']:
+            return None
+
+        reasons = []
+        if not check['vk_resolved']:
+            reasons.append('не удалось найти профиль ВК по указанной ссылке')
+        else:
+            if not check['liked']:
+                reasons.append('не поставлен лайк на пост')
+            if not check['reposted']:
+                reasons.append('не сделан репост поста')
+            if not check['subscribed']:
+                reasons.append('нет подписки на сообщество')
+        reason_text = '; '.join(reasons)
+        comment = f'Автоматический отказ по итогам проверки ВК: {reason_text}.'
+
+        cur.execute(
+            "UPDATE applications SET status = 'rejected', admin_comment = %s WHERE id = %s",
+            (comment, application_id)
+        )
+        conn.commit()
+
+        chat_text = f'Заявка на «{contest_title}» автоматически отклонена: {reason_text}. Пожалуйста, выполните условия и подайте заявку повторно.'
+        try:
+            cur.execute(
+                "INSERT INTO chat_messages (participant_id, sender, message) VALUES (%s, 'admin', %s)",
+                (participant_id, chat_text)
+            )
+            conn.commit()
+        except Exception as chat_err:
+            print(f'[VK CHECK CHAT ERROR] {chat_err}')
+
+        try:
+            send_vk_reject_email(email, full_name, contest_title, reason_text)
+        except Exception as reject_email_err:
+            print(f'[VK CHECK EMAIL ERROR] {reject_email_err}')
+
+        try:
+            send_push_notification(
+                push_token,
+                'Заявка отклонена',
+                f'Заявка на «{contest_title}» отклонена по итогам проверки ВК',
+                {'screen': 'MyApplications', 'applicationId': application_id, 'contestId': contest_id}
+            )
+        except Exception as push_err:
+            print(f'[VK CHECK PUSH ERROR] {push_err}')
+
+        return 'rejected'
+    except Exception as vk_check_err:
+        print(f'[VK CHECK ERROR] {vk_check_err}')
+        return None
+
 def send_application_received_email(to_email: str, full_name: str, contest_title: str) -> None:
     '''Отправляет участнику письмо о том, что заявка принята к рассмотрению'''
     smtp_host = os.environ.get('SMTP_HOST')
@@ -228,9 +316,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             with conn.cursor() as cur:
                 cur.execute(
                     '''
-                    SELECT a.id, a.editing_locked, c.applications_locked
+                    SELECT a.id, a.editing_locked, a.status, a.admin_comment, a.participant_id AS pid,
+                           c.applications_locked, c.title AS contest_title, p.email, p.full_name
                     FROM applications a
                     JOIN contests c ON a.contest_id = c.id
+                    JOIN participants p ON p.id = a.participant_id
                     WHERE a.id = %s
                     ''',
                     (application_id,)
@@ -253,31 +343,59 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         'isBase64Encoded': False
                     }
 
+                # Если заявка была отклонена, либо возвращена на доработку (pending с комментарием организатора) —
+                # при сохранении изменений участником отправляем её повторно на рассмотрение
+                resubmit = existing['status'] == 'rejected' or (existing['status'] == 'pending' and existing.get('admin_comment'))
+
                 custom_fields = body_data.get('customFields', {})
                 nomination_id = body_data.get('nominationId')
 
-                cur.execute(
-                    '''
-                    UPDATE applications
-                    SET category = %s, performance_title = %s, participation_format = %s,
-                        nomination = %s, nomination_id = %s, experience = %s, achievements = %s,
-                        additional_info = %s, custom_fields = %s
-                    WHERE id = %s
-                    RETURNING id, status, submitted_at, contest_id, participant_id
-                    ''',
-                    (
-                        body_data.get('category') or '',
-                        body_data.get('performanceTitle', ''),
-                        body_data.get('participationFormat', ''),
-                        body_data.get('nomination', ''),
-                        nomination_id,
-                        body_data.get('experience', ''),
-                        body_data.get('achievements', ''),
-                        body_data.get('additionalInfo', ''),
-                        json.dumps(custom_fields),
-                        application_id
+                if resubmit:
+                    cur.execute(
+                        '''
+                        UPDATE applications
+                        SET category = %s, performance_title = %s, participation_format = %s,
+                            nomination = %s, nomination_id = %s, experience = %s, achievements = %s,
+                            additional_info = %s, custom_fields = %s, status = 'pending', admin_comment = NULL
+                        WHERE id = %s
+                        RETURNING id, status, submitted_at, contest_id, participant_id
+                        ''',
+                        (
+                            body_data.get('category') or '',
+                            body_data.get('performanceTitle', ''),
+                            body_data.get('participationFormat', ''),
+                            body_data.get('nomination', ''),
+                            nomination_id,
+                            body_data.get('experience', ''),
+                            body_data.get('achievements', ''),
+                            body_data.get('additionalInfo', ''),
+                            json.dumps(custom_fields),
+                            application_id
+                        )
                     )
-                )
+                else:
+                    cur.execute(
+                        '''
+                        UPDATE applications
+                        SET category = %s, performance_title = %s, participation_format = %s,
+                            nomination = %s, nomination_id = %s, experience = %s, achievements = %s,
+                            additional_info = %s, custom_fields = %s
+                        WHERE id = %s
+                        RETURNING id, status, submitted_at, contest_id, participant_id
+                        ''',
+                        (
+                            body_data.get('category') or '',
+                            body_data.get('performanceTitle', ''),
+                            body_data.get('participationFormat', ''),
+                            body_data.get('nomination', ''),
+                            nomination_id,
+                            body_data.get('experience', ''),
+                            body_data.get('achievements', ''),
+                            body_data.get('additionalInfo', ''),
+                            json.dumps(custom_fields),
+                            application_id
+                        )
+                    )
                 updated = cur.fetchone()
 
                 # Если заявка уже занесена в программу конкурса - синхронизируем данные программы
@@ -329,14 +447,46 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
                 conn.commit()
 
+                final_status = updated['status']
+
+                if resubmit:
+                    try:
+                        cur.execute('SELECT push_token FROM participants WHERE id = %s', (updated['participant_id'],))
+                        push_row = cur.fetchone() or {}
+                        push_token = push_row.get('push_token')
+
+                        cur.execute(
+                            "INSERT INTO chat_messages (participant_id, sender, message) VALUES (%s, 'admin', %s)",
+                            (updated['participant_id'], f"Заявка на «{existing['contest_title']}» отправлена повторно на рассмотрение.")
+                        )
+                        conn.commit()
+
+                        send_push_notification(
+                            push_token,
+                            'Заявка отправлена повторно',
+                            f"Заявка на «{existing['contest_title']}» снова на рассмотрении",
+                            {'screen': 'MyApplications', 'applicationId': updated['id'], 'contestId': updated['contest_id']}
+                        )
+
+                        send_application_received_email(existing['email'], existing['full_name'], existing['contest_title'])
+                    except Exception as resubmit_notify_err:
+                        print(f'[RESUBMIT NOTIFY ERROR] {resubmit_notify_err}')
+
+                    vk_result_status = run_vk_check_and_maybe_reject(
+                        cur, conn, updated['contest_id'], updated['id'], updated['participant_id'],
+                        existing['email'], existing['full_name'], existing['contest_title']
+                    )
+                    if vk_result_status:
+                        final_status = vk_result_status
+
                 return {
                     'statusCode': 200,
                     'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'},
                     'body': json.dumps({
                         'success': True,
                         'applicationId': updated['id'],
-                        'status': updated['status'],
-                        'message': 'Заявка обновлена'
+                        'status': final_status,
+                        'message': 'Заявка отправлена повторно на рассмотрение' if resubmit else 'Заявка обновлена'
                     }),
                     'isBase64Encoded': False
                 }
@@ -451,77 +601,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 final_status = application['status']
 
                 # Если для конкурса задан пост ВК — сразу проверяем лайк/репост/подписку
-                try:
-                    cur.execute('SELECT owner_id, post_id FROM vk_check_posts WHERE contest_id = %s', (contest_id,))
-                    vk_post = cur.fetchone()
-                    vk_token = os.environ.get('VK_USER_TOKEN')
-                    if vk_post and vk_token:
-                        cur.execute('SELECT vk_link, push_token FROM participants WHERE id = %s', (participant_id,))
-                        participant_row = cur.fetchone() or {}
-                        vk_link = participant_row.get('vk_link') or ''
-                        push_token = participant_row.get('push_token')
-
-                        check = check_vk_activity(vk_link, vk_post['owner_id'], vk_post['post_id'], abs(vk_post['owner_id']), vk_token)
-
-                        cur.execute(
-                            '''
-                            INSERT INTO vk_check_results (contest_id, application_id, vk_user_id, vk_resolved, liked, reposted, commented, subscribed, checked_at)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-                            ON CONFLICT (contest_id, application_id) DO UPDATE SET
-                                vk_user_id = EXCLUDED.vk_user_id, vk_resolved = EXCLUDED.vk_resolved,
-                                liked = EXCLUDED.liked, reposted = EXCLUDED.reposted,
-                                subscribed = EXCLUDED.subscribed, checked_at = CURRENT_TIMESTAMP
-                            ''',
-                            (contest_id, application['id'], check['vk_user_id'], check['vk_resolved'], check['liked'], check['reposted'], False, check['subscribed'])
-                        )
-
-                        if not (check['vk_resolved'] and check['liked'] and check['reposted'] and check['subscribed']):
-                            reasons = []
-                            if not check['vk_resolved']:
-                                reasons.append('не удалось найти профиль ВК по указанной ссылке')
-                            else:
-                                if not check['liked']:
-                                    reasons.append('не поставлен лайк на пост')
-                                if not check['reposted']:
-                                    reasons.append('не сделан репост поста')
-                                if not check['subscribed']:
-                                    reasons.append('нет подписки на сообщество')
-                            reason_text = '; '.join(reasons)
-                            comment = f'Автоматический отказ по итогам проверки ВК: {reason_text}.'
-
-                            cur.execute(
-                                "UPDATE applications SET status = 'rejected', admin_comment = %s WHERE id = %s",
-                                (comment, application['id'])
-                            )
-                            conn.commit()
-                            final_status = 'rejected'
-
-                            chat_text = f'Заявка на «{contest_title}» автоматически отклонена: {reason_text}. Пожалуйста, выполните условия и подайте заявку повторно.'
-                            try:
-                                cur.execute(
-                                    "INSERT INTO chat_messages (participant_id, sender, message) VALUES (%s, 'admin', %s)",
-                                    (participant_id, chat_text)
-                                )
-                                conn.commit()
-                            except Exception as chat_err:
-                                print(f'[VK CHECK CHAT ERROR] {chat_err}')
-
-                            try:
-                                send_vk_reject_email(email, full_name, contest_title, reason_text)
-                            except Exception as reject_email_err:
-                                print(f'[VK CHECK EMAIL ERROR] {reject_email_err}')
-
-                            try:
-                                send_push_notification(
-                                    push_token,
-                                    'Заявка отклонена',
-                                    f'Заявка на «{contest_title}» отклонена по итогам проверки ВК',
-                                    {'screen': 'MyApplications', 'applicationId': application['id'], 'contestId': contest_id}
-                                )
-                            except Exception as push_err:
-                                print(f'[VK CHECK PUSH ERROR] {push_err}')
-                except Exception as vk_check_err:
-                    print(f'[VK CHECK ERROR] {vk_check_err}')
+                vk_result_status = run_vk_check_and_maybe_reject(
+                    cur, conn, contest_id, application['id'], participant_id, email, full_name, contest_title
+                )
+                if vk_result_status:
+                    final_status = vk_result_status
 
                 return {
                     'statusCode': 200,
