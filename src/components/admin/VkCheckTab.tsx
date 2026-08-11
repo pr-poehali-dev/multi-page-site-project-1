@@ -25,6 +25,7 @@ interface VkApplicationRow {
   liked: boolean | null;
   reposted: boolean | null;
   commented: boolean | null;
+  subscribed: boolean | null;
   checked_at: string | null;
 }
 
@@ -135,9 +136,9 @@ const VkCheckTab = ({ contests }: VkCheckTabProps) => {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-heading font-bold mb-2">Проверка ВК: лайк, репост, комментарий</h2>
+        <h2 className="text-2xl font-heading font-bold mb-2">Проверка ВК: лайк, репост, комментарий, подписка</h2>
         <p className="text-muted-foreground">
-          Укажите конкурс и ссылку на пост в ВК — система проверит по аккаунтам участников (ссылка из заявки), кто лайкнул, репостнул и прокомментировал пост.
+          Укажите конкурс и ссылку на пост в ВК — система проверит по аккаунтам участников (ссылка из заявки), кто лайкнул, репостнул, прокомментировал пост и подписан на сообщество.
         </p>
       </div>
 
@@ -218,6 +219,7 @@ const VkCheckTab = ({ contests }: VkCheckTabProps) => {
                   <TableHead className="text-center">Лайк</TableHead>
                   <TableHead className="text-center">Репост</TableHead>
                   <TableHead className="text-center">Комментарий</TableHead>
+                  <TableHead className="text-center">Подписка</TableHead>
                   <TableHead>Проверено</TableHead>
                 </TableRow>
               </TableHeader>
@@ -237,6 +239,7 @@ const VkCheckTab = ({ contests }: VkCheckTabProps) => {
                     <TableCell className="text-center"><StatusIcon value={row.liked} /></TableCell>
                     <TableCell className="text-center"><StatusIcon value={row.reposted} /></TableCell>
                     <TableCell className="text-center"><StatusIcon value={row.commented} /></TableCell>
+                    <TableCell className="text-center"><StatusIcon value={row.subscribed} /></TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {row.checked_at ? new Date(row.checked_at).toLocaleString('ru-RU') : '—'}
                       {row.vk_resolved === false && row.checked_at && (

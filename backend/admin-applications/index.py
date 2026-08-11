@@ -169,13 +169,14 @@ def vk_execute(code: str, token: str) -> Dict[str, Any]:
     return resp.json()
 
 
-def vk_build_check_code(screen_names: List[str], owner_id: int, post_id: int) -> str:
-    '''Формирует VKScript для резолва профилей и проверки лайка/репоста'''
+def vk_build_check_code(screen_names: List[str], owner_id: int, post_id: int, group_id: int) -> str:
+    '''Формирует VKScript для резолва профилей и проверки лайка/репоста/подписки на группу'''
     names_json = json.dumps(screen_names)
     return f'''
     var ids = {names_json};
     var owner_id = {owner_id};
     var item_id = {post_id};
+    var group_id = {group_id};
     var result = [];
     var i = 0;
     while (i < ids.length) {{
@@ -185,12 +186,14 @@ def vk_build_check_code(screen_names: List[str], owner_id: int, post_id: int) ->
       if (resolved.type == "user") {{ uid = resolved.object_id; }}
       var liked = 0;
       var copied = 0;
+      var member = 0;
       if (uid > 0) {{
         var lk = API.likes.isLiked({{"type":"post","owner_id":owner_id,"item_id":item_id,"user_id":uid}});
         liked = lk.liked;
         copied = lk.copied;
+        member = API.groups.isMember({{"group_id":group_id,"user_id":uid}});
       }}
-      result.push({{"screen_name": sn, "user_id": uid, "liked": liked, "copied": copied}});
+      result.push({{"screen_name": sn, "user_id": uid, "liked": liked, "copied": copied, "member": member}});
       i = i + 1;
     }}
     return result;
@@ -241,7 +244,7 @@ def handle_vk_check(event: Dict[str, Any], conn) -> Dict[str, Any]:
 
             cur.execute(f'''
                 SELECT a.id AS application_id, p.full_name, p.vk_link, a.status,
-                       r.vk_user_id, r.vk_resolved, r.liked, r.reposted, r.commented, r.checked_at
+                       r.vk_user_id, r.vk_resolved, r.liked, r.reposted, r.commented, r.subscribed, r.checked_at
                 FROM {SCHEMA}.applications a
                 JOIN {SCHEMA}.participants p ON p.id = a.participant_id
                 LEFT JOIN {SCHEMA}.vk_check_results r ON r.application_id = a.id AND r.contest_id = a.contest_id
@@ -297,6 +300,7 @@ def handle_vk_check(event: Dict[str, Any], conn) -> Dict[str, Any]:
             return {'statusCode': 400, 'headers': cors, 'body': json.dumps({'error': 'Сначала укажите ссылку на пост для этого конкурса'}), 'isBase64Encoded': False}
         owner_id = post['owner_id']
         post_id = post['post_id']
+        group_id = abs(owner_id)
 
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(f'''
@@ -321,7 +325,7 @@ def handle_vk_check(event: Dict[str, Any], conn) -> Dict[str, Any]:
                     valid_chunk.append(p)
             if not screen_names:
                 continue
-            code = vk_build_check_code(screen_names, owner_id, post_id)
+            code = vk_build_check_code(screen_names, owner_id, post_id, group_id)
             exec_result = vk_execute(code, token)
             response = exec_result.get('response', [])
             for p, r in zip(valid_chunk, response):
@@ -334,19 +338,20 @@ def handle_vk_check(event: Dict[str, Any], conn) -> Dict[str, Any]:
                     'liked': bool(r.get('liked')),
                     'reposted': bool(r.get('copied')),
                     'commented': resolved and uid in commenter_ids,
+                    'subscribed': bool(r.get('member')),
                 })
             time.sleep(0.34)
 
         with conn.cursor() as cur:
             for r in results:
                 cur.execute(f'''
-                    INSERT INTO {SCHEMA}.vk_check_results (contest_id, application_id, vk_user_id, vk_resolved, liked, reposted, commented, checked_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    INSERT INTO {SCHEMA}.vk_check_results (contest_id, application_id, vk_user_id, vk_resolved, liked, reposted, commented, subscribed, checked_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                     ON CONFLICT (contest_id, application_id) DO UPDATE SET
                         vk_user_id = EXCLUDED.vk_user_id, vk_resolved = EXCLUDED.vk_resolved,
                         liked = EXCLUDED.liked, reposted = EXCLUDED.reposted, commented = EXCLUDED.commented,
-                        checked_at = CURRENT_TIMESTAMP
-                ''', (int(contest_id), r['application_id'], r['vk_user_id'], r['vk_resolved'], r['liked'], r['reposted'], r['commented']))
+                        subscribed = EXCLUDED.subscribed, checked_at = CURRENT_TIMESTAMP
+                ''', (int(contest_id), r['application_id'], r['vk_user_id'], r['vk_resolved'], r['liked'], r['reposted'], r['commented'], r['subscribed']))
 
         return {'statusCode': 200, 'headers': cors, 'body': json.dumps({'success': True, 'checked': len(results), 'total_with_vk_link': len(participants)}), 'isBase64Encoded': False}
 
