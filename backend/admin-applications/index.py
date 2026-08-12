@@ -226,27 +226,73 @@ def handle_vk_parser(event: Dict[str, Any]) -> Dict[str, Any]:
         cities = [{'id': c['id'], 'title': c['title'], 'region': c.get('region', ''), 'area': c.get('area', '')} for c in items]
         return {'statusCode': 200, 'headers': cors_headers, 'body': json.dumps({'cities': cities}), 'isBase64Encoded': False}
 
+    if method == 'GET' and action == 'regions':
+        q = (query_params.get('q') or '').strip()
+        if not q:
+            return {'statusCode': 200, 'headers': cors_headers, 'body': json.dumps({'regions': []}), 'isBase64Encoded': False}
+        resp = vk_call('database.getRegions', {'country_id': 1, 'q': q, 'count': 20}, token)
+        if 'error' in resp:
+            return {'statusCode': 400, 'headers': cors_headers, 'body': json.dumps({'error': resp['error'].get('error_msg', 'Ошибка VK API')}), 'isBase64Encoded': False}
+        items = (resp.get('response') or {}).get('items', [])
+        regions = [{'id': r['id'], 'title': r['title']} for r in items]
+        return {'statusCode': 200, 'headers': cors_headers, 'body': json.dumps({'regions': regions}), 'isBase64Encoded': False}
+
     if method == 'POST' and action == 'search':
         body_data = json.loads(event.get('body') or '{}')
         search_query = (body_data.get('query') or '').strip()
         city_id = body_data.get('city_id')
+        region_id = body_data.get('region_id')
         count = min(int(body_data.get('count') or 40), 1000)
         offset = int(body_data.get('offset') or 0)
 
         if not search_query:
             return {'statusCode': 400, 'headers': cors_headers, 'body': json.dumps({'error': 'Укажите ключевые слова для поиска'}), 'isBase64Encoded': False}
 
-        search_params = {'q': search_query, 'type': 'group', 'count': count, 'offset': offset, 'sort': 0}
-        if city_id:
-            search_params['city_id'] = int(city_id)
+        if region_id and not city_id:
+            # Поиск по всему субъекту: VK API не поддерживает фильтр по region_id в groups.search,
+            # поэтому ищем по крупным городам региона пакетно через execute
+            cities = get_region_cities(int(region_id), token)
+            city_ids = [c['id'] for c in cities][:40]
+            if not city_ids:
+                return {'statusCode': 400, 'headers': cors_headers, 'body': json.dumps({'error': 'В этом регионе не найдено городов для поиска', 'debug_cities': cities}), 'isBase64Encoded': False}
 
-        resp = vk_call('groups.search', search_params, token)
-        if 'error' in resp:
-            return {'statusCode': 400, 'headers': cors_headers, 'body': json.dumps({'error': resp['error'].get('error_msg', 'Ошибка VK API')}), 'isBase64Encoded': False}
+            collected: Dict[int, Dict[str, Any]] = {}
+            chunk_size = 20
+            per_city_count = 20
+            debug_errors = []
+            for i in range(0, len(city_ids), chunk_size):
+                chunk = city_ids[i:i + chunk_size]
+                code = vk_build_region_groups_search_code(search_query, chunk, per_city_count)
+                exec_resp = vk_execute(code, token)
+                items = exec_resp.get('response')
+                if not isinstance(items, list):
+                    debug_errors.append(exec_resp)
+                    continue
+                for it in items:
+                    if isinstance(it, dict) and it.get('id'):
+                        collected[it['id']] = it
 
-        response = resp.get('response') or {}
-        groups = response.get('items', [])
-        total_count = response.get('count', 0)
+            if not collected:
+                return {'statusCode': 400, 'headers': cors_headers, 'body': json.dumps({'error': 'Ошибка при поиске по региону', 'debug_errors': debug_errors, 'debug_city_ids': city_ids, 'debug_cities': cities[:10]}), 'isBase64Encoded': False}
+
+            groups_list = list(collected.values())
+            groups_list.sort(key=lambda g: g.get('members_count', 0), reverse=True)
+            target_count = min(count, 300)
+            groups = groups_list[:target_count]
+            total_count = len(groups_list)
+            offset = 0
+        else:
+            search_params = {'q': search_query, 'type': 'group', 'count': count, 'offset': offset, 'sort': 0}
+            if city_id:
+                search_params['city_id'] = int(city_id)
+
+            resp = vk_call('groups.search', search_params, token)
+            if 'error' in resp:
+                return {'statusCode': 400, 'headers': cors_headers, 'body': json.dumps({'error': resp['error'].get('error_msg', 'Ошибка VK API')}), 'isBase64Encoded': False}
+
+            response = resp.get('response') or {}
+            groups = response.get('items', [])
+            total_count = response.get('count', 0)
 
         group_ids = [str(g['id']) for g in groups]
         emails_by_group: Dict[int, List[str]] = {}
@@ -293,9 +339,44 @@ def vk_execute(code: str, token: str) -> Dict[str, Any]:
     resp = requests.post(
         f'{VK_API_URL}/execute',
         data={'code': code, 'access_token': token, 'v': VK_VERSION},
-        timeout=8,
+        timeout=15,
     )
     return resp.json()
+
+
+def get_region_cities(region_id: int, token: str) -> List[Dict[str, Any]]:
+    '''Получает список крупных городов субъекта РФ, отсортированных по важности'''
+    resp = vk_call('database.getCities', {
+        'country_id': 1,
+        'region_id': region_id,
+        'count': 100,
+        'need_all': 0,
+    }, token)
+    items = (resp.get('response') or {}).get('items', [])
+    return [{'id': c['id'], 'title': c.get('title', '')} for c in items]
+
+
+def vk_build_region_groups_search_code(search_query: str, city_ids: List[int], per_city_count: int) -> str:
+    '''Формирует VKScript, ищущий сообщества по ключевым словам в каждом из городов списка'''
+    query_json = json.dumps(search_query)
+    ids_json = json.dumps(city_ids)
+    return f'''
+    var ids = {ids_json};
+    var q = {query_json};
+    var result = [];
+    var i = 0;
+    while (i < ids.length) {{
+      var res = API.groups.search({{"q": q, "type": "group", "city_id": ids[i], "count": {per_city_count}, "sort": 0}});
+      var items = res.items;
+      var j = 0;
+      while (j < items.length) {{
+        result.push(items[j]);
+        j = j + 1;
+      }}
+      i = i + 1;
+    }}
+    return result;
+    '''
 
 
 def vk_build_check_code(screen_names: List[str], owner_id: int, post_id: int, group_id: int) -> str:
@@ -562,7 +643,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     POST /?endpoint=vk_check&action=set_post - сохранить ссылку на пост ВК для конкурса (требует X-Api-Key)
     POST /?endpoint=vk_check&action=run_check - запустить проверку лайков/репостов/комментариев/подписки ВК, опционально с авто-отклонением (body: {contest_id, auto_reject, reject_comment}) (требует X-Api-Key)
     GET /?endpoint=vk_parser&action=cities&q=... - подсказка городов VK по названию (требует X-Api-Key)
-    POST /?endpoint=vk_parser&action=search - поиск сообществ ВК по ключевым словам/городу со сбором email (body: {query, city_id, count, offset}) (требует X-Api-Key)
+    GET /?endpoint=vk_parser&action=regions&q=... - подсказка регионов/субъектов РФ по названию (требует X-Api-Key)
+    POST /?endpoint=vk_parser&action=search - поиск сообществ ВК по ключевым словам/городу/региону со сбором email (body: {query, city_id, region_id, count, offset}) (требует X-Api-Key)
     '''
     method: str = event.get('httpMethod', 'GET')
     
