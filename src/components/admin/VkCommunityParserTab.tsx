@@ -18,6 +18,11 @@ interface City {
   area: string;
 }
 
+interface Region {
+  id: number;
+  title: string;
+}
+
 interface GroupResult {
   id: number;
   name: string;
@@ -34,16 +39,22 @@ interface GroupResult {
 const VkCommunityParserTab = () => {
   const { toast } = useToast();
   const [query, setQuery] = useState('');
+  const [locationMode, setLocationMode] = useState<'city' | 'region'>('city');
   const [cityQuery, setCityQuery] = useState('');
   const [cityOptions, setCityOptions] = useState<City[]>([]);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [regionQuery, setRegionQuery] = useState('');
+  const [regionOptions, setRegionOptions] = useState<Region[]>([]);
+  const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
+  const [showRegionDropdown, setShowRegionDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [groups, setGroups] = useState<GroupResult[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [offset, setOffset] = useState(0);
   const [onlyWithEmail, setOnlyWithEmail] = useState(false);
   const cityInputRef = useRef<HTMLDivElement>(null);
+  const regionInputRef = useRef<HTMLDivElement>(null);
 
   const COUNT = 100;
 
@@ -51,6 +62,9 @@ const VkCommunityParserTab = () => {
     const handleClickOutside = (e: MouseEvent) => {
       if (cityInputRef.current && !cityInputRef.current.contains(e.target as Node)) {
         setShowCityDropdown(false);
+      }
+      if (regionInputRef.current && !regionInputRef.current.contains(e.target as Node)) {
+        setShowRegionDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -71,10 +85,29 @@ const VkCommunityParserTab = () => {
     }
   }, []);
 
+  const searchRegions = useCallback(async (q: string) => {
+    if (!q.trim()) {
+      setRegionOptions([]);
+      return;
+    }
+    try {
+      const res = await fetch(`${VK_PARSER_URL}&action=regions&q=${encodeURIComponent(q.trim())}`, { headers: adminHeaders() });
+      const data = await res.json();
+      setRegionOptions(data.regions || []);
+    } catch {
+      setRegionOptions([]);
+    }
+  }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => searchCities(cityQuery), 350);
     return () => clearTimeout(timer);
   }, [cityQuery, searchCities]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => searchRegions(regionQuery), 350);
+    return () => clearTimeout(timer);
+  }, [regionQuery, searchRegions]);
 
   const runSearch = async (nextOffset: number, append: boolean) => {
     if (!query.trim()) {
@@ -88,7 +121,8 @@ const VkCommunityParserTab = () => {
         headers: adminHeaders(),
         body: JSON.stringify({
           query: query.trim(),
-          city_id: selectedCity?.id,
+          city_id: locationMode === 'city' ? selectedCity?.id : undefined,
+          region_id: locationMode === 'region' ? selectedRegion?.id : undefined,
           count: COUNT,
           offset: nextOffset,
         }),
@@ -152,7 +186,7 @@ const VkCommunityParserTab = () => {
       </div>
 
       <Card className="p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_260px_auto] gap-3 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-end mb-3">
           <div>
             <label className="block text-sm font-medium mb-2">Ключевые слова</label>
             <Input
@@ -163,37 +197,91 @@ const VkCommunityParserTab = () => {
             />
           </div>
 
-          <div className="relative" ref={cityInputRef}>
-            <label className="block text-sm font-medium mb-2">Город / регион</label>
-            <Input
-              value={selectedCity ? selectedCity.title : cityQuery}
-              onChange={e => {
-                setSelectedCity(null);
-                setCityQuery(e.target.value);
-                setShowCityDropdown(true);
-              }}
-              onFocus={() => setShowCityDropdown(true)}
-              placeholder="Любой город"
-            />
-            {showCityDropdown && cityOptions.length > 0 && (
-              <div className="absolute z-10 top-full mt-1 w-full bg-background border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
-                {cityOptions.map(c => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
-                    onClick={() => {
-                      setSelectedCity(c);
-                      setCityQuery('');
-                      setShowCityDropdown(false);
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              {locationMode === 'city' ? (
+                <div className="relative" ref={cityInputRef}>
+                  <label className="block text-sm font-medium mb-2">Город</label>
+                  <Input
+                    value={selectedCity ? selectedCity.title : cityQuery}
+                    onChange={e => {
+                      setSelectedCity(null);
+                      setCityQuery(e.target.value);
+                      setShowCityDropdown(true);
                     }}
-                  >
-                    {c.title}
-                    {c.region && <span className="text-muted-foreground"> · {c.region}</span>}
-                  </button>
-                ))}
-              </div>
-            )}
+                    onFocus={() => setShowCityDropdown(true)}
+                    placeholder="Любой город"
+                  />
+                  {showCityDropdown && cityOptions.length > 0 && (
+                    <div className="absolute z-10 top-full mt-1 w-full bg-background border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {cityOptions.map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                          onClick={() => {
+                            setSelectedCity(c);
+                            setCityQuery('');
+                            setShowCityDropdown(false);
+                          }}
+                        >
+                          {c.title}
+                          {c.region && <span className="text-muted-foreground"> · {c.region}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="relative" ref={regionInputRef}>
+                  <label className="block text-sm font-medium mb-2">Регион / область / край</label>
+                  <Input
+                    value={selectedRegion ? selectedRegion.title : regionQuery}
+                    onChange={e => {
+                      setSelectedRegion(null);
+                      setRegionQuery(e.target.value);
+                      setShowRegionDropdown(true);
+                    }}
+                    onFocus={() => setShowRegionDropdown(true)}
+                    placeholder="Например: Свердловская область"
+                  />
+                  {showRegionDropdown && regionOptions.length > 0 && (
+                    <div className="absolute z-10 top-full mt-1 w-full bg-background border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {regionOptions.map(r => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                          onClick={() => {
+                            setSelectedRegion(r);
+                            setRegionQuery('');
+                            setShowRegionDropdown(false);
+                          }}
+                        >
+                          {r.title}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              title={locationMode === 'city' ? 'Искать по региону вместо города' : 'Искать по городу вместо региона'}
+              onClick={() => {
+                setLocationMode(m => (m === 'city' ? 'region' : 'city'));
+                setSelectedCity(null);
+                setCityQuery('');
+                setSelectedRegion(null);
+                setRegionQuery('');
+              }}
+            >
+              <Icon name="RefreshCw" size={16} />
+            </Button>
           </div>
 
           <Button onClick={handleSearch} disabled={loading} className="bg-secondary hover:bg-secondary/90">
@@ -201,6 +289,11 @@ const VkCommunityParserTab = () => {
             Найти
           </Button>
         </div>
+        {locationMode === 'region' && (
+          <p className="text-xs text-muted-foreground">
+            Поиск по региону обходит все крупные города субъекта — может занять больше времени, чем поиск по одному городу.
+          </p>
+        )}
       </Card>
 
       {groups.length > 0 && (

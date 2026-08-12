@@ -249,38 +249,30 @@ def handle_vk_parser(event: Dict[str, Any]) -> Dict[str, Any]:
             return {'statusCode': 400, 'headers': cors_headers, 'body': json.dumps({'error': 'Укажите ключевые слова для поиска'}), 'isBase64Encoded': False}
 
         if region_id and not city_id:
-            # Поиск по всему субъекту: VK API не поддерживает фильтр по region_id в groups.search,
-            # поэтому ищем по крупным городам региона пакетно через execute
-            cities = get_region_cities(int(region_id), token)
-            city_ids = [c['id'] for c in cities][:40]
+            # groups.search принимает region_id, но фактически не фильтрует по нему —
+            # поэтому ищем по каждому крупному городу региона (без указанного района — города областного подчинения) через execute
+            region_cities = get_region_major_cities(int(region_id), token)
+            city_ids = [c['id'] for c in region_cities][:25]
             if not city_ids:
-                return {'statusCode': 400, 'headers': cors_headers, 'body': json.dumps({'error': 'В этом регионе не найдено городов для поиска', 'debug_cities': cities}), 'isBase64Encoded': False}
+                return {'statusCode': 400, 'headers': cors_headers, 'body': json.dumps({'error': 'В этом регионе не найдено городов для поиска'}), 'isBase64Encoded': False}
 
             collected: Dict[int, Dict[str, Any]] = {}
-            chunk_size = 20
-            per_city_count = 20
-            debug_errors = []
-            for i in range(0, len(city_ids), chunk_size):
-                chunk = city_ids[i:i + chunk_size]
+            per_city_count = 30
+            for i in range(0, len(city_ids), 20):
+                chunk = city_ids[i:i + 20]
                 code = vk_build_region_groups_search_code(search_query, chunk, per_city_count)
                 exec_resp = vk_execute(code, token)
                 items = exec_resp.get('response')
                 if not isinstance(items, list):
-                    debug_errors.append(exec_resp)
                     continue
                 for it in items:
                     if isinstance(it, dict) and it.get('id'):
                         collected[it['id']] = it
 
-            if not collected:
-                return {'statusCode': 400, 'headers': cors_headers, 'body': json.dumps({'error': 'Ошибка при поиске по региону', 'debug_errors': debug_errors, 'debug_city_ids': city_ids, 'debug_cities': cities[:10]}), 'isBase64Encoded': False}
-
             groups_list = list(collected.values())
             groups_list.sort(key=lambda g: g.get('members_count', 0), reverse=True)
-            target_count = min(count, 300)
-            groups = groups_list[:target_count]
             total_count = len(groups_list)
-            offset = 0
+            groups = groups_list[offset:offset + count]
         else:
             search_params = {'q': search_query, 'type': 'group', 'count': count, 'offset': offset, 'sort': 0}
             if city_id:
@@ -344,21 +336,28 @@ def vk_execute(code: str, token: str) -> Dict[str, Any]:
     return resp.json()
 
 
-def get_region_cities(region_id: int, token: str) -> List[Dict[str, Any]]:
-    '''Получает список крупных городов субъекта РФ, отсортированных по важности'''
+def get_region_major_cities(region_id: int, token: str) -> List[Dict[str, Any]]:
+    '''
+    Возвращает крупные города субъекта РФ (города областного/краевого подчинения — без указанного
+    района). VK не фильтрует groups.search по region_id, поэтому такие города используются
+    как опорные точки для поиска по всему региону.
+    '''
     resp = vk_call('database.getCities', {
         'country_id': 1,
         'region_id': region_id,
-        'count': 100,
-        'need_all': 0,
+        'count': 1000,
+        'need_all': 1,
     }, token)
     items = (resp.get('response') or {}).get('items', [])
-    return [{'id': c['id'], 'title': c.get('title', '')} for c in items]
+    major = [c for c in items if not c.get('area')]
+    if not major:
+        major = items[:25]
+    return [{'id': c['id'], 'title': c.get('title', '')} for c in major]
 
 
 def vk_build_region_groups_search_code(search_query: str, city_ids: List[int], per_city_count: int) -> str:
     '''Формирует VKScript, ищущий сообщества по ключевым словам в каждом из городов списка'''
-    query_json = json.dumps(search_query)
+    query_json = json.dumps(search_query, ensure_ascii=False)
     ids_json = json.dumps(city_ids)
     return f'''
     var ids = {ids_json};
