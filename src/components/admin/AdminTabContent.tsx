@@ -16,8 +16,9 @@ import ReviewsManagementTab from '@/components/admin/ReviewsManagementTab';
 import NewsManagementTab from '@/components/admin/NewsManagementTab';
 import PushNotificationsTab from '@/components/admin/PushNotificationsTab';
 import VkCheckTab from '@/components/admin/VkCheckTab';
+import VkCommunityParserTab from '@/components/admin/VkCommunityParserTab';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications' | 'vk-check';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications' | 'vk-check' | 'vk-parser';
 
 interface AdminTabContentProps {
   activeTab: TabType;
@@ -273,6 +274,11 @@ const AdminTabContent = ({
     case 'vk-check':
       return (
         <VkCheckTab contests={contests} />
+      );
+
+    case 'vk-parser':
+      return (
+        <VkCommunityParserTab />
       );
 
     default:

@@ -19,7 +19,7 @@ import { adminHeaders } from '@/config/adminApi';
 const AdminPage = () => {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications' | 'vk-check'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications' | 'vk-check' | 'vk-parser'>('applications');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [contestFilter, setContestFilter] = useState('all');

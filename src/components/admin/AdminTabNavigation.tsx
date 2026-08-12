@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications' | 'vk-check';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications' | 'vk-check' | 'vk-parser';
 
 interface AdminTabNavigationProps {
   activeTab: TabType;
@@ -156,6 +156,13 @@ const AdminTabNavigation = ({ activeTab, onTabChange, onLogout }: AdminTabNaviga
         >
           <Icon name="ThumbsUp" className="mr-2 h-4 w-4" />
           Проверка ВК
+        </Button>
+        <Button
+          variant={activeTab === 'vk-parser' ? 'default' : 'outline'}
+          onClick={() => onTabChange('vk-parser')}
+        >
+          <Icon name="Search" className="mr-2 h-4 w-4" />
+          Парсер сообществ ВК
         </Button>
       </div>
     </div>
