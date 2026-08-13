@@ -252,14 +252,14 @@ def handle_vk_parser(event: Dict[str, Any]) -> Dict[str, Any]:
             # groups.search принимает region_id, но фактически не фильтрует по нему —
             # поэтому ищем по каждому крупному городу региона (без указанного района — города областного подчинения) через execute
             region_cities = get_region_major_cities(int(region_id), token)
-            city_ids = [c['id'] for c in region_cities][:25]
+            city_ids = [c['id'] for c in region_cities][:40]
             if not city_ids:
                 return {'statusCode': 400, 'headers': cors_headers, 'body': json.dumps({'error': 'В этом регионе не найдено городов для поиска'}), 'isBase64Encoded': False}
 
             collected: Dict[int, Dict[str, Any]] = {}
-            per_city_count = 30
-            for i in range(0, len(city_ids), 20):
-                chunk = city_ids[i:i + 20]
+            per_city_count = 50
+            for i in range(0, len(city_ids), 15):
+                chunk = city_ids[i:i + 15]
                 code = vk_build_region_groups_search_code(search_query, chunk, per_city_count)
                 exec_resp = vk_execute(code, token)
                 items = exec_resp.get('response')
@@ -339,19 +339,35 @@ def vk_execute(code: str, token: str) -> Dict[str, Any]:
 def get_region_major_cities(region_id: int, token: str) -> List[Dict[str, Any]]:
     '''
     Возвращает крупные города субъекта РФ (города областного/краевого подчинения — без указанного
-    района). VK не фильтрует groups.search по region_id, поэтому такие города используются
-    как опорные точки для поиска по всему региону.
+    района, включая областной центр). VK не фильтрует groups.search по region_id, поэтому такие
+    города используются как опорные точки для поиска по всему региону.
+    VK отдаёт города страницами по 1000 без гарантии, что областной центр попадёт в первую
+    страницу — поэтому проходим несколько страниц (offset), пока не соберём достаточно городов
+    или не переберём весь регион.
     '''
-    resp = vk_call('database.getCities', {
-        'country_id': 1,
-        'region_id': region_id,
-        'count': 1000,
-        'need_all': 1,
-    }, token)
-    items = (resp.get('response') or {}).get('items', [])
-    major = [c for c in items if not c.get('area')]
+    major: List[Dict[str, Any]] = []
+    all_items: List[Dict[str, Any]] = []
+    offset = 0
+    page_size = 1000
+    for _ in range(6):
+        resp = vk_call('database.getCities', {
+            'country_id': 1,
+            'region_id': region_id,
+            'count': page_size,
+            'offset': offset,
+            'need_all': 1,
+        }, token)
+        items = (resp.get('response') or {}).get('items', [])
+        if not items:
+            break
+        all_items.extend(items)
+        major.extend([c for c in items if not c.get('area')])
+        if len(items) < page_size:
+            break
+        offset += page_size
+
     if not major:
-        major = items[:25]
+        major = all_items[:25]
     return [{'id': c['id'], 'title': c.get('title', '')} for c in major]
 
 
@@ -365,7 +381,7 @@ def vk_build_region_groups_search_code(search_query: str, city_ids: List[int], p
     var result = [];
     var i = 0;
     while (i < ids.length) {{
-      var res = API.groups.search({{"q": q, "type": "group", "city_id": ids[i], "count": {per_city_count}, "sort": 0}});
+      var res = API.groups.search({{"q": q, "type": "group", "city_id": ids[i], "count": {per_city_count}, "sort": 0, "fields": "members_count,city"}});
       var items = res.items;
       var j = 0;
       while (j < items.length) {{
@@ -676,6 +692,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'isBase64Encoded': False
         }
 
+    # Парсер сообществ ВК не обращается к БД проекта (только к VK API) и может выполняться
+    # дольше остальных запросов (поиск по региону) — обрабатываем его до открытия соединения
+    # с БД, чтобы долгий VK-поиск не держал занятым лишнее подключение к PostgreSQL
+    if endpoint == 'vk_parser':
+        return handle_vk_parser(event)
+
     # Подключение к БД  
     dsn = os.environ.get('DATABASE_URL')
     if not dsn:
@@ -695,10 +717,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # === VK CHECK ENDPOINTS ===
         if endpoint == 'vk_check':
             return handle_vk_check(event, conn)
-
-        # === VK COMMUNITY PARSER ENDPOINT ===
-        if endpoint == 'vk_parser':
-            return handle_vk_parser(event)
 
         # === GALLERY ENDPOINTS ===
         if endpoint == 'gallery':
