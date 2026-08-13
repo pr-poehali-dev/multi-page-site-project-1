@@ -15,6 +15,7 @@ import base64
 import uuid
 import boto3
 import requests
+from concurrent.futures import ThreadPoolExecutor
 
 SCHEMA = 't_p73771717_multi_page_site_proj'
 CABINET_URL = 'https://индиго-арт.рф/participant-cabinet'
@@ -257,17 +258,21 @@ def handle_vk_parser(event: Dict[str, Any]) -> Dict[str, Any]:
                 return {'statusCode': 400, 'headers': cors_headers, 'body': json.dumps({'error': 'В этом регионе не найдено городов для поиска'}), 'isBase64Encoded': False}
 
             collected: Dict[int, Dict[str, Any]] = {}
-            per_city_count = 50
-            for i in range(0, len(city_ids), 15):
-                chunk = city_ids[i:i + 15]
+            per_city_count = 200
+            chunks = [city_ids[i:i + 15] for i in range(0, len(city_ids), 15)]
+
+            def fetch_chunk(chunk: List[int]) -> Any:
                 code = vk_build_region_groups_search_code(search_query, chunk, per_city_count)
-                exec_resp = vk_execute(code, token)
-                items = exec_resp.get('response')
-                if not isinstance(items, list):
-                    continue
-                for it in items:
-                    if isinstance(it, dict) and it.get('id'):
-                        collected[it['id']] = it
+                return vk_execute(code, token)
+
+            with ThreadPoolExecutor(max_workers=min(len(chunks), 5)) as pool:
+                for exec_resp in pool.map(fetch_chunk, chunks):
+                    items = exec_resp.get('response')
+                    if not isinstance(items, list):
+                        continue
+                    for it in items:
+                        if isinstance(it, dict) and it.get('id'):
+                            collected[it['id']] = it
 
             groups_list = list(collected.values())
             groups_list.sort(key=lambda g: g.get('members_count', 0), reverse=True)
@@ -289,14 +294,19 @@ def handle_vk_parser(event: Dict[str, Any]) -> Dict[str, Any]:
         group_ids = [str(g['id']) for g in groups]
         emails_by_group: Dict[int, List[str]] = {}
 
-        if group_ids:
+        # VK API принимает максимум 500 id за один вызов groups.getById и слишком длинный
+        # GET-запрос обрывается — поэтому бьём на батчи по 300 id
+        for i in range(0, len(group_ids), 300):
+            batch = group_ids[i:i + 300]
             detail_resp = vk_call('groups.getById', {
-                'group_ids': ','.join(group_ids),
+                'group_ids': ','.join(batch),
                 'fields': 'description,contacts,city,members_count,activity,site',
             }, token)
             detail_groups = detail_resp.get('response', {})
             if isinstance(detail_groups, dict):
                 detail_groups = detail_groups.get('groups', [])
+            if not isinstance(detail_groups, list):
+                continue
             for g in detail_groups:
                 emails_by_group[g['id']] = get_group_emails(g)
 
