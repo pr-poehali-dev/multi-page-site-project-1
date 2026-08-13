@@ -251,23 +251,26 @@ def handle_vk_parser(event: Dict[str, Any]) -> Dict[str, Any]:
 
         if region_id and not city_id:
             # groups.search принимает region_id, но фактически не фильтрует по нему —
-            # поэтому ищем по каждому крупному городу региона (без указанного района — города областного подчинения) через execute
+            # поэтому ищем по каждому крупному городу региона (без указанного района — города областного подчинения).
+            # VKScript (execute) упирается в лимит "Too many operations" при большом count,
+            # поэтому используем прямые параллельные вызовы groups.search — VK отдаёт по ним
+            # до 1000 результатов за один запрос на город без ограничений скрипта.
             region_cities = get_region_major_cities(int(region_id), token)
             city_ids = [c['id'] for c in region_cities][:40]
             if not city_ids:
                 return {'statusCode': 400, 'headers': cors_headers, 'body': json.dumps({'error': 'В этом регионе не найдено городов для поиска'}), 'isBase64Encoded': False}
 
             collected: Dict[int, Dict[str, Any]] = {}
-            per_city_count = 200
-            chunks = [city_ids[i:i + 15] for i in range(0, len(city_ids), 15)]
 
-            def fetch_chunk(chunk: List[int]) -> Any:
-                code = vk_build_region_groups_search_code(search_query, chunk, per_city_count)
-                return vk_execute(code, token)
+            def fetch_city(cid: int) -> Dict[str, Any]:
+                return vk_call('groups.search', {
+                    'q': search_query, 'type': 'group', 'city_id': cid,
+                    'count': 1000, 'sort': 0, 'fields': 'members_count,city',
+                }, token)
 
-            with ThreadPoolExecutor(max_workers=min(len(chunks), 5)) as pool:
-                for exec_resp in pool.map(fetch_chunk, chunks):
-                    items = exec_resp.get('response')
+            with ThreadPoolExecutor(max_workers=min(len(city_ids), 10)) as pool:
+                for resp in pool.map(fetch_city, city_ids):
+                    items = (resp.get('response') or {}).get('items')
                     if not isinstance(items, list):
                         continue
                     for it in items:
@@ -379,29 +382,6 @@ def get_region_major_cities(region_id: int, token: str) -> List[Dict[str, Any]]:
     if not major:
         major = all_items[:25]
     return [{'id': c['id'], 'title': c.get('title', '')} for c in major]
-
-
-def vk_build_region_groups_search_code(search_query: str, city_ids: List[int], per_city_count: int) -> str:
-    '''Формирует VKScript, ищущий сообщества по ключевым словам в каждом из городов списка'''
-    query_json = json.dumps(search_query, ensure_ascii=False)
-    ids_json = json.dumps(city_ids)
-    return f'''
-    var ids = {ids_json};
-    var q = {query_json};
-    var result = [];
-    var i = 0;
-    while (i < ids.length) {{
-      var res = API.groups.search({{"q": q, "type": "group", "city_id": ids[i], "count": {per_city_count}, "sort": 0, "fields": "members_count,city"}});
-      var items = res.items;
-      var j = 0;
-      while (j < items.length) {{
-        result.push(items[j]);
-        j = j + 1;
-      }}
-      i = i + 1;
-    }}
-    return result;
-    '''
 
 
 def vk_build_check_code(screen_names: List[str], owner_id: int, post_id: int, group_id: int) -> str:
