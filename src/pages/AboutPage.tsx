@@ -50,7 +50,7 @@ const AboutPage = () => {
   }, [galleryPhotos]);
 
   const stats = [
-    { target: 636, suffix: '+', label: 'Участников' },
+    { target: 3500, suffix: '+', label: 'Участников' },
     { target: 67, suffix: '+', label: 'Конкурсов' },
     { target: 17, suffix: '', label: 'Стран' },
     { target: 115, suffix: '+', label: 'Призов' },
