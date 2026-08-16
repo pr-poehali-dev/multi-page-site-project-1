@@ -53,7 +53,7 @@ const AboutPage = () => {
     { target: 3500, suffix: '+', label: 'Участников в год' },
     { target: 67, suffix: '+', label: 'Конкурсов в год' },
     { target: 17, suffix: '', label: 'Стран' },
-    { target: 115, suffix: '+', label: 'Призов' },
+    { target: 350, suffix: '+', label: 'Грантов в год' },
   ];
 
   useEffect(() => {
