@@ -51,7 +51,7 @@ const AboutPage = () => {
 
   const stats = [
     { target: 3500, suffix: '+', label: 'Участников в год' },
-    { target: 67, suffix: '+', label: 'Конкурсов' },
+    { target: 67, suffix: '+', label: 'Конкурсов в год' },
     { target: 17, suffix: '', label: 'Стран' },
     { target: 115, suffix: '+', label: 'Призов' },
   ];
