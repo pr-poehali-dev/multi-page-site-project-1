@@ -4,7 +4,7 @@
       "name": "Upload single file",
       "method": "POST",
       "body": {
-        "applicationId": 1,
+        "applicationId": 0,
         "files": [
           {
             "fileName": "test.txt",
