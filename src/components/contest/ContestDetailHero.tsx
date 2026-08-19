@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
+import { trackGoal } from '@/lib/analytics';
 
 interface Contest {
   id: number;
@@ -31,6 +32,7 @@ const ContestDetailHero = ({ contest, isPast, isActive, isFuture, daysUntilStart
   const isInternal = contest.application_type === 'internal';
 
   const handleApply = () => {
+    trackGoal('apply_click');
     if (isInternal) {
       navigate(`/participant-login?contest=${contest.id}`);
     } else if (contest.application_form_url) {

@@ -16,7 +16,8 @@ export type AnalyticsGoal =
   | 'order_start'
   | 'order_paid'
   | 'contact_submit'
-  | 'review_submit';
+  | 'review_submit'
+  | 'apply_click';
 
 export const trackGoal = (goal: AnalyticsGoal) => {
   try {
