@@ -1,20 +1,19 @@
-import { bridge, siteUrl, paletteFor } from './VkPosterTypes';
+import { bridge, siteUrl } from './VkPosterTypes';
 import type { Contest } from './VkPosterTypes';
 
 interface ContestCardProps {
   contest: Contest;
-  index: number;
+  index?: number;
   onClick: () => void;
   past?: boolean;
   isDark?: boolean;
   cardBg?: string;
 }
 
-export function ContestCard({ contest, index, onClick, past, isDark, cardBg }: ContestCardProps) {
+export function ContestCard({ contest, onClick, past, isDark, cardBg }: ContestCardProps) {
   const isActive = contest.status === 'active';
   const startDate = new Date(contest.start_date);
   const endDate = new Date(contest.end_date);
-  const palette = paletteFor(index);
 
   const dateStr = contest.event_date
     ? contest.event_date
@@ -33,80 +32,52 @@ export function ContestCard({ contest, index, onClick, past, isDark, cardBg }: C
     });
   };
 
-  const titleColor = isDark ? '#f5f5f5' : '#161616';
-  const subColor = isDark ? '#9a9a9a' : '#6b6b6b';
+  const border = isDark ? '1px solid #333' : '1px solid #e8e8e8';
+  const titleColor = isDark ? '#f0f0f0' : '#222';
+  const subColor = isDark ? '#aaa' : '#555';
 
   return (
-    <div
-      onClick={onClick}
-      style={{
-        background: cardBg || '#fff',
-        borderRadius: 20,
-        overflow: 'hidden',
-        cursor: 'pointer',
-        boxShadow: isDark ? '0 4px 18px rgba(0,0,0,0.35)' : '0 4px 18px rgba(30,20,60,0.08)',
-        transition: 'transform .15s ease',
-      }}
-    >
-      <div style={{ position: 'relative', width: '100%', aspectRatio: '2/1', background: `linear-gradient(135deg, ${palette.from}, ${palette.to})` }}>
-        {contest.poster_url ? (
-          <img src={contest.poster_url} alt={contest.title}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', filter: past ? 'grayscale(0.5) brightness(0.75)' : 'none' }} />
-        ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 56 }}>
-            🎭
-          </div>
-        )}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.05) 45%, transparent 70%)' }} />
-
-        <span style={{
-          position: 'absolute', top: 10, right: 10,
-          fontSize: 11, fontWeight: 700, color: '#fff',
-          padding: '5px 11px', borderRadius: 20,
-          background: past ? 'rgba(90,90,90,0.85)' : isActive ? 'rgba(34,150,90,0.9)' : 'rgba(230,140,0,0.9)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', gap: 5,
-        }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />
-          {past ? 'Завершён' : isActive ? 'Идёт приём заявок' : 'Скоро'}
-        </span>
-
-        <div style={{ position: 'absolute', left: 14, right: 14, bottom: 10 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#fff', lineHeight: 1.3, textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>
-            {contest.title}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ padding: '12px 14px 14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: palette.from, marginBottom: contest.location ? 3 : 8 }}>
-          <span>🗓</span><span>{dateStr}</span>
-        </div>
-        {contest.location && (
-          <div style={{ fontSize: 12.5, color: subColor, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span>📍</span><span>{contest.location}</span>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {!past && applyUrl && (
-            <a href={applyUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-              style={{
-                flex: 1, textAlign: 'center', fontSize: 13.5, fontWeight: 700, color: '#fff',
-                background: `linear-gradient(135deg, ${palette.from}, ${palette.to})`,
-                padding: '9px 12px', borderRadius: 12, textDecoration: 'none',
-              }}>
-              Подать заявку
-            </a>
+    <div style={{ background: cardBg || '#fff', borderBottom: border, cursor: 'pointer' }} onClick={onClick}>
+      <div style={{ display: 'flex', gap: 12, padding: '14px 16px', alignItems: 'flex-start' }}>
+        <div style={{ flexShrink: 0 }}>
+          {contest.poster_url ? (
+            <img src={contest.poster_url} alt={contest.title}
+              style={{ width: 100, height: 100, borderRadius: 16, objectFit: 'cover', opacity: past ? 0.6 : 1 }} />
+          ) : (
+            <div style={{ width: 100, height: 100, borderRadius: 16, background: past ? '#e0e0e0' : 'linear-gradient(135deg,#3d6fa0,#5a8fc0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>
+              🎭
+            </div>
           )}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, color: titleColor, lineHeight: 1.35, marginBottom: 4 }}>{contest.title}</div>
+          <div style={{ fontSize: 13, color: '#3d6fa0', fontWeight: 500, marginBottom: 2 }}>
+            {dateStr}
+          </div>
+          {contest.location && (
+            <div style={{ fontSize: 12, color: subColor, marginBottom: 2 }}>{contest.location}</div>
+          )}
+          {!past && (
+            <span style={{ fontSize: 11, fontWeight: 600, color: isActive ? '#2e9e5b' : '#e07b00' }}>
+              {isActive ? '● Идёт приём заявок' : '● Скоро'}
+            </span>
+          )}
+          {!past && (applyUrl || contest.pdf_url || contest.blank_form_url) && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }} onClick={e => e.stopPropagation()}>
+              {applyUrl && (
+                <a href={applyUrl} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: '#3d6fa0', padding: '5px 14px', borderRadius: 20, textDecoration: 'none' }}>
+                  Подать заявку
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div style={{ flexShrink: 0 }} onClick={e => e.stopPropagation()}>
           <button onClick={handleShare}
-            style={{
-              width: 38, height: 38, borderRadius: 12, flexShrink: 0,
-              border: `1.5px solid ${isDark ? '#3a3a3a' : '#ece9f5'}`,
-              background: isDark ? '#232324' : '#faf9fd',
-              color: titleColor, cursor: 'pointer', fontSize: 16,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
+            style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${isDark ? '#444' : '#ddd'}`, background: 'none', color: subColor, cursor: 'pointer', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             ↗
           </button>
         </div>
