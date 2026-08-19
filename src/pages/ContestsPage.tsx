@@ -77,18 +77,6 @@ const ContestCard = ({ contest, index, isPast }: { contest: Contest; index: numb
           {statusLabel}
         </span>
       </div>
-
-      {contest.pdf_url && (
-        <div className="p-3 bg-background">
-          <button
-            onClick={(e) => { e.stopPropagation(); window.open(contest.pdf_url, '_blank'); }}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold border border-border hover:bg-muted transition-colors"
-          >
-            <Icon name="FileText" size={16} />
-            Положение
-          </button>
-        </div>
-      )}
     </div>
   );
 };
