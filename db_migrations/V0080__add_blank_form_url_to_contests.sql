@@ -1,0 +1,1 @@
+ALTER TABLE contests ADD COLUMN IF NOT EXISTS blank_form_url text NULL;

@@ -222,8 +222,8 @@ const ContestModal = ({
           body: JSON.stringify({ file_base64: base64String, file_name: file.name, contest_id: contestId || 0 })
         });
         const data = await response.json();
-        if (data.form_url) {
-          setFormData({ ...formData, application_form_url: data.form_url });
+        if (data.blank_form_url || data.form_url) {
+          setFormData({ ...formData, blank_form_url: data.blank_form_url || data.form_url });
           toast({ title: 'Успешно', description: 'Бланк заявки загружен' });
         } else {
           toast({ title: 'Ошибка', description: 'Не удалось загрузить бланк', variant: 'destructive' });

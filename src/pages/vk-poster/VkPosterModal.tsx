@@ -1,5 +1,5 @@
-import { bridge } from './VkPosterTypes';
-import type { Event } from './VkPosterTypes';
+import { bridge, siteUrl } from './VkPosterTypes';
+import type { Contest } from './VkPosterTypes';
 
 export function Modal({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
   return (
@@ -17,82 +17,73 @@ export function Modal({ children, onClose, title }: { children: React.ReactNode;
   );
 }
 
-export function EventDetail({ event, onClose }: { event: Event; onClose: () => void }) {
-  const d = new Date(event.event_date);
-  const weekdays = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
-  const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-  const shortMonths = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
-  const weekday = weekdays[d.getDay()];
-  const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  const dateShort = `${d.getDate()} ${months[d.getMonth()]}, ${['вс','пн','вт','ср','чт','пт','сб'][d.getDay()]}, ${time}`;
-
+export function ContestDetail({ contest }: { contest: Contest }) {
+  const startDate = new Date(contest.start_date);
+  const endDate = new Date(contest.end_date);
   const now = new Date();
-  const diffMs = d.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  let timeLeft = '';
-  if (diffDays > 0) {
-    if (diffDays >= 30) {
-      const m = Math.round(diffDays / 30);
-      timeLeft = `через ${m} ${m === 1 ? 'месяц' : m < 5 ? 'месяца' : 'месяцев'}`;
-    } else {
-      timeLeft = `через ${diffDays} ${diffDays === 1 ? 'день' : diffDays < 5 ? 'дня' : 'дней'}`;
-    }
-  }
+  const isActive = contest.status === 'active';
+  const isPast = endDate < now;
+  const isFuture = startDate > now;
+  const isInternal = contest.application_type === 'internal';
+  const applyUrl = isInternal ? siteUrl(`/participant-login?contest=${contest.id}`) : contest.application_form_url;
+
+  const dateStr = contest.event_date
+    ? contest.event_date
+    : `${startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })} — ${endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}`;
 
   const handleShare = () => {
     if (!bridge) return;
-    const link = event.page_url || event.ticket_url;
-    const text = `${event.title}\n🗓 ${dateShort}${event.location ? `\n📍 ${event.location}` : ''}`;
-    if (link) {
-      bridge.send('VKWebAppShare', { link }).catch(() => {
-        bridge.send('VKWebAppCopyText', { text }).catch(() => {});
-      });
-    } else {
+    const link = siteUrl(`/contests/${contest.id}`);
+    const text = `${contest.title}\n🗓 ${dateStr}${contest.location ? `\n📍 ${contest.location}` : ''}`;
+    bridge.send('VKWebAppShare', { link }).catch(() => {
       bridge.send('VKWebAppCopyText', { text }).catch(() => {});
-    }
+    });
   };
 
   return (
     <div style={{ padding: '0 16px 20px' }}>
       <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 14 }}>
-        {event.poster_url ? (
-          <img src={event.poster_url} alt={event.title}
+        {contest.poster_url ? (
+          <img src={contest.poster_url} alt={contest.title}
             style={{ width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
         ) : (
           <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg,#3d6fa0,#5a8fc0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, flexShrink: 0 }}>🎭</div>
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#111', lineHeight: 1.35, marginBottom: 8 }}>{event.title}</div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#111', lineHeight: 1.35, marginBottom: 8 }}>{contest.title}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#555' }}>
-              <span>🕐</span><span>{dateShort}</span>
+              <span>🕐</span><span>{dateStr}</span>
             </div>
-            {event.location && (
+            {contest.location && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#3d6fa0' }}>
-                <span>📍</span><span>{event.location}</span>
+                <span>📍</span><span>{contest.location}</span>
               </div>
             )}
-            {event.deadline && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#e07b00' }}>
-                <span>⏰</span>
-                <span>Заявки до: {new Date(event.deadline).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</span>
-              </div>
-            )}
+            <span style={{ fontSize: 12, fontWeight: 600, color: isPast ? '#999' : isActive ? '#2e9e5b' : '#e07b00' }}>
+              {isPast ? 'Завершён' : isActive ? 'Идёт приём заявок' : 'Скоро'}
+            </span>
           </div>
         </div>
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-        {event.ticket_url && (
-          <a href={event.ticket_url} target="_blank" rel="noopener noreferrer"
+        {!isPast && !isFuture && applyUrl && (
+          <a href={applyUrl} target="_blank" rel="noopener noreferrer"
             style={{ fontSize: 14, fontWeight: 600, color: '#fff', background: '#3d6fa0', padding: '8px 16px', borderRadius: 8, textDecoration: 'none' }}>
             Подать заявку
           </a>
         )}
-        {event.page_url && (
-          <a href={event.page_url} target="_blank" rel="noopener noreferrer"
+        {contest.pdf_url && (
+          <a href={contest.pdf_url} target="_blank" rel="noopener noreferrer"
             style={{ fontSize: 14, fontWeight: 600, color: '#3d6fa0', background: 'rgba(61,111,160,0.1)', padding: '8px 16px', borderRadius: 8, textDecoration: 'none', border: '1px solid rgba(61,111,160,0.25)' }}>
-            Положение
+            Скачать положение
+          </a>
+        )}
+        {contest.blank_form_url && (
+          <a href={contest.blank_form_url} target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 14, fontWeight: 600, color: '#3d6fa0', background: 'rgba(61,111,160,0.1)', padding: '8px 16px', borderRadius: 8, textDecoration: 'none', border: '1px solid rgba(61,111,160,0.25)' }}>
+            Скачать бланк заявки
           </a>
         )}
         <button onClick={handleShare}
@@ -101,18 +92,9 @@ export function EventDetail({ event, onClose }: { event: Event; onClose: () => v
         </button>
       </div>
 
-      {event.description && (
-        <div style={{ fontSize: 14, color: '#333', marginBottom: 16, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{event.description}</div>
+      {contest.description && (
+        <div style={{ fontSize: 14, color: '#333', marginBottom: 16, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{contest.description}</div>
       )}
-
-      <div style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 10 }}>Расписание</div>
-      <div style={{ display: 'inline-block', border: '1px solid #e0e0e0', borderRadius: 12, padding: '16px 24px', textAlign: 'center', minWidth: 120 }}>
-        <div style={{ fontSize: 42, fontWeight: 700, color: '#111', lineHeight: 1 }}>{d.getDate()}</div>
-        <div style={{ fontSize: 14, color: '#555', marginTop: 2 }}>{shortMonths[d.getMonth()]}</div>
-        <div style={{ fontSize: 13, color: '#555', marginTop: 2 }}>{weekday}</div>
-        <div style={{ fontSize: 15, fontWeight: 600, color: '#111', marginTop: 4 }}>{time}</div>
-        {timeLeft && <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{timeLeft}</div>}
-      </div>
     </div>
   );
 }

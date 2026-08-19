@@ -14,6 +14,7 @@ interface Contest {
   pdf_url?: string;
   poster_url?: string;
   application_form_url?: string;
+  blank_form_url?: string;
   location?: string;
   event_date?: string;
   ticket_link?: string;
@@ -35,6 +36,7 @@ interface ContestFormData {
   pdf_url?: string;
   poster_url?: string;
   application_form_url?: string;
+  blank_form_url?: string;
   location?: string;
   event_date?: string;
   ticket_link?: string;
@@ -148,6 +150,7 @@ export const useAdminContests = () => {
       pdf_url: contest.pdf_url || '',
       poster_url: contest.poster_url || '',
       application_form_url: contest.application_form_url || '',
+      blank_form_url: contest.blank_form_url || '',
       location: contest.location || '',
       event_date: contest.event_date || '',
       ticket_link: contest.ticket_link || '',

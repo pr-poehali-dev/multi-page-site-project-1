@@ -199,12 +199,22 @@ const ContestUploadFields = ({
             className="flex-1"
           >
             <Icon name="Upload" size={16} className="mr-2" />
-            {uploadingForm ? 'Загрузка...' : formData.application_form_url ? 'Заменить бланк' : 'Загрузить бланк (.docx)'}
+            {uploadingForm ? 'Загрузка...' : formData.blank_form_url ? 'Заменить бланк' : 'Загрузить бланк (.docx)'}
           </Button>
+          {formData.blank_form_url && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => window.open(formData.blank_form_url, '_blank')}
+            >
+              <Icon name="ExternalLink" size={16} />
+            </Button>
+          )}
         </div>
         {mode === 'create' && (
           <p className="text-xs text-muted-foreground mt-1">Бланк можно загрузить после создания конкурса</p>
         )}
+        <p className="text-xs text-muted-foreground mt-1">Если загружен, на странице конкурса появится кнопка «Скачать бланк заявки»</p>
       </div>
 
       <div>

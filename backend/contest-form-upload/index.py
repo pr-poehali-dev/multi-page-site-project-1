@@ -82,6 +82,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     return {
         'statusCode': 200,
         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'form_url': cdn_url}),
+        'body': json.dumps({'form_url': cdn_url, 'blank_form_url': cdn_url}),
         'isBase64Encoded': False
     }

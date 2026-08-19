@@ -21,6 +21,7 @@ interface Contest {
   categories?: string;
   pdf_url?: string;
   application_form_url?: string;
+  blank_form_url?: string;
   event_date?: string;
   poster_url?: string;
   logo_url?: string;

@@ -13,6 +13,7 @@ interface Contest {
   status: string;
   pdf_url?: string;
   application_form_url?: string;
+  blank_form_url?: string;
   event_date?: string;
   logo_url?: string;
   application_type?: 'external' | 'internal';
@@ -104,6 +105,17 @@ const ContestDetailHero = ({ contest, isPast, isActive, isFuture, daysUntilStart
           >
             <Icon name="FileText" size={20} className="mr-2" />
             Скачать положение (PDF)
+          </Button>
+        )}
+        {contest.blank_form_url && (
+          <Button
+            size="lg"
+            variant="outline"
+            className="bg-secondary border-secondary text-white hover:bg-secondary/90"
+            onClick={() => window.open(contest.blank_form_url, '_blank')}
+          >
+            <Icon name="FileDown" size={20} className="mr-2" />
+            Скачать бланк заявки
           </Button>
         )}
       </div>
