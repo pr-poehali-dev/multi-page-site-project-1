@@ -10,7 +10,6 @@ export default function VkPosterPage() {
   const [loading, setLoading] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isDark, setIsDark] = useState(false);
-  const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
 
   useEffect(() => {
     if (!bridge) return;
@@ -47,9 +46,7 @@ export default function VkPosterPage() {
   };
 
   const now = new Date();
-  const upcomingContests = contests.filter(c => new Date(c.end_date) >= now);
-  const pastContests = contests.filter(c => new Date(c.end_date) < now);
-  const list = tab === 'upcoming' ? upcomingContests : pastContests;
+  const list = contests.filter(c => new Date(c.end_date) >= now);
 
   const bg = isDark ? '#141415' : '#f6f5fa';
   const cardBg = isDark ? '#232325' : '#fff';
@@ -65,26 +62,7 @@ export default function VkPosterPage() {
         <div style={{ position: 'absolute', top: -34, right: -14, fontSize: 100, opacity: 0.14, lineHeight: 1, transform: 'rotate(-8deg)' }}>🎭</div>
         <div style={{ position: 'relative' }}>
           <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>Календарь конкурсов</h1>
-          <p style={{ color: 'rgba(255,255,255,0.82)', fontSize: 12.5, margin: '3px 0 14px', fontWeight: 500 }}>Вокал · хореография · театр · музыка</p>
-
-          <div style={{ display: 'flex', gap: 5, background: 'rgba(255,255,255,0.15)', padding: 4, borderRadius: 13, backdropFilter: 'blur(6px)' }}>
-            <button onClick={() => setTab('upcoming')}
-              style={{
-                flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                background: tab === 'upcoming' ? '#fff' : 'transparent',
-                color: tab === 'upcoming' ? '#7c2d9e' : 'rgba(255,255,255,0.9)',
-              }}>
-              Актуальные{upcomingContests.length > 0 ? ` · ${upcomingContests.length}` : ''}
-            </button>
-            <button onClick={() => setTab('past')}
-              style={{
-                flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                background: tab === 'past' ? '#fff' : 'transparent',
-                color: tab === 'past' ? '#7c2d9e' : 'rgba(255,255,255,0.9)',
-              }}>
-              Прошедшие{pastContests.length > 0 ? ` · ${pastContests.length}` : ''}
-            </button>
-          </div>
+          <p style={{ color: 'rgba(255,255,255,0.82)', fontSize: 12.5, margin: '3px 0 0', fontWeight: 500 }}>Вокал · хореография · театр · музыка</p>
         </div>
       </div>
 
@@ -99,7 +77,7 @@ export default function VkPosterPage() {
         ) : (
           <div>
             {list.map((c, i) => (
-              <ContestCard key={c.id} contest={c} index={i} onClick={() => setSelectedIndex(i)} isDark={isDark} cardBg={cardBg} past={tab === 'past'} />
+              <ContestCard key={c.id} contest={c} index={i} onClick={() => setSelectedIndex(i)} isDark={isDark} cardBg={cardBg} />
             ))}
           </div>
         )}
