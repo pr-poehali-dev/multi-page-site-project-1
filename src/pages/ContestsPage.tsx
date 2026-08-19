@@ -60,7 +60,7 @@ const ContestCard = ({ contest, index, isPast }: { contest: Contest; index: numb
         )}
       </div>
 
-      <div className="relative bg-muted" style={{ aspectRatio: '4/3' }}>
+      <div className="relative bg-muted" style={{ aspectRatio: '10/9' }}>
         {contest.poster_url ? (
           <img
             src={contest.poster_url}
