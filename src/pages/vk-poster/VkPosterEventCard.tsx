@@ -48,7 +48,7 @@ export function ContestCard({ contest, index, onClick, past, isDark, cardBg }: C
         transition: 'transform .15s ease',
       }}
     >
-      <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: `linear-gradient(135deg, ${palette.from}, ${palette.to})` }}>
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '2/1', background: `linear-gradient(135deg, ${palette.from}, ${palette.to})` }}>
         {contest.poster_url ? (
           <img src={contest.poster_url} alt={contest.title}
             style={{ width: '100%', height: '100%', objectFit: 'cover', filter: past ? 'grayscale(0.5) brightness(0.75)' : 'none' }} />
