@@ -37,3 +37,16 @@ export function formatDateShort(iso: string) {
 export function siteUrl(path: string) {
   return `https://индиго-арт.рф${path}`;
 }
+
+export const palettes = [
+  { from: '#7c3aed', to: '#a855f7' },
+  { from: '#ec4899', to: '#f43f5e' },
+  { from: '#4f46e5', to: '#7c3aed' },
+  { from: '#d946ef', to: '#ec4899' },
+  { from: '#9333ea', to: '#d946ef' },
+  { from: '#3d6fa0', to: '#5a8fc0' },
+];
+
+export function paletteFor(index: number) {
+  return palettes[index % palettes.length];
+}
