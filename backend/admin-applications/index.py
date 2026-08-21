@@ -216,6 +216,16 @@ def handle_vk_parser(event: Dict[str, Any]) -> Dict[str, Any]:
             'isBase64Encoded': False
         }
 
+    # Донецк, Луганск и Мариуполь в базе городов VK не привязаны к региону/стране (ДНР/ЛНР
+    # официально не выделены как субъект в справочнике VK), поэтому поиск database.getCities
+    # с country_id=1 (Россия) их не находит. Это фиксированные внутренние id VK для этих
+    # городов — подмешиваем их в выдачу вручную, когда запрос совпадает с названием.
+    EXTRA_CITIES = [
+        {'id': 223, 'title': 'Донецк', 'region': 'ДНР', 'area': ''},
+        {'id': 552, 'title': 'Луганск', 'region': 'ЛНР', 'area': ''},
+        {'id': 455, 'title': 'Мариуполь', 'region': 'ДНР', 'area': ''},
+    ]
+
     if method == 'GET' and action == 'cities':
         q = (query_params.get('q') or '').strip()
         if not q:
@@ -225,6 +235,9 @@ def handle_vk_parser(event: Dict[str, Any]) -> Dict[str, Any]:
             return {'statusCode': 400, 'headers': cors_headers, 'body': json.dumps({'error': resp['error'].get('error_msg', 'Ошибка VK API')}), 'isBase64Encoded': False}
         items = (resp.get('response') or {}).get('items', [])
         cities = [{'id': c['id'], 'title': c['title'], 'region': c.get('region', ''), 'area': c.get('area', '')} for c in items]
+        q_low = q.lower()
+        matched_extra = [c for c in EXTRA_CITIES if c['title'].lower().startswith(q_low)]
+        cities = matched_extra + cities
         return {'statusCode': 200, 'headers': cors_headers, 'body': json.dumps({'cities': cities}), 'isBase64Encoded': False}
 
     if method == 'GET' and action == 'regions':
