@@ -58,7 +58,6 @@ const CabinetAwardsTab = ({ diplomas, diplomasLoading }: CabinetAwardsTabProps) 
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
-                      <p className="text-sm text-muted-foreground font-mono mb-1.5">{d.diploma_number}</p>
                       <CardTitle className="text-xl">{d.contest_title}</CardTitle>
                       {d.contest_event_date && (
                         <CardDescription className="text-base">{d.contest_event_date}</CardDescription>
@@ -69,6 +68,13 @@ const CabinetAwardsTab = ({ diplomas, diplomasLoading }: CabinetAwardsTabProps) 
                         {d.award}
                       </span>
                     )}
+                  </div>
+                  <div className="mt-3 inline-flex items-center gap-2 bg-muted/60 border border-border rounded-lg px-3 py-2 w-fit">
+                    <Icon name="Hash" size={16} className="text-muted-foreground shrink-0" />
+                    <div>
+                      <p className="text-[11px] text-muted-foreground leading-none mb-1">ID диплома для проверки</p>
+                      <p className="font-mono font-semibold text-base leading-none">{d.diploma_number}</p>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
@@ -104,7 +110,7 @@ const CabinetAwardsTab = ({ diplomas, diplomasLoading }: CabinetAwardsTabProps) 
                   </div>
                   <div className="mt-5 pt-4 border-t flex gap-2 flex-wrap">
                     <Button variant="outline" onClick={() => navigate(`/diploma-check?diploma_number=${d.diploma_number}`)}>
-                      <Icon name="ExternalLink" size={16} className="mr-1.5" /> Открыть диплом
+                      <Icon name="ExternalLink" size={16} className="mr-1.5" /> Проверить диплом по iD
                     </Button>
                   </div>
                 </CardContent>
