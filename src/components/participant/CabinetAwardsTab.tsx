@@ -57,17 +57,10 @@ const CabinetAwardsTab = ({ diplomas, diplomasLoading }: CabinetAwardsTabProps) 
             <Card key={d.diploma_number} className="overflow-hidden">
               <div className="border-l-4 border-secondary pl-0">
                 <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div>
-                      <CardTitle className="text-xl">{d.contest_title}</CardTitle>
-                      {d.contest_event_date && (
-                        <CardDescription className="text-base">{d.contest_event_date}</CardDescription>
-                      )}
-                    </div>
-                    {d.award && (
-                      <span className={`shrink-0 px-4 py-1.5 rounded-xl text-base font-bold border ${AWARD_COLORS[d.award] || 'bg-muted text-muted-foreground border-border'}`}>
-                        {d.award}
-                      </span>
+                  <div>
+                    <CardTitle className="text-xl">{d.contest_title}</CardTitle>
+                    {d.contest_event_date && (
+                      <CardDescription className="text-base">{d.contest_event_date}</CardDescription>
                     )}
                   </div>
                   <div className="mt-3 flex items-center gap-3 flex-wrap">
@@ -84,6 +77,15 @@ const CabinetAwardsTab = ({ diplomas, diplomasLoading }: CabinetAwardsTabProps) 
                         <div>
                           <p className="text-[11px] text-muted-foreground leading-none mb-1">Порядковый номер</p>
                           <p className="font-mono font-semibold text-base leading-none">{d.order_number}</p>
+                        </div>
+                      </div>
+                    )}
+                    {d.award && (
+                      <div className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 w-fit border ${AWARD_COLORS[d.award] || 'bg-muted text-muted-foreground border-border'}`}>
+                        <Icon name="Award" size={16} className="shrink-0" />
+                        <div>
+                          <p className="text-[11px] opacity-80 leading-none mb-1">Результат</p>
+                          <p className="font-bold text-base leading-none">{d.award}</p>
                         </div>
                       </div>
                     )}
