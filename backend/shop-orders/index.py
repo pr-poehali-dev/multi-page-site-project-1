@@ -411,10 +411,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 if email:
                     cur.execute(f'''
                         SELECT o.*, p.name AS product_name, p.price,
-                               c.title AS contest_title
+                               COALESCE(c.title, cc.title) AS contest_title
                         FROM {SCHEMA}.shop_orders o
                         JOIN {SCHEMA}.shop_products p ON p.id = o.product_id
                         LEFT JOIN {SCHEMA}.contests c ON c.id = p.contest_id
+                        LEFT JOIN {SCHEMA}.shop_categories sc ON sc.id = p.category_id
+                        LEFT JOIN {SCHEMA}.contests cc ON cc.id = sc.contest_id
                         WHERE o.status != '__hidden__'
                           AND lower(o.form_data->>'Адрес электронной почты') = lower(%s)
                         ORDER BY o.created_at DESC
@@ -430,26 +432,37 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 if contest_id:
                     cur.execute(f'''
                         SELECT o.*, p.name AS product_name, p.price,
-                               c.title AS contest_title
+                               COALESCE(c.title, cc.title) AS contest_title
                         FROM {SCHEMA}.shop_orders o
                         JOIN {SCHEMA}.shop_products p ON p.id = o.product_id
-                        JOIN {SCHEMA}.contests c ON c.id = p.contest_id
-                        WHERE p.contest_id = %s AND o.status != '__hidden__'
+                        LEFT JOIN {SCHEMA}.contests c ON c.id = p.contest_id
+                        LEFT JOIN {SCHEMA}.shop_categories sc ON sc.id = p.category_id
+                        LEFT JOIN {SCHEMA}.contests cc ON cc.id = sc.contest_id
+                        WHERE (p.contest_id = %s OR sc.contest_id = %s) AND o.status != '__hidden__'
                         ORDER BY o.created_at DESC
-                    ''', (contest_id,))
+                    ''', (contest_id, contest_id))
                 elif product_id:
                     cur.execute(f'''
-                        SELECT o.*, p.name AS product_name, p.price
+                        SELECT o.*, p.name AS product_name, p.price,
+                               COALESCE(c.title, cc.title) AS contest_title
                         FROM {SCHEMA}.shop_orders o
                         JOIN {SCHEMA}.shop_products p ON p.id = o.product_id
+                        LEFT JOIN {SCHEMA}.contests c ON c.id = p.contest_id
+                        LEFT JOIN {SCHEMA}.shop_categories sc ON sc.id = p.category_id
+                        LEFT JOIN {SCHEMA}.contests cc ON cc.id = sc.contest_id
                         WHERE o.product_id = %s AND o.status != '__hidden__'
                         ORDER BY o.created_at DESC
                     ''', (product_id,))
                 else:
                     cur.execute(f'''
-                        SELECT o.*, p.name AS product_name, p.price
+                        SELECT o.*, p.name AS product_name, p.price,
+                               sc.name AS category_name,
+                               COALESCE(c.title, cc.title) AS contest_title
                         FROM {SCHEMA}.shop_orders o
                         JOIN {SCHEMA}.shop_products p ON p.id = o.product_id
+                        LEFT JOIN {SCHEMA}.contests c ON c.id = p.contest_id
+                        LEFT JOIN {SCHEMA}.shop_categories sc ON sc.id = p.category_id
+                        LEFT JOIN {SCHEMA}.contests cc ON cc.id = sc.contest_id
                         WHERE o.status != '__hidden__'
                         ORDER BY o.created_at DESC
                         LIMIT 500

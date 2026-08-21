@@ -15,6 +15,7 @@ export interface Diploma {
   contest_title: string;
   contest_location: string;
   contest_event_date: string;
+  shop_category_id?: number | null;
 }
 
 const AWARD_COLORS: Record<string, string> = {
@@ -126,6 +127,11 @@ const CabinetAwardsTab = ({ diplomas, diplomasLoading }: CabinetAwardsTabProps) 
                     <Button variant="outline" onClick={() => navigate(`/diploma-check?diploma_number=${d.diploma_number}`)}>
                       <Icon name="ExternalLink" size={16} className="mr-1.5" /> Проверить диплом по iD
                     </Button>
+                    {d.shop_category_id != null && (
+                      <Button onClick={() => navigate(`/shop?category_id=${d.shop_category_id}`)}>
+                        <Icon name="ShoppingCart" size={16} className="mr-1.5" /> Заказать диплом
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </div>

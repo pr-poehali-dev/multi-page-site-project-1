@@ -238,7 +238,7 @@ const AdminTabContent = ({
 
     case 'shop':
       return (
-        <ShopTab />
+        <ShopTab contests={contests} />
       );
 
     case 'participants':

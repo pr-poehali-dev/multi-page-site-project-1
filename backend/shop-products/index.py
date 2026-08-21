@@ -88,9 +88,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     return {'statusCode': 400, 'headers': CORS,
                             'body': json.dumps({'error': 'name required'})}
                 cur.execute(f'''
-                    INSERT INTO {SCHEMA}.shop_categories (name, sort_order)
-                    VALUES (%s, %s) RETURNING *
-                ''', (name, body.get('sort_order', 0)))
+                    INSERT INTO {SCHEMA}.shop_categories (name, sort_order, contest_id)
+                    VALUES (%s, %s, %s) RETURNING *
+                ''', (name, body.get('sort_order', 0), body.get('contest_id') or None))
                 cat = dict(cur.fetchone())
                 return {'statusCode': 200, 'headers': CORS,
                         'body': json.dumps({'category': cat}, default=json_serial)}
@@ -108,6 +108,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     sets.append('sort_order = %s'); vals.append(body['sort_order'])
                 if 'is_active' in body:
                     sets.append('is_active = %s'); vals.append(body['is_active'])
+                if 'contest_id' in body:
+                    sets.append('contest_id = %s'); vals.append(body['contest_id'] or None)
                 if not sets:
                     return {'statusCode': 400, 'headers': CORS,
                             'body': json.dumps({'error': 'nothing to update'})}

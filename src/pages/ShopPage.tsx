@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ const ShopPage = () => {
     keywords: 'магазин ИНДИГО, дипломы, сувениры, атрибутика, купить онлайн',
     path: '/shop',
   });
+  const [searchParams] = useSearchParams();
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCatId, setSelectedCatId] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
@@ -40,9 +41,15 @@ const ShopPage = () => {
       .then(d => {
         const list: Category[] = (d.categories || []).filter((c: Category & { name: string }) => c.name !== '__deleted__' && c.is_active !== false);
         setCategories(list);
-        if (list.length > 0) setSelectedCatId(String(list[0].id));
+        const requestedCatId = searchParams.get('category_id');
+        if (requestedCatId && list.some(c => String(c.id) === requestedCatId)) {
+          setSelectedCatId(requestedCatId);
+        } else if (list.length > 0) {
+          setSelectedCatId(String(list[0].id));
+        }
       })
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

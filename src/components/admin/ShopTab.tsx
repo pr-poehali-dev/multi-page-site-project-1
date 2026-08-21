@@ -6,7 +6,13 @@ import ShopOrdersView from './ShopOrdersView';
 import ShopTabHeader from './ShopTabHeader';
 import ShopCategoriesView from './ShopCategoriesView';
 
-const ShopTab = () => {
+interface ContestOption { id: number; title: string; }
+
+interface ShopTabProps {
+  contests: ContestOption[];
+}
+
+const ShopTab = ({ contests }: ShopTabProps) => {
   const {
     view, setView,
     categories, selectedCatId, setSelectedCatId, editingCat, setEditingCat, newCatName, setNewCatName, savingCat, catsLoading,
@@ -14,7 +20,7 @@ const ShopTab = () => {
     orders, ordersLoading,
     showForm, setShowForm, editingProduct, form, setForm, savingProduct, uploadingPhoto,
     showFieldsEditor, setShowFieldsEditor, fieldsProduct, fields, savingFields, allFields, showFieldPicker, setShowFieldPicker,
-    createCategory, saveCategory, deleteCategory, toggleCategoryActive,
+    createCategory, saveCategory, deleteCategory, toggleCategoryActive, setCategoryContest,
     openCreate, openEdit, saveProduct, uploadPhoto,
     openFieldsEditor, addField, addFieldFromTemplate, updateField, removeField, saveFields,
     copyProduct, deleteProduct,
@@ -64,6 +70,7 @@ const ShopTab = () => {
       {view === 'categories' && (
         <ShopCategoriesView
           categories={categories}
+          contests={contests}
           catsLoading={catsLoading}
           editingCat={editingCat}
           setEditingCat={setEditingCat}
@@ -74,6 +81,7 @@ const ShopTab = () => {
           onSaveCategory={saveCategory}
           onDeleteCategory={deleteCategory}
           onToggleCategoryActive={toggleCategoryActive}
+          onSetCategoryContest={setCategoryContest}
         />
       )}
 

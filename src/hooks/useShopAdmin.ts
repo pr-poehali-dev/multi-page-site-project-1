@@ -5,7 +5,7 @@ import { adminHeaders } from '@/config/adminApi';
 const PRODUCTS_URL = 'https://functions.poehali.dev/eddcb40d-3bae-4f75-9c69-390ad1190d83';
 const ORDERS_URL = 'https://functions.poehali.dev/b020db38-8100-400d-9e53-2dbfcafd5f48';
 
-export interface Category { id: number; name: string; sort_order: number; is_active: boolean; }
+export interface Category { id: number; name: string; sort_order: number; is_active: boolean; contest_id?: number | null; }
 export interface FormField {
   id?: number;
   field_name: string;
@@ -32,6 +32,7 @@ export interface Order {
   status: string;
   created_at: string;
   form_data: Record<string, string>;
+  contest_title?: string;
 }
 
 const emptyProduct = (categoryId?: number): Omit<Product, 'id'> => ({
@@ -171,6 +172,21 @@ export const useShopAdmin = () => {
     } catch {
       setCategories(cs => cs.map(c => c.id === cat.id ? { ...c, is_active: !nextActive } : c));
       toast({ title: 'Ошибка изменения видимости', variant: 'destructive' });
+    }
+  };
+
+  const setCategoryContest = async (cat: Category, contestId: number | null) => {
+    setCategories(cs => cs.map(c => c.id === cat.id ? { ...c, contest_id: contestId } : c));
+    try {
+      const res = await fetch(`${PRODUCTS_URL}?action=category_update&id=${cat.id}`, {
+        method: 'PUT', headers: adminHeaders(),
+        body: JSON.stringify({ contest_id: contestId }),
+      });
+      if (!res.ok) throw new Error();
+      toast({ title: 'Раздел привязан к конкурсу' });
+    } catch {
+      setCategories(cs => cs.map(c => c.id === cat.id ? { ...c, contest_id: cat.contest_id } : c));
+      toast({ title: 'Ошибка привязки конкурса', variant: 'destructive' });
     }
   };
 
@@ -326,9 +342,9 @@ export const useShopAdmin = () => {
   const exportToExcel = (list: Order[], filename: string) => {
     if (list.length === 0) { toast({ title: 'Нет данных для экспорта', variant: 'destructive' }); return; }
     const formKeys = Array.from(new Set(list.flatMap(o => Object.keys(o.form_data || {}))));
-    const headers = ['№', 'Товар', 'Цена', 'Статус', 'Дата', ...formKeys];
+    const headers = ['№', 'Товар', 'Конкурс', 'Цена', 'Статус', 'Дата', ...formKeys];
     const rows = list.map(o => [
-      o.id, o.product_name, Number(o.price).toLocaleString('ru-RU'),
+      o.id, o.product_name, o.contest_title || '', Number(o.price).toLocaleString('ru-RU'),
       ({ new: 'Новый', paid: 'Оплачен', cancelled: 'Отменён', completed: 'Выполнен' } as Record<string, string>)[o.status] || o.status,
       new Date(o.created_at).toLocaleString('ru-RU'),
       ...formKeys.map(k => o.form_data?.[k] || ''),
@@ -350,7 +366,7 @@ export const useShopAdmin = () => {
     orders, ordersLoading,
     showForm, setShowForm, editingProduct, form, setForm, savingProduct, uploadingPhoto,
     showFieldsEditor, setShowFieldsEditor, fieldsProduct, fields, savingFields, allFields, showFieldPicker, setShowFieldPicker,
-    createCategory, saveCategory, deleteCategory, toggleCategoryActive,
+    createCategory, saveCategory, deleteCategory, toggleCategoryActive, setCategoryContest,
     openCreate, openEdit, saveProduct, uploadPhoto,
     openFieldsEditor, addField, addFieldFromTemplate, updateField, removeField, saveFields,
     copyProduct, deleteProduct,

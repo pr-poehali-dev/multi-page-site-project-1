@@ -12,6 +12,7 @@ interface Order {
   status: string;
   created_at: string;
   form_data: Record<string, string>;
+  contest_title?: string;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -85,6 +86,12 @@ const ShopOrdersView = ({
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-semibold text-muted-foreground">#{o.id}</span>
                         <span className="font-medium">{o.product_name}</span>
+                        {o.contest_title && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/10 text-secondary font-medium flex items-center gap-1">
+                            <Icon name="Trophy" size={11} />
+                            {o.contest_title}
+                          </span>
+                        )}
                         <span className="font-bold text-secondary">{Number(o.price).toLocaleString('ru-RU')} ₽</span>
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                           o.status === 'new' ? 'bg-blue-100 text-blue-700' :

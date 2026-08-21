@@ -134,7 +134,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 ''', (participant_id,))
                 rows = [dict(r) for r in cur.fetchall()]
                 for r in rows:
-                    r['award'] = calc_award(cur, r.pop('id'), r.pop('contest_id'), r.pop('nomination_id'))
+                    contest_id = r.pop('contest_id')
+                    r['award'] = calc_award(cur, r.pop('id'), contest_id, r.pop('nomination_id'))
+                    cur.execute(f'''
+                        SELECT id FROM {SCHEMA}.shop_categories
+                        WHERE contest_id = %s AND is_active = TRUE
+                        LIMIT 1
+                    ''', (contest_id,))
+                    shop_cat = cur.fetchone()
+                    r['shop_category_id'] = shop_cat['id'] if shop_cat else None
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
