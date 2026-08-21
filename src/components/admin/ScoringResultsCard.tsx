@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -66,6 +67,69 @@ const ScoringResultsCard = ({
   const [editingCell, setEditingCell] = useState<{ rowId: number; juryMemberId: number } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
+  const [criteriaModal, setCriteriaModal] = useState<{ rowId: number; juryMemberId: number; juryName: string; participantName: string } | null>(null);
+  const [criteriaList, setCriteriaList] = useState<Array<{ id: number; name: string; max_score: number; score: number | null }>>([]);
+  const [criteriaLoading, setCriteriaLoading] = useState(false);
+  const [criteriaEditingId, setCriteriaEditingId] = useState<number | null>(null);
+  const [criteriaEditValue, setCriteriaEditValue] = useState('');
+  const [criteriaSaving, setCriteriaSaving] = useState(false);
+
+  const openCriteriaModal = async (rowId: number, juryMemberId: number, juryName: string, participantName: string) => {
+    setCriteriaModal({ rowId, juryMemberId, juryName, participantName });
+    setCriteriaLoading(true);
+    try {
+      const res = await fetch(`${API}?action=admin_criteria_scores&program_row_id=${rowId}&jury_member_id=${juryMemberId}`, { headers: adminHeaders() });
+      const data = await res.json();
+      setCriteriaList(data.criteria || []);
+    } catch {
+      toast({ title: 'Ошибка', description: 'Не удалось загрузить критерии', variant: 'destructive' });
+    } finally {
+      setCriteriaLoading(false);
+    }
+  };
+
+  const closeCriteriaModal = () => {
+    setCriteriaModal(null);
+    setCriteriaList([]);
+    setCriteriaEditingId(null);
+    setCriteriaEditValue('');
+  };
+
+  const startCriteriaEdit = (criterionId: number, currentScore: number | null) => {
+    setCriteriaEditingId(criterionId);
+    setCriteriaEditValue(currentScore != null ? String(currentScore) : '');
+  };
+
+  const saveCriteriaEdit = async () => {
+    if (!criteriaModal || criteriaEditingId == null) return;
+    const score = parseFloat(criteriaEditValue.replace(',', '.'));
+    if (isNaN(score)) {
+      toast({ title: 'Ошибка', description: 'Введите число', variant: 'destructive' });
+      return;
+    }
+    setCriteriaSaving(true);
+    try {
+      await fetch(`${API}?action=admin_criteria_score`, {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify({
+          program_row_id: criteriaModal.rowId,
+          jury_member_id: criteriaModal.juryMemberId,
+          criterion_id: criteriaEditingId,
+          contest_id: Number(selectedContest),
+          score,
+        }),
+      });
+      setCriteriaList(prev => prev.map(c => c.id === criteriaEditingId ? { ...c, score } : c));
+      setCriteriaEditingId(null);
+      setCriteriaEditValue('');
+      onRefresh();
+    } catch {
+      toast({ title: 'Ошибка', description: 'Не удалось сохранить балл', variant: 'destructive' });
+    } finally {
+      setCriteriaSaving(false);
+    }
+  };
 
   const startEdit = (rowId: number, juryMemberId: number, currentScore: number | null) => {
     setEditingCell({ rowId, juryMemberId });
@@ -230,7 +294,7 @@ const ScoringResultsCard = ({
                   {Array.from({ length: Math.max(maxJury, 1) }, (_, i) => {
                     const entry = row.jury_scores.find(s => s.order === i + 1);
                     const isEditing = editingCell?.rowId === row.id && entry && editingCell.juryMemberId === entry.jury_member_id;
-                    const canEdit = i < row.jury_count && entry && !row.has_criteria;
+                    const canEdit = i < row.jury_count && !!entry;
                     return (
                       <td key={i} className="py-2 px-2 text-center">
                         {isEditing ? (
@@ -254,16 +318,23 @@ const ScoringResultsCard = ({
                           entry?.score != null ? (
                             <span
                               className={`font-semibold text-foreground ${canEdit ? 'cursor-pointer hover:underline decoration-dotted underline-offset-2' : ''}`}
-                              title={canEdit ? 'Нажмите, чтобы изменить балл' : entry.jury_name}
-                              onClick={() => canEdit && startEdit(row.id, entry.jury_member_id, entry.score)}
+                              title={canEdit ? (row.has_criteria ? 'Нажмите, чтобы изменить баллы по критериям' : 'Нажмите, чтобы изменить балл') : entry.jury_name}
+                              onClick={() => {
+                                if (!canEdit) return;
+                                if (row.has_criteria) openCriteriaModal(row.id, entry.jury_member_id, entry.jury_name, row.participant_name);
+                                else startEdit(row.id, entry.jury_member_id, entry.score);
+                              }}
                             >
                               {entry.score}
                             </span>
                           ) : canEdit ? (
                             <button
                               className="text-muted-foreground text-xs hover:text-secondary hover:underline decoration-dotted underline-offset-2"
-                              title="Выставить балл"
-                              onClick={() => startEdit(row.id, entry!.jury_member_id, null)}
+                              title={row.has_criteria ? 'Выставить баллы по критериям' : 'Выставить балл'}
+                              onClick={() => {
+                                if (row.has_criteria) openCriteriaModal(row.id, entry!.jury_member_id, entry!.jury_name, row.participant_name);
+                                else startEdit(row.id, entry!.jury_member_id, null);
+                              }}
                             >
                               —
                             </button>
@@ -292,6 +363,62 @@ const ScoringResultsCard = ({
           </table>
         </div>
       )}
+
+      <Dialog open={!!criteriaModal} onOpenChange={open => !open && closeCriteriaModal()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Баллы по критериям</DialogTitle>
+          </DialogHeader>
+          {criteriaModal && (
+            <p className="text-sm text-muted-foreground -mt-2">
+              {criteriaModal.participantName} · судья {criteriaModal.juryName}
+            </p>
+          )}
+          {criteriaLoading ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Icon name="Loader" size={28} className="mx-auto animate-spin" />
+            </div>
+          ) : criteriaList.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Критерии не найдены</p>
+          ) : (
+            <div className="space-y-2">
+              {criteriaList.map(c => (
+                <div key={c.id} className="flex items-center justify-between gap-3 border rounded-lg px-3 py-2">
+                  <div>
+                    <p className="text-sm font-medium">{c.name}</p>
+                    <p className="text-xs text-muted-foreground">макс. {c.max_score}</p>
+                  </div>
+                  {criteriaEditingId === c.id ? (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        autoFocus
+                        value={criteriaEditValue}
+                        onChange={e => setCriteriaEditValue(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') saveCriteriaEdit(); if (e.key === 'Escape') setCriteriaEditingId(null); }}
+                        className="h-8 w-16 text-center px-1"
+                        disabled={criteriaSaving}
+                      />
+                      <button onClick={saveCriteriaEdit} disabled={criteriaSaving} className="text-green-600 hover:text-green-700">
+                        <Icon name={criteriaSaving ? 'Loader' : 'Check'} size={16} className={criteriaSaving ? 'animate-spin' : ''} />
+                      </button>
+                      <button onClick={() => setCriteriaEditingId(null)} disabled={criteriaSaving} className="text-muted-foreground hover:text-foreground">
+                        <Icon name="X" size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="font-semibold text-secondary hover:underline decoration-dotted underline-offset-2 min-w-8 text-right"
+                      onClick={() => startCriteriaEdit(c.id, c.score)}
+                    >
+                      {c.score != null ? c.score : '—'}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

@@ -54,7 +54,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     # Действия, доступные только администратору сайта (не жюри) — требуют ключ доступа
     # GET jury_access публичный (список жюри конкурса показывается на публичной странице конкурса),
     # POST jury_access (изменение доступа) остаётся защищённым
-    admin_only_actions = {'program_scores', 'results_table', 'program_assignments', 'program_assignment', 'delete_participant', 'admin_score'}
+    admin_only_actions = {'program_scores', 'results_table', 'program_assignments', 'program_assignment', 'delete_participant', 'admin_score', 'admin_criteria_scores', 'admin_criteria_score'}
     if method == 'POST' and action == 'jury_access':
         admin_only_actions = admin_only_actions | {'jury_access'}
     if action in admin_only_actions:
@@ -717,6 +717,56 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 SET score = EXCLUDED.score, comment = EXCLUDED.comment, updated_at = NOW()
                 RETURNING id
             ''', (program_row_id, jury_id, contest_id, float(score), comment))
+            score_id = cur.fetchone()[0]
+            conn.commit()
+            cur.close()
+            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True, 'score_id': score_id}), 'isBase64Encoded': False}
+
+        # GET admin_criteria_scores - критерии номинации участника с оценками конкретного судьи (admin)
+        if method == 'GET' and action == 'admin_criteria_scores':
+            program_row_id = params.get('program_row_id')
+            jury_member_id = params.get('jury_member_id')
+            if not program_row_id or not jury_member_id:
+                return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется program_row_id и jury_member_id'}), 'isBase64Encoded': False}
+            schema = 't_p73771717_multi_page_site_proj'
+            cur = conn.cursor()
+            cur.execute(f'''
+                SELECT nc.id, nc.name, nc.max_score
+                FROM {schema}.contest_program cp
+                JOIN {schema}.nomination_criteria nc ON nc.nomination_id = cp.nomination_id
+                WHERE cp.id = %s
+                ORDER BY nc.sort_order, nc.id
+            ''', (program_row_id,))
+            criteria_rows = cur.fetchall()
+            cur.execute(f'''
+                SELECT criterion_id, score
+                FROM {schema}.program_criteria_scores
+                WHERE program_row_id = %s AND jury_member_id = %s
+            ''', (program_row_id, jury_member_id))
+            scores_index = {r[0]: float(r[1]) for r in cur.fetchall()}
+            cur.close()
+            criteria = [{'id': r[0], 'name': r[1], 'max_score': r[2], 'score': scores_index.get(r[0])} for r in criteria_rows]
+            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'criteria': criteria}), 'isBase64Encoded': False}
+
+        # POST admin_criteria_score - редактирование администратором оценки судьи по критерию номинации
+        if method == 'POST' and action == 'admin_criteria_score':
+            body = json.loads(event.get('body', '{}'))
+            program_row_id = body.get('program_row_id')
+            jury_member_id = body.get('jury_member_id')
+            criterion_id = body.get('criterion_id')
+            contest_id = body.get('contest_id')
+            score = body.get('score')
+            if not program_row_id or not jury_member_id or not criterion_id or not contest_id or score is None:
+                return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'program_row_id, jury_member_id, criterion_id, contest_id, score обязательны'}), 'isBase64Encoded': False}
+            schema = 't_p73771717_multi_page_site_proj'
+            cur = conn.cursor()
+            cur.execute(f'''
+                INSERT INTO {schema}.program_criteria_scores (program_row_id, jury_member_id, criterion_id, contest_id, score, comment)
+                VALUES (%s, %s, %s, %s, %s, '')
+                ON CONFLICT (program_row_id, jury_member_id, criterion_id) DO UPDATE
+                SET score = EXCLUDED.score, updated_at = NOW()
+                RETURNING id
+            ''', (program_row_id, jury_member_id, criterion_id, contest_id, float(score)))
             score_id = cur.fetchone()[0]
             conn.commit()
             cur.close()
