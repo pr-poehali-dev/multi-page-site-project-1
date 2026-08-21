@@ -147,7 +147,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             # Получаем строку программы
             cur.execute(f'''
-                SELECT cp.id, cp.contest_id, cp.participant_name, cp.director_name,
+                SELECT cp.id, cp.contest_id, cp.nomination_id, cp.participant_name, cp.director_name,
                        cp.piece_title, cp.nomination, cp.age, cp.region, cp.directing_party
                 FROM {SCHEMA}.contest_program cp
                 WHERE UPPER(cp.diploma_number) = %s
@@ -173,61 +173,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             ''', (contest_id,))
             contest = cur.fetchone()
 
-            # Получаем оценки и считаем звание
-            cur.execute(f'''
-                SELECT pja.jury_member_id,
-                       ROW_NUMBER() OVER (ORDER BY pja.id) AS jury_order
-                FROM {SCHEMA}.program_jury_assignments pja
-                WHERE pja.program_row_id = %s AND pja.contest_id = %s
-                ORDER BY pja.id
-            ''', (row_id, contest_id))
-            assignments = cur.fetchall()
-            jury_count = len(assignments)
-
-            cur.execute(f'''
-                SELECT ps.jury_member_id, ps.score
-                FROM {SCHEMA}.program_scores ps
-                WHERE ps.program_row_id = %s AND ps.contest_id = %s
-            ''', (row_id, contest_id))
-            scores_raw = {r['jury_member_id']: float(r['score']) for r in cur.fetchall()}
-
-            # Система оценивания
-            cur.execute(f'''
-                SELECT {', '.join([f'jury_count_{n}_{lvl}' for n in JURY_COUNTS for lvl in LEVELS])}
-                FROM {SCHEMA}.contest_scoring_rules
-                WHERE contest_id = %s
-            ''', (contest_id,))
-            scoring_row = cur.fetchone()
-
-            if scoring_row:
-                cols = ['grand_prix', 'laureate_1', 'laureate_2', 'laureate_3', 'diplom_1', 'diplom_2', 'diplom_3']
-                keys = [f'jury_count_{n}_{lvl}' for n in JURY_COUNTS for lvl in LEVELS]
-                thresholds = {}
-                for i, n in enumerate(range(1, 6)):
-                    thresholds[n] = {cols[j]: scoring_row[keys[i*7+j]] for j in range(7)}
-            else:
-                thresholds = DEFAULT_THRESHOLDS
-
-            total = 0.0
-            all_scored = jury_count > 0
-            for a in assignments:
-                score = scores_raw.get(a['jury_member_id'])
-                if score is not None:
-                    total += score
-                else:
-                    all_scored = False
-
-            award = ''
-            if all_scored and jury_count > 0:
-                t = thresholds.get(jury_count, DEFAULT_THRESHOLDS.get(jury_count, {}))
-                if total >= t.get('grand_prix', 9999): award = 'ОБЛАДАТЕЛЯ ГРАН-ПРИ'
-                elif total >= t.get('laureate_1', 9999): award = 'ЛАУРЕАТА I СТЕПЕНИ'
-                elif total >= t.get('laureate_2', 9999): award = 'ЛАУРЕАТА II СТЕПЕНИ'
-                elif total >= t.get('laureate_3', 9999): award = 'ЛАУРЕАТА III СТЕПЕНИ'
-                elif total >= t.get('diplom_1', 9999): award = 'ДИПЛОМАНТА I СТЕПЕНИ'
-                elif total >= t.get('diplom_2', 9999): award = 'ДИПЛОМАНТА II СТЕПЕНИ'
-                elif total >= t.get('diplom_3', 9999): award = 'ДИПЛОМАНТА III СТЕПЕНИ'
-                else: award = 'УЧАСТНИКА'
+            # Считаем звание (с учётом критериев номинации, если они есть)
+            award = calc_award(cur, row_id, contest_id, row.get('nomination_id'))
 
             # Фото жюри
             cur.execute(f'''
