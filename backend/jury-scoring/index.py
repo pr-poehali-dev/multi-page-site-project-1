@@ -52,7 +52,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
 
     # Действия, доступные только администратору сайта (не жюри) — требуют ключ доступа
-    admin_only_actions = {'jury_access', 'program_scores', 'results_table', 'program_assignments', 'program_assignment', 'delete_participant'}
+    # GET jury_access публичный (список жюри конкурса показывается на публичной странице конкурса),
+    # POST jury_access (изменение доступа) остаётся защищённым
+    admin_only_actions = {'program_scores', 'results_table', 'program_assignments', 'program_assignment', 'delete_participant'}
+    if method == 'POST' and action == 'jury_access':
+        admin_only_actions = admin_only_actions | {'jury_access'}
     if action in admin_only_actions:
         expected_key = os.environ.get('ADMIN_API_KEY')
         if expected_key:
