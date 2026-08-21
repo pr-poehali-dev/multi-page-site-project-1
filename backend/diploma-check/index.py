@@ -43,7 +43,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     conn.autocommit = True
 
-    def calc_award(cur, row_id: int, contest_id: int) -> str:
+    def calc_award(cur, row_id: int, contest_id: int, nomination_id) -> str:
         cur.execute(f'''
             SELECT pja.jury_member_id
             FROM {SCHEMA}.program_jury_assignments pja
@@ -54,12 +54,28 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if jury_count == 0:
             return ''
 
-        cur.execute(f'''
-            SELECT ps.jury_member_id, ps.score
-            FROM {SCHEMA}.program_scores ps
-            WHERE ps.program_row_id = %s AND ps.contest_id = %s
-        ''', (row_id, contest_id))
-        scores_raw = {r['jury_member_id']: float(r['score']) for r in cur.fetchall()}
+        criteria_count = 0
+        if nomination_id:
+            cur.execute(f'''
+                SELECT COUNT(*) AS cnt FROM {SCHEMA}.nomination_criteria WHERE nomination_id = %s
+            ''', (nomination_id,))
+            criteria_count = cur.fetchone()['cnt']
+
+        if criteria_count > 0:
+            cur.execute(f'''
+                SELECT jury_member_id, SUM(score) AS total_score, COUNT(*) AS scored_count
+                FROM {SCHEMA}.program_criteria_scores
+                WHERE program_row_id = %s AND contest_id = %s
+                GROUP BY jury_member_id
+            ''', (row_id, contest_id))
+            scores_raw = {r['jury_member_id']: float(r['total_score']) for r in cur.fetchall() if r['scored_count'] >= criteria_count}
+        else:
+            cur.execute(f'''
+                SELECT ps.jury_member_id, ps.score
+                FROM {SCHEMA}.program_scores ps
+                WHERE ps.program_row_id = %s AND ps.contest_id = %s
+            ''', (row_id, contest_id))
+            scores_raw = {r['jury_member_id']: float(r['score']) for r in cur.fetchall()}
 
         cur.execute(f'''
             SELECT {', '.join([f'jury_count_{n}_{lvl}' for n in JURY_COUNTS for lvl in LEVELS])}
@@ -105,7 +121,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(f'''
-                    SELECT DISTINCT cp.id, cp.contest_id, cp.diploma_number, cp.participant_name, cp.director_name,
+                    SELECT DISTINCT cp.id, cp.contest_id, cp.nomination_id, cp.diploma_number, cp.participant_name, cp.director_name,
                            cp.piece_title, cp.nomination, cp.directing_party, cp.order_number,
                            c.title as contest_title, c.location as contest_location,
                            c.event_date as contest_event_date
@@ -118,7 +134,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 ''', (participant_id,))
                 rows = [dict(r) for r in cur.fetchall()]
                 for r in rows:
-                    r['award'] = calc_award(cur, r.pop('id'), r.pop('contest_id'))
+                    r['award'] = calc_award(cur, r.pop('id'), r.pop('contest_id'), r.pop('nomination_id'))
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
