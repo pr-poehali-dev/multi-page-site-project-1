@@ -1,10 +1,15 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { adminHeaders } from '@/config/adminApi';
+import { useToast } from '@/hooks/use-toast';
+
+const API = 'https://functions.poehali.dev/e399905c-0871-434d-90ae-850d12af1c0d';
 
 const AWARD_COLORS: Record<string, string> = {
   'ОБЛАДАТЕЛЯ ГРАН-ПРИ': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
@@ -28,11 +33,12 @@ interface ResultRow {
   nomination: string;
   piece_title: string;
   duration: string;
-  jury_scores: Array<{ order: number; score: number | null }>;
+  jury_scores: Array<{ order: number; score: number | null; jury_member_id: number; jury_name: string }>;
   jury_count: number;
   total: number | null;
   award: string;
   all_scored: boolean;
+  has_criteria?: boolean;
 }
 
 interface ScoringResultsCardProps {
@@ -50,11 +56,56 @@ const ScoringResultsCard = ({
   loadingResults,
   exportingPdf,
   contestTitle,
+  selectedContest,
   onRefresh,
   onSetExportingPdf,
 }: ScoringResultsCardProps) => {
+  const { toast } = useToast();
   const tableRef = useRef<HTMLDivElement>(null);
   const maxJury = results.reduce((m, r) => Math.max(m, r.jury_count), 0);
+  const [editingCell, setEditingCell] = useState<{ rowId: number; juryMemberId: number } | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = (rowId: number, juryMemberId: number, currentScore: number | null) => {
+    setEditingCell({ rowId, juryMemberId });
+    setEditValue(currentScore != null ? String(currentScore) : '');
+  };
+
+  const cancelEdit = () => {
+    setEditingCell(null);
+    setEditValue('');
+  };
+
+  const saveEdit = async () => {
+    if (!editingCell) return;
+    const score = parseFloat(editValue.replace(',', '.'));
+    if (isNaN(score)) {
+      toast({ title: 'Ошибка', description: 'Введите число', variant: 'destructive' });
+      return;
+    }
+    setSaving(true);
+    try {
+      await fetch(`${API}?action=admin_score`, {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify({
+          program_row_id: editingCell.rowId,
+          jury_member_id: editingCell.juryMemberId,
+          contest_id: Number(selectedContest),
+          score,
+        }),
+      });
+      toast({ title: 'Балл обновлён' });
+      setEditingCell(null);
+      setEditValue('');
+      onRefresh();
+    } catch {
+      toast({ title: 'Ошибка', description: 'Не удалось сохранить балл', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const exportExcel = () => {
     if (!results.length) return;
@@ -178,12 +229,47 @@ const ScoringResultsCard = ({
                   <td className="py-2 px-2 text-muted-foreground">{row.duration || '—'}</td>
                   {Array.from({ length: Math.max(maxJury, 1) }, (_, i) => {
                     const entry = row.jury_scores.find(s => s.order === i + 1);
+                    const isEditing = editingCell?.rowId === row.id && entry && editingCell.juryMemberId === entry.jury_member_id;
+                    const canEdit = i < row.jury_count && entry && !row.has_criteria;
                     return (
                       <td key={i} className="py-2 px-2 text-center">
-                        {i < row.jury_count ? (
-                          entry?.score != null
-                            ? <span className="font-semibold text-foreground">{entry.score}</span>
-                            : <span className="text-muted-foreground text-xs">—</span>
+                        {isEditing ? (
+                          <div className="flex items-center gap-1 justify-center">
+                            <Input
+                              autoFocus
+                              value={editValue}
+                              onChange={e => setEditValue(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                              className="h-7 w-14 text-center px-1"
+                              disabled={saving}
+                            />
+                            <button onClick={saveEdit} disabled={saving} className="text-green-600 hover:text-green-700">
+                              <Icon name={saving ? 'Loader' : 'Check'} size={14} className={saving ? 'animate-spin' : ''} />
+                            </button>
+                            <button onClick={cancelEdit} disabled={saving} className="text-muted-foreground hover:text-foreground">
+                              <Icon name="X" size={14} />
+                            </button>
+                          </div>
+                        ) : i < row.jury_count ? (
+                          entry?.score != null ? (
+                            <span
+                              className={`font-semibold text-foreground ${canEdit ? 'cursor-pointer hover:underline decoration-dotted underline-offset-2' : ''}`}
+                              title={canEdit ? 'Нажмите, чтобы изменить балл' : entry.jury_name}
+                              onClick={() => canEdit && startEdit(row.id, entry.jury_member_id, entry.score)}
+                            >
+                              {entry.score}
+                            </span>
+                          ) : canEdit ? (
+                            <button
+                              className="text-muted-foreground text-xs hover:text-secondary hover:underline decoration-dotted underline-offset-2"
+                              title="Выставить балл"
+                              onClick={() => startEdit(row.id, entry!.jury_member_id, null)}
+                            >
+                              —
+                            </button>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )
                         ) : (
                           <span className="text-muted-foreground/30 text-xs">·</span>
                         )}

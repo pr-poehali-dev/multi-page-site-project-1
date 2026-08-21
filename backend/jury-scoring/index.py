@@ -54,7 +54,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     # Действия, доступные только администратору сайта (не жюри) — требуют ключ доступа
     # GET jury_access публичный (список жюри конкурса показывается на публичной странице конкурса),
     # POST jury_access (изменение доступа) остаётся защищённым
-    admin_only_actions = {'program_scores', 'results_table', 'program_assignments', 'program_assignment', 'delete_participant'}
+    admin_only_actions = {'program_scores', 'results_table', 'program_assignments', 'program_assignment', 'delete_participant', 'admin_score'}
     if method == 'POST' and action == 'jury_access':
         admin_only_actions = admin_only_actions | {'jury_access'}
     if action in admin_only_actions:
@@ -501,7 +501,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     else:
                         # Старая схема: один общий балл на участника
                         score = scores_index.get((row_id, j['jury_member_id']))
-                    jury_scores.append({'order': j['order'], 'score': score})
+                    jury_scores.append({'order': j['order'], 'score': score, 'jury_member_id': j['jury_member_id'], 'jury_name': j['jury_name']})
                     if score is not None:
                         total += score
                     else:
@@ -526,6 +526,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'total': round(total, 2) if all_scored and jury_count > 0 else None,
                     'award': award,
                     'all_scored': all_scored and jury_count > 0,
+                    'has_criteria': criteria_count > 0,
                 })
 
             return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'rows': result, 'thresholds': {str(k): v for k, v in thresholds.items()}}), 'isBase64Encoded': False}
@@ -716,6 +717,30 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 SET score = EXCLUDED.score, comment = EXCLUDED.comment, updated_at = NOW()
                 RETURNING id
             ''', (program_row_id, jury_id, contest_id, float(score), comment))
+            score_id = cur.fetchone()[0]
+            conn.commit()
+            cur.close()
+            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True, 'score_id': score_id}), 'isBase64Encoded': False}
+
+        # POST admin_score - редактирование администратором ранее выставленной оценки судьи
+        # (для конкурсов без критериев номинации, таблица program_scores)
+        if method == 'POST' and action == 'admin_score':
+            body = json.loads(event.get('body', '{}'))
+            program_row_id = body.get('program_row_id')
+            jury_member_id = body.get('jury_member_id')
+            contest_id = body.get('contest_id')
+            score = body.get('score')
+            if not program_row_id or not jury_member_id or not contest_id or score is None:
+                return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'program_row_id, jury_member_id, contest_id, score обязательны'}), 'isBase64Encoded': False}
+            schema = 't_p73771717_multi_page_site_proj'
+            cur = conn.cursor()
+            cur.execute(f'''
+                INSERT INTO {schema}.program_scores (program_row_id, jury_member_id, contest_id, score, comment)
+                VALUES (%s, %s, %s, %s, '')
+                ON CONFLICT (program_row_id, jury_member_id) DO UPDATE
+                SET score = EXCLUDED.score, updated_at = NOW()
+                RETURNING id
+            ''', (program_row_id, jury_member_id, contest_id, float(score)))
             score_id = cur.fetchone()[0]
             conn.commit()
             cur.close()
