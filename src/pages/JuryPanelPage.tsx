@@ -50,7 +50,6 @@ const JuryPanelPage = () => {
   const [loading, setLoading] = useState(true);
   const [loadingRows, setLoadingRows] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [showArchive, setShowArchive] = useState(false);
   const navigate = useNavigate();
 
   const getToken = () => localStorage.getItem('jury_token') || '';
@@ -146,9 +145,7 @@ const JuryPanelPage = () => {
 
   const now = new Date();
   const isPastContest = (c: Contest) => !!c.end_date && new Date(c.end_date) < now;
-  const activeContests = contests.filter(c => !isPastContest(c));
-  const pastContests = contests.filter(isPastContest);
-  const visibleContests = showArchive ? pastContests : activeContests;
+  const visibleContests = contests.filter(c => !isPastContest(c));
 
   const currentRow = rows[currentIndex] ?? null;
   const hasCriteria = (currentRow?.criteria?.length ?? 0) > 0;
@@ -184,29 +181,12 @@ const JuryPanelPage = () => {
 
         <div className="max-w-2xl mx-auto px-4 py-12">
           <h1 className="text-3xl font-heading font-bold mb-2 text-center">Добро пожаловать!</h1>
-          <p className="text-muted-foreground text-center mb-6">Выберите конкурс для оценивания</p>
-
-          <div className="flex gap-2 justify-center mb-8">
-            <button
-              onClick={() => setShowArchive(false)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${!showArchive ? 'bg-secondary text-secondary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}
-            >
-              Актуальные{activeContests.length > 0 ? ` · ${activeContests.length}` : ''}
-            </button>
-            <button
-              onClick={() => setShowArchive(true)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${showArchive ? 'bg-secondary text-secondary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}
-            >
-              Архив{pastContests.length > 0 ? ` · ${pastContests.length}` : ''}
-            </button>
-          </div>
+          <p className="text-muted-foreground text-center mb-10">Выберите конкурс для оценивания</p>
 
           {visibleContests.length === 0 ? (
             <Card className="p-12 text-center">
               <Icon name="Calendar" size={48} className="mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">
-                {showArchive ? 'Архив пуст' : 'Вам пока не назначены конкурсы'}
-              </p>
+              <p className="text-muted-foreground">Вам пока не назначены конкурсы</p>
             </Card>
           ) : (
             <div className="flex flex-col gap-4">
