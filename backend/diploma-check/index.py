@@ -43,14 +43,70 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     conn.autocommit = True
 
+    def calc_award(cur, row_id: int, contest_id: int) -> str:
+        cur.execute(f'''
+            SELECT pja.jury_member_id
+            FROM {SCHEMA}.program_jury_assignments pja
+            WHERE pja.program_row_id = %s AND pja.contest_id = %s
+        ''', (row_id, contest_id))
+        assignments = cur.fetchall()
+        jury_count = len(assignments)
+        if jury_count == 0:
+            return ''
+
+        cur.execute(f'''
+            SELECT ps.jury_member_id, ps.score
+            FROM {SCHEMA}.program_scores ps
+            WHERE ps.program_row_id = %s AND ps.contest_id = %s
+        ''', (row_id, contest_id))
+        scores_raw = {r['jury_member_id']: float(r['score']) for r in cur.fetchall()}
+
+        cur.execute(f'''
+            SELECT {', '.join([f'jury_count_{n}_{lvl}' for n in JURY_COUNTS for lvl in LEVELS])}
+            FROM {SCHEMA}.contest_scoring_rules
+            WHERE contest_id = %s
+        ''', (contest_id,))
+        scoring_row = cur.fetchone()
+
+        if scoring_row:
+            cols = ['grand_prix', 'laureate_1', 'laureate_2', 'laureate_3', 'diplom_1', 'diplom_2', 'diplom_3']
+            keys = [f'jury_count_{n}_{lvl}' for n in JURY_COUNTS for lvl in LEVELS]
+            thresholds = {}
+            for i, n in enumerate(range(1, 6)):
+                thresholds[n] = {cols[j]: scoring_row[keys[i*7+j]] for j in range(7)}
+        else:
+            thresholds = DEFAULT_THRESHOLDS
+
+        total = 0.0
+        all_scored = True
+        for a in assignments:
+            score = scores_raw.get(a['jury_member_id'])
+            if score is not None:
+                total += score
+            else:
+                all_scored = False
+
+        if not all_scored:
+            return ''
+
+        t = thresholds.get(jury_count, DEFAULT_THRESHOLDS.get(jury_count, {}))
+        if total >= t.get('grand_prix', 9999): return 'ОБЛАДАТЕЛЯ ГРАН-ПРИ'
+        if total >= t.get('laureate_1', 9999): return 'ЛАУРЕАТА I СТЕПЕНИ'
+        if total >= t.get('laureate_2', 9999): return 'ЛАУРЕАТА II СТЕПЕНИ'
+        if total >= t.get('laureate_3', 9999): return 'ЛАУРЕАТА III СТЕПЕНИ'
+        if total >= t.get('diplom_1', 9999): return 'ДИПЛОМАНТА I СТЕПЕНИ'
+        if total >= t.get('diplom_2', 9999): return 'ДИПЛОМАНТА II СТЕПЕНИ'
+        if total >= t.get('diplom_3', 9999): return 'ДИПЛОМАНТА III СТЕПЕНИ'
+        return 'УЧАСТНИКА'
+
     # Поиск дипломов конкретного участника — строго по его заявкам (participant_id),
     # чтобы не показывать чужие дипломы с других конкурсов при совпадении имени
     if participant_id and not diploma_number:
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(f'''
-                    SELECT DISTINCT cp.diploma_number, cp.participant_name, cp.director_name,
-                           cp.piece_title, cp.nomination, cp.directing_party,
+                    SELECT DISTINCT cp.id, cp.contest_id, cp.diploma_number, cp.participant_name, cp.director_name,
+                           cp.piece_title, cp.nomination, cp.directing_party, cp.order_number,
                            c.title as contest_title, c.location as contest_location,
                            c.event_date as contest_event_date
                     FROM {SCHEMA}.applications a
@@ -60,11 +116,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                       AND cp.diploma_number != ''
                     ORDER BY c.event_date DESC
                 ''', (participant_id,))
-                rows = cur.fetchall()
+                rows = [dict(r) for r in cur.fetchall()]
+                for r in rows:
+                    r['award'] = calc_award(cur, r.pop('id'), r.pop('contest_id'))
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'diplomas': [dict(r) for r in rows]})
+                    'body': json.dumps({'diplomas': rows})
                 }
         finally:
             conn.close()

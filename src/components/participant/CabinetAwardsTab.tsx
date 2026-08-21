@@ -11,20 +11,21 @@ export interface Diploma {
   piece_title: string;
   nomination: string;
   award: string;
+  order_number?: number;
   contest_title: string;
   contest_location: string;
   contest_event_date: string;
 }
 
 const AWARD_COLORS: Record<string, string> = {
-  'ОБЛАДАТЕЛЯ ГРАН-ПРИ': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-  'ЛАУРЕАТА I СТЕПЕНИ': 'bg-amber-100 text-amber-800 border-amber-300',
-  'ЛАУРЕАТА II СТЕПЕНИ': 'bg-orange-100 text-orange-800 border-orange-300',
-  'ЛАУРЕАТА III СТЕПЕНИ': 'bg-blue-100 text-blue-800 border-blue-300',
-  'ДИПЛОМАНТА I СТЕПЕНИ': 'bg-teal-100 text-teal-800 border-teal-300',
-  'ДИПЛОМАНТА II СТЕПЕНИ': 'bg-cyan-100 text-cyan-800 border-cyan-300',
-  'ДИПЛОМАНТА III СТЕПЕНИ': 'bg-sky-100 text-sky-800 border-sky-300',
-  'УЧАСТНИКА': 'bg-gray-100 text-gray-700 border-gray-300',
+  'ОБЛАДАТЕЛЯ ГРАН-ПРИ': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
+  'ЛАУРЕАТА I СТЕПЕНИ': 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+  'ЛАУРЕАТА II СТЕПЕНИ': 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
+  'ЛАУРЕАТА III СТЕПЕНИ': 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+  'ДИПЛОМАНТА I СТЕПЕНИ': 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300',
+  'ДИПЛОМАНТА II СТЕПЕНИ': 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300',
+  'ДИПЛОМАНТА III СТЕПЕНИ': 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300',
+  'УЧАСТНИКА': 'bg-muted text-muted-foreground',
 };
 
 interface CabinetAwardsTabProps {
@@ -69,12 +70,23 @@ const CabinetAwardsTab = ({ diplomas, diplomasLoading }: CabinetAwardsTabProps) 
                       </span>
                     )}
                   </div>
-                  <div className="mt-3 inline-flex items-center gap-2 bg-muted/60 border border-border rounded-lg px-3 py-2 w-fit">
-                    <Icon name="Hash" size={16} className="text-muted-foreground shrink-0" />
-                    <div>
-                      <p className="text-[11px] text-muted-foreground leading-none mb-1">ID диплома для проверки</p>
-                      <p className="font-mono font-semibold text-base leading-none">{d.diploma_number}</p>
+                  <div className="mt-3 flex items-center gap-3 flex-wrap">
+                    <div className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-lg px-3 py-2 w-fit">
+                      <Icon name="Hash" size={16} className="shrink-0 opacity-80" />
+                      <div>
+                        <p className="text-[11px] opacity-80 leading-none mb-1">ID диплома для проверки</p>
+                        <p className="font-mono font-semibold text-base leading-none">{d.diploma_number}</p>
+                      </div>
                     </div>
+                    {d.order_number != null && (
+                      <div className="inline-flex items-center gap-2 bg-muted/60 border border-border rounded-lg px-3 py-2 w-fit">
+                        <Icon name="ListOrdered" size={16} className="text-muted-foreground shrink-0" />
+                        <div>
+                          <p className="text-[11px] text-muted-foreground leading-none mb-1">Порядковый номер</p>
+                          <p className="font-mono font-semibold text-base leading-none">{d.order_number}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
