@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { generateRandomString, generateCodeChallenge } from '@/lib/vkPkce';
 
 const PARTICIPANT_AUTH_URL = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
 const RESET_PASSWORD_URL = 'https://functions.poehali.dev/58c43074-f156-4b89-af2b-0a1c4f3366c7';
@@ -41,20 +42,36 @@ const ParticipantLoginPage = () => {
       .catch(() => {});
   }, []);
 
-  const handleVkLogin = () => {
+  const handleVkLogin = async () => {
     if (!vkAppId) {
       toast({ title: 'Вход через ВК временно недоступен', variant: 'destructive' });
       return;
     }
     setVkLoading(true);
     if (contestId) localStorage.setItem('vkLoginContestId', contestId);
-    // На проде используем punycode-домен явно (см. комментарий у VK_CALLBACK_ORIGIN),
-    // на превью/локальной разработке — обычный origin, чтобы вход можно было тестировать.
+
+    // VK ID (актуальный протокол VK, OAuth 2.1 + PKCE — старый oauth.vk.com отключён)
     const isProdDomain = window.location.hostname.includes('индиго-арт.рф') || window.location.hostname.includes('xn----8sbhdtb7aluu');
     const origin = isProdDomain ? VK_CALLBACK_ORIGIN : window.location.origin;
     const redirectUri = `${origin}/vk-callback`;
-    const authUrl = `https://oauth.vk.com/authorize?client_id=${vkAppId}&display=page&redirect_uri=${encodeURIComponent(redirectUri)}&scope=email&response_type=code&v=5.199`;
-    window.location.href = authUrl;
+
+    const codeVerifier = generateRandomString(64);
+    const state = generateRandomString(32);
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+    sessionStorage.setItem('vkCodeVerifier', codeVerifier);
+    sessionStorage.setItem('vkState', state);
+
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: vkAppId,
+      redirect_uri: redirectUri,
+      state,
+      code_challenge: codeChallenge,
+      code_challenge_method: 's256',
+      scope: 'email',
+    });
+    window.location.href = `https://id.vk.com/authorize?${params.toString()}`;
   };
 
   const handleLogin = async (e: React.FormEvent) => {

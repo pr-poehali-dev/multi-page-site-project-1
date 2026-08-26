@@ -18,11 +18,22 @@ const VkCallbackPage = () => {
 
   useEffect(() => {
     const code = searchParams.get('code');
+    const state = searchParams.get('state');
+    const deviceId = searchParams.get('device_id') || '';
     const contestId = localStorage.getItem('vkLoginContestId') || '';
     localStorage.removeItem('vkLoginContestId');
 
+    const savedVerifier = sessionStorage.getItem('vkCodeVerifier') || '';
+    const savedState = sessionStorage.getItem('vkState') || '';
+    sessionStorage.removeItem('vkCodeVerifier');
+    sessionStorage.removeItem('vkState');
+
     if (!code) {
       setError('Не удалось получить код авторизации от ВК');
+      return;
+    }
+    if (!savedVerifier || (savedState && state && savedState !== state)) {
+      setError('Сессия входа истекла. Попробуйте войти через ВК ещё раз.');
       return;
     }
 
@@ -33,7 +44,7 @@ const VkCallbackPage = () => {
     fetch(PARTICIPANT_AUTH_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'vk_login', code, redirect_uri: redirectUri }),
+      body: JSON.stringify({ action: 'vk_login', code, redirect_uri: redirectUri, code_verifier: savedVerifier, device_id: deviceId }),
     })
       .then(async (res) => {
         const data = await res.json();

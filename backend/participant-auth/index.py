@@ -63,21 +63,30 @@ def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
 
-def vk_oauth_exchange_code(code: str, redirect_uri: str) -> Optional[Dict[str, Any]]:
-    '''Обменивает код авторизации VK ID на access_token и данные пользователя (Authorization Code Flow)'''
+def vk_oauth_exchange_code(code: str, redirect_uri: str, code_verifier: str, device_id: str) -> Optional[Dict[str, Any]]:
+    '''
+    Обменивает код авторизации на access_token через актуальный протокол VK ID (OAuth 2.1 + PKCE).
+    Старый oauth.vk.com/access_token отключён VK с осени 2025 года.
+    '''
     app_id = os.environ.get('VK_APP_ID')
     app_secret = os.environ.get('VK_APP_SECRET')
-    if not app_id or not app_secret:
+    if not app_id or not code_verifier:
         return None
     try:
-        resp = requests.get(
-            'https://oauth.vk.com/access_token',
-            params={
-                'client_id': app_id,
-                'client_secret': app_secret,
-                'redirect_uri': redirect_uri,
-                'code': code,
-            },
+        payload = {
+            'grant_type': 'authorization_code',
+            'code': code,
+            'code_verifier': code_verifier,
+            'client_id': app_id,
+            'redirect_uri': redirect_uri,
+            'device_id': device_id,
+            'state': '',
+        }
+        if app_secret:
+            payload['client_secret'] = app_secret
+        resp = requests.post(
+            'https://id.vk.com/oauth2/auth',
+            data=payload,
             timeout=8,
         )
         data = resp.json()
@@ -88,25 +97,19 @@ def vk_oauth_exchange_code(code: str, redirect_uri: str) -> Optional[Dict[str, A
     return data
 
 
-def vk_get_user_info(access_token: str, vk_user_id: int) -> Optional[Dict[str, Any]]:
-    '''Получает имя и screen_name пользователя VK по access_token'''
+def vk_get_user_info(access_token: str) -> Optional[Dict[str, Any]]:
+    '''Получает данные пользователя VK ID по access_token (новый эндпоинт id.vk.com)'''
+    app_id = os.environ.get('VK_APP_ID')
     try:
-        resp = requests.get(
-            f'{VK_API_URL}/users.get',
-            params={
-                'user_ids': vk_user_id,
-                'fields': 'screen_name,photo_200',
-                'access_token': access_token,
-                'v': VK_VERSION,
-            },
+        resp = requests.post(
+            'https://id.vk.com/oauth2/user_info',
+            data={'access_token': access_token, 'client_id': app_id},
             timeout=8,
         )
-        items = resp.json().get('response')
+        data = resp.json()
     except Exception:
         return None
-    if not items:
-        return None
-    return items[0]
+    return data.get('user')
 
 
 def check_admin_key(event: Dict[str, Any]) -> bool:
@@ -164,7 +167,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     PUT ?action=delete&id=X - удалить участника (требует X-Api-Key)
     PUT ?action=update_vk_link&id=X - обновить ссылку ВК участника (body: {vk_link}) (требует X-Api-Key)
     GET ?email=xxx - получить заявки по email (legacy)
-    POST ?action=vk_login - вход/регистрация через VK OAuth (body: {code, redirect_uri})
+    POST ?action=vk_login - вход/регистрация через VK ID OAuth 2.1+PKCE (body: {code, redirect_uri, code_verifier, device_id})
     POST ?action=complete_profile - дозаполнение профиля после VK-входа (требует Authorization: Bearer <session_token>, body: {phone, city, contactPosition})
     '''
     method: str = event.get('httpMethod', 'GET')
@@ -258,14 +261,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     cur.execute(f'UPDATE {SCHEMA}.participants SET push_token = %s WHERE id = %s', (push_token, pid))
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True}), 'isBase64Encoded': False}
 
-            # Вход/регистрация через VK OAuth (Authorization Code Flow)
+            # Вход/регистрация через VK ID (OAuth 2.1 + PKCE)
             if action == 'vk_login':
                 code = (body_data.get('code') or '').strip()
                 redirect_uri = (body_data.get('redirect_uri') or '').strip()
-                if not code or not redirect_uri:
-                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'code и redirect_uri обязательны'}), 'isBase64Encoded': False}
+                code_verifier = (body_data.get('code_verifier') or '').strip()
+                device_id = (body_data.get('device_id') or '').strip()
+                if not code or not redirect_uri or not code_verifier:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'code, redirect_uri и code_verifier обязательны'}), 'isBase64Encoded': False}
 
-                token_data = vk_oauth_exchange_code(code, redirect_uri)
+                token_data = vk_oauth_exchange_code(code, redirect_uri, code_verifier, device_id)
                 if not token_data:
                     return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Не удалось авторизоваться через ВК. Попробуйте ещё раз.'}), 'isBase64Encoded': False}
 
@@ -273,10 +278,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 vk_email = (token_data.get('email') or '').strip().lower()
                 access_token = token_data.get('access_token')
 
-                user_info = vk_get_user_info(access_token, vk_user_id) or {}
+                user_info = vk_get_user_info(access_token) or {}
                 full_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip() or 'Участник ВК'
-                screen_name = user_info.get('screen_name')
-                vk_link = f"https://vk.com/{screen_name}" if screen_name else f"https://vk.com/id{vk_user_id}"
+                vk_link = f"https://vk.com/id{vk_user_id}"
 
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
                     # 1. Ищем по vk_user_id (уже входили через ВК раньше)
