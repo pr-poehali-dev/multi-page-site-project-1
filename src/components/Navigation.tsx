@@ -22,6 +22,17 @@ const Navigation = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-border">
+      <div className="hidden lg:flex items-center justify-end gap-6 px-4 py-1.5 bg-muted/40 border-b border-border/60 text-xs text-muted-foreground">
+        <a href="mailto:info@индиго-арт.рф" className="flex items-center gap-1.5 hover:text-secondary transition-colors">
+          <Icon name="Mail" size={13} />
+          info@индиго-арт.рф
+        </a>
+        <a href="tel:+79224154463" className="flex items-center gap-1.5 hover:text-secondary transition-colors">
+          <Icon name="Phone" size={13} />
+          +7-922-415-4463
+        </a>
+      </div>
+
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           <Link to="/" className="flex items-center">
@@ -39,13 +50,8 @@ const Navigation = () => {
                 {link.label}
               </Link>
             ))}
-            <Link to="/contests">
-              <Button className="bg-secondary hover:bg-secondary/90">
-                Участвовать
-              </Button>
-            </Link>
             <Link to="/participant-login">
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button className="gap-2 bg-secondary hover:bg-secondary/90 shadow-md shadow-secondary/30">
                 <Icon name="User" size={16} />
                 Личный кабинет
               </Button>
@@ -74,13 +80,18 @@ const Navigation = () => {
                 {link.label}
               </Link>
             ))}
-            <Link to="/register">
-              <Button className="w-full mt-4 bg-secondary hover:bg-secondary/90">
-                Участвовать
-              </Button>
-            </Link>
+            <div className="flex flex-col gap-2 mt-4 mb-2 text-sm text-muted-foreground">
+              <a href="mailto:info@индиго-арт.рф" className="flex items-center gap-2 hover:text-secondary transition-colors">
+                <Icon name="Mail" size={15} />
+                info@индиго-арт.рф
+              </a>
+              <a href="tel:+79224154463" className="flex items-center gap-2 hover:text-secondary transition-colors">
+                <Icon name="Phone" size={15} />
+                +7-922-415-4463
+              </a>
+            </div>
             <Link to="/participant-login">
-              <Button variant="outline" className="w-full mt-2 gap-2">
+              <Button className="w-full gap-2 bg-secondary hover:bg-secondary/90">
                 <Icon name="User" size={16} />
                 Личный кабинет
               </Button>
