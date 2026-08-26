@@ -8,6 +8,7 @@ import Icon from '@/components/ui/icon';
 import ContestDetailHero from '@/components/contest/ContestDetailHero';
 import ContestDetailTabs from '@/components/contest/ContestDetailTabs';
 import ContestPhotoBackground from '@/components/contest/ContestPhotoBackground';
+import { useSEO } from '@/hooks/useSEO';
 
 interface Contest {
   id: number;
@@ -66,6 +67,15 @@ const ContestDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [photosToShow, setPhotosToShow] = useState<{ img: string; side: string; title?: string }[]>([]);
   const [juryMembers, setJuryMembers] = useState<JuryMember[]>([]);
+
+  useSEO({
+    title: contest ? contest.title : 'Конкурс',
+    description: contest
+      ? (contest.description || `${contest.title} — творческий конкурс ИНДИГО. Даты, номинации, условия участия и подача заявки.`).slice(0, 300)
+      : 'Информация о конкурсе ИНДИГО',
+    ogImage: contest?.poster_url || contest?.logo_url,
+    path: `/contests/${id}`,
+  });
 
   useEffect(() => {
     loadContest();
