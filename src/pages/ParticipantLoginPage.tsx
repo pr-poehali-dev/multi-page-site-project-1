@@ -71,7 +71,7 @@ const ParticipantLoginPage = () => {
       code_challenge_method: 's256',
       scope: 'email',
     });
-    window.location.href = `https://id.vk.com/authorize?${params.toString()}`;
+    window.location.href = `https://id.vk.ru/authorize?${params.toString()}`;
   };
 
   const handleLogin = async (e: React.FormEvent) => {

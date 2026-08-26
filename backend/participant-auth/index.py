@@ -66,7 +66,8 @@ def hash_password(password: str) -> str:
 def vk_oauth_exchange_code(code: str, redirect_uri: str, code_verifier: str, device_id: str) -> Optional[Dict[str, Any]]:
     '''
     Обменивает код авторизации на access_token через актуальный протокол VK ID (OAuth 2.1 + PKCE).
-    Старый oauth.vk.com/access_token отключён VK с осени 2025 года.
+    Старый oauth.vk.com/access_token отключён VK с осени 2025 года, .com-домены VK ID тоже
+    больше не отвечают — с 30.09.2025 VK перевёл все домены OAuth/API на зону .ru.
     '''
     app_id = os.environ.get('VK_APP_ID')
     app_secret = os.environ.get('VK_APP_SECRET')
@@ -85,7 +86,7 @@ def vk_oauth_exchange_code(code: str, redirect_uri: str, code_verifier: str, dev
         if app_secret:
             payload['client_secret'] = app_secret
         resp = requests.post(
-            'https://id.vk.com/oauth2/auth',
+            'https://id.vk.ru/oauth2/auth',
             data=payload,
             timeout=8,
         )
@@ -98,11 +99,11 @@ def vk_oauth_exchange_code(code: str, redirect_uri: str, code_verifier: str, dev
 
 
 def vk_get_user_info(access_token: str) -> Optional[Dict[str, Any]]:
-    '''Получает данные пользователя VK ID по access_token (новый эндпоинт id.vk.com)'''
+    '''Получает данные пользователя VK ID по access_token (актуальный эндпоинт id.vk.ru)'''
     app_id = os.environ.get('VK_APP_ID')
     try:
         resp = requests.post(
-            'https://id.vk.com/oauth2/user_info',
+            'https://id.vk.ru/oauth2/user_info',
             data={'access_token': access_token, 'client_id': app_id},
             timeout=8,
         )
