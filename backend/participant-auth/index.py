@@ -113,6 +113,46 @@ def vk_get_user_info(access_token: str) -> Optional[Dict[str, Any]]:
     return data.get('user')
 
 
+def vk_get_screen_name(vk_user_id: int) -> Optional[str]:
+    '''
+    Получает короткое имя страницы (screen_name) участника по его числовому VK ID через
+    открытый метод users.get с сервисным токеном сообщества. Нужно, чтобы сопоставить
+    вход через VK с уже сохранённой в анкете ссылкой на профиль (vk_link), даже если VK
+    не вернул email при авторизации.
+    '''
+    token = os.environ.get('VK_USER_TOKEN') or os.environ.get('VK_APP_SERVICE_TOKEN') or os.environ.get('VK_SERVICE_TOKEN')
+    if not token or not vk_user_id:
+        return None
+    try:
+        resp = requests.get(
+            f'{VK_API_URL}/users.get',
+            params={'user_ids': vk_user_id, 'fields': 'screen_name', 'access_token': token, 'v': VK_VERSION},
+            timeout=6,
+        )
+        items = resp.json().get('response')
+    except Exception:
+        return None
+    if not items:
+        return None
+    return items[0].get('screen_name')
+
+
+def find_participant_by_vk_link(cur, vk_user_id: int, screen_name: Optional[str]) -> Optional[Dict[str, Any]]:
+    '''Ищет участника по совпадению с ранее указанной в анкете ссылкой на VK-профиль (numeric id или screen_name)'''
+    patterns = [rf'(vk\.com|vk\.ru|vkontakte\.ru)/id{vk_user_id}($|[/?])']
+    if screen_name:
+        patterns.append(rf'(vk\.com|vk\.ru|vkontakte\.ru)/{re.escape(screen_name)}($|[/?])')
+    cur.execute(
+        f'''
+        SELECT id FROM {SCHEMA}.participants
+        WHERE vk_link ~* %s OR vk_link ~* %s
+        LIMIT 1
+        ''',
+        (patterns[0], patterns[1] if len(patterns) > 1 else 'a^')
+    )
+    return cur.fetchone()
+
+
 def check_admin_key(event: Dict[str, Any]) -> bool:
     '''Проверка ключа доступа для админских операций (X-Api-Key)'''
     expected = os.environ.get('ADMIN_API_KEY')
@@ -282,6 +322,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 user_info = vk_get_user_info(access_token) or {}
                 full_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip() or 'Участник ВК'
                 vk_link = f"https://vk.com/id{vk_user_id}"
+                screen_name = vk_get_screen_name(vk_user_id)
 
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
                     # 1. Ищем по vk_user_id (уже входили через ВК раньше)
@@ -295,10 +336,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         if existing:
                             cur.execute(f'UPDATE {SCHEMA}.participants SET vk_user_id = %s WHERE id = %s', (vk_user_id, existing['id']))
 
+                    if not existing:
+                        # 3. Ищем по ссылке на VK-профиль, ранее указанной в анкете (у большинства
+                        # уже заполнена при регистрации) — сопоставляем по numeric id или screen_name
+                        existing = find_participant_by_vk_link(cur, vk_user_id, screen_name)
+                        if existing:
+                            cur.execute(f'UPDATE {SCHEMA}.participants SET vk_user_id = %s WHERE id = %s', (vk_user_id, existing['id']))
+
                     if existing:
                         participant_id = existing['id']
                     else:
-                        # 3. Новый участник — создаём с минимумом данных, profile_complete=false
+                        # 4. Новый участник — создаём с минимумом данных, profile_complete=false
                         fallback_email = vk_email or f'vk{vk_user_id}@vk.placeholder'
                         cur.execute(
                             f'''
