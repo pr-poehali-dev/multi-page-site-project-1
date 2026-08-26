@@ -11,6 +11,10 @@ import { useToast } from '@/hooks/use-toast';
 
 const PARTICIPANT_AUTH_URL = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
 const RESET_PASSWORD_URL = 'https://functions.poehali.dev/58c43074-f156-4b89-af2b-0a1c4f3366c7';
+// VK сверяет redirect_uri побайтово с адресом в настройках приложения — кириллический домен
+// индиго-арт.рф браузер и VK всегда трактуют как punycode, поэтому используем его явно,
+// чтобы избежать VK-ошибки "Security Error" из-за расхождения кириллица/punycode.
+const VK_CALLBACK_ORIGIN = 'https://xn----8sbhdtb7aluu.xn--p1ai';
 
 type Mode = 'login' | 'reset-request' | 'reset-confirm';
 
@@ -44,7 +48,11 @@ const ParticipantLoginPage = () => {
     }
     setVkLoading(true);
     if (contestId) localStorage.setItem('vkLoginContestId', contestId);
-    const redirectUri = `${window.location.origin}/vk-callback`;
+    // На проде используем punycode-домен явно (см. комментарий у VK_CALLBACK_ORIGIN),
+    // на превью/локальной разработке — обычный origin, чтобы вход можно было тестировать.
+    const isProdDomain = window.location.hostname.includes('индиго-арт.рф') || window.location.hostname.includes('xn----8sbhdtb7aluu');
+    const origin = isProdDomain ? VK_CALLBACK_ORIGIN : window.location.origin;
+    const redirectUri = `${origin}/vk-callback`;
     const authUrl = `https://oauth.vk.com/authorize?client_id=${vkAppId}&display=page&redirect_uri=${encodeURIComponent(redirectUri)}&scope=email&response_type=code&v=5.199`;
     window.location.href = authUrl;
   };

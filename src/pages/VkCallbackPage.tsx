@@ -6,6 +6,9 @@ import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 
 const PARTICIPANT_AUTH_URL = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
+// Должен точно совпадать с redirect_uri, который отправлялся в VK при переходе на авторизацию
+// (см. ParticipantLoginPage) — иначе VK откажет в обмене кода на токен.
+const VK_CALLBACK_ORIGIN = 'https://xn----8sbhdtb7aluu.xn--p1ai';
 
 const VkCallbackPage = () => {
   const [searchParams] = useSearchParams();
@@ -23,7 +26,9 @@ const VkCallbackPage = () => {
       return;
     }
 
-    const redirectUri = `${window.location.origin}/vk-callback`;
+    const isProdDomain = window.location.hostname.includes('индиго-арт.рф') || window.location.hostname.includes('xn----8sbhdtb7aluu');
+    const origin = isProdDomain ? VK_CALLBACK_ORIGIN : window.location.origin;
+    const redirectUri = `${origin}/vk-callback`;
 
     fetch(PARTICIPANT_AUTH_URL, {
       method: 'POST',
