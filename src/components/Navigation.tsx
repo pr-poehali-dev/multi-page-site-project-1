@@ -11,7 +11,6 @@ const Navigation = () => {
     { path: '/', label: 'Главная' },
     { path: '/about', label: 'О нас' },
     { path: '/contests', label: 'Календарь конкурсов' },
-    { path: '/concerts', label: 'Афиша концертов' },
     { path: '/jury', label: 'Жюри' },
     { path: '/gallery', label: 'Галерея' },
     { path: '/sponsors', label: 'Нас поддерживают' },
