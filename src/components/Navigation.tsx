@@ -24,13 +24,13 @@ const Navigation = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-border">
       <div className="mx-auto px-4 max-w-[1800px]">
         <div className="flex items-center justify-between h-20 gap-4">
-          <div className="hidden 2xl:flex items-center gap-4 shrink-0">
-            <a href="mailto:info@индиго-арт.рф" className="flex items-center gap-1.5 text-sm font-semibold text-secondary hover:text-secondary/80 transition-colors whitespace-nowrap">
-              <Icon name="Mail" size={16} />
+          <div className="hidden 2xl:flex flex-col justify-center gap-1 shrink-0 px-3 py-1.5 rounded-xl bg-gradient-to-br from-secondary/10 to-primary/10 border border-secondary/20">
+            <a href="mailto:info@индиго-арт.рф" className="flex items-center gap-1.5 text-xs font-bold text-secondary hover:text-secondary/80 transition-colors whitespace-nowrap">
+              <Icon name="Mail" size={13} />
               info@индиго-арт.рф
             </a>
-            <a href="tel:+79224154463" className="flex items-center gap-1.5 text-sm font-semibold text-secondary hover:text-secondary/80 transition-colors whitespace-nowrap">
-              <Icon name="Phone" size={16} />
+            <a href="tel:+79224154463" className="flex items-center gap-1.5 text-xs font-bold text-secondary hover:text-secondary/80 transition-colors whitespace-nowrap">
+              <Icon name="Phone" size={13} />
               +7-922-415-4463
             </a>
           </div>
@@ -78,13 +78,13 @@ const Navigation = () => {
                 {link.label}
               </Link>
             ))}
-            <div className="flex flex-col gap-2 mt-4 mb-2 text-sm text-muted-foreground">
-              <a href="mailto:info@индиго-арт.рф" className="flex items-center gap-2 hover:text-secondary transition-colors">
-                <Icon name="Mail" size={15} />
+            <div className="flex flex-col gap-2 mt-4 mb-4 p-3 rounded-xl bg-gradient-to-br from-secondary/10 to-primary/10 border border-secondary/20">
+              <a href="mailto:info@индиго-арт.рф" className="flex items-center gap-2 text-sm font-bold text-secondary hover:text-secondary/80 transition-colors">
+                <Icon name="Mail" size={16} />
                 info@индиго-арт.рф
               </a>
-              <a href="tel:+79224154463" className="flex items-center gap-2 hover:text-secondary transition-colors">
-                <Icon name="Phone" size={15} />
+              <a href="tel:+79224154463" className="flex items-center gap-2 text-sm font-bold text-secondary hover:text-secondary/80 transition-colors">
+                <Icon name="Phone" size={16} />
                 +7-922-415-4463
               </a>
             </div>
