@@ -9,6 +9,7 @@ import { useSEO } from '@/hooks/useSEO';
 
 const GALLERY_URL = 'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?endpoint=gallery';
 const CONTESTS_URL = 'https://functions.poehali.dev/53be7002-a84e-4d38-9e81-96d7078f25b3';
+const REVIEWS_URL = 'https://functions.poehali.dev/7b3c1e0e-bd68-4b73-9377-740689560912?entity=reviews&action=public';
 
 interface GalleryItem {
   id: number;
@@ -32,6 +33,21 @@ interface Contest {
   event_date?: string;
 }
 
+interface Review {
+  id: number;
+  full_name: string;
+  team_name: string;
+  text: string;
+  photo_url?: string;
+}
+
+const trustStats = [
+  { icon: 'Trophy', value: '20+', label: 'Проведённых конкурсов' },
+  { icon: 'Award', value: '270+', label: 'Дипломов вручено' },
+  { icon: 'Users', value: '190+', label: 'Талантливых участников' },
+  { icon: 'Star', value: '30+', label: 'Экспертов в жюри' },
+];
+
 const HomePage = () => {
   useSEO({
     title: 'Конкурсы и фестивали для детей: вокал, хореография, театр',
@@ -41,15 +57,17 @@ const HomePage = () => {
   });
   const [featuredPhotos, setFeaturedPhotos] = useState<GalleryItem[]>([]);
   const [contests, setContests] = useState<Contest[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [contestsLoading, setContestsLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [galleryResponse, contestsResponse] = await Promise.all([
+        const [galleryResponse, contestsResponse, reviewsResponse] = await Promise.all([
           fetch(GALLERY_URL),
-          fetch(CONTESTS_URL)
+          fetch(CONTESTS_URL),
+          fetch(REVIEWS_URL)
         ]);
         
         const galleryData = await galleryResponse.json();
@@ -65,6 +83,9 @@ const HomePage = () => {
           .sort((a: Contest, b: Contest) => new Date(a.end_date).getTime() - new Date(b.end_date).getTime())
           .slice(0, 3);
         setContests(upcomingContests);
+
+        const reviewsData = await reviewsResponse.json();
+        setReviews((reviewsData.reviews || []).slice(0, 3));
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -196,6 +217,22 @@ const HomePage = () => {
         </div>
       </section>
 
+      <section className="py-14 px-4 bg-gradient-to-br from-primary to-secondary text-white relative overflow-hidden">
+        <div className="container mx-auto relative z-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+            {trustStats.map((stat, index) => (
+              <div key={index} className="text-center animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-white/15 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <Icon name={stat.icon} size={26} className="text-white" />
+                </div>
+                <div className="text-3xl md:text-4xl font-heading font-bold mb-1">{stat.value}</div>
+                <div className="text-sm opacity-90">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -317,6 +354,54 @@ const HomePage = () => {
         </div>
       </section>
 
+      {reviews.length > 0 && (
+        <section className="py-20 px-4">
+          <div className="container mx-auto">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 bg-secondary/10 text-secondary px-4 py-1.5 rounded-full text-sm font-medium mb-4">
+                <Icon name="MessageCircle" size={16} />
+                Отзывы участников
+              </div>
+              <h2 className="text-4xl md:text-5xl font-heading font-bold">
+                Нам доверяют
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              {reviews.map((review, index) => (
+                <Card
+                  key={review.id}
+                  className="p-6 animate-fade-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    {review.photo_url ? (
+                      <img src={review.photo_url} alt={review.full_name} className="w-12 h-12 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-semibold">
+                        {review.full_name.charAt(0)}
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold text-sm">{review.full_name}</p>
+                      {review.team_name && <p className="text-xs text-muted-foreground">{review.team_name}</p>}
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-5">{review.text}</p>
+                </Card>
+              ))}
+            </div>
+            <div className="text-center mt-10">
+              <Link to="/reviews">
+                <Button variant="outline">
+                  Читать все отзывы
+                  <Icon name="ArrowRight" size={16} className="ml-2" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="py-20 px-4 bg-gradient-to-br from-primary to-secondary text-white">
         <div className="container mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-heading font-bold mb-6">
@@ -325,9 +410,18 @@ const HomePage = () => {
           <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
             Регистрируйтесь на платформе, загружайте свои работы и участвуйте в конкурсах
           </p>
-          <Button size="lg" className="bg-white text-primary hover:bg-white/90 text-lg px-8">
-            Начать прямо сейчас
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/register">
+              <Button size="lg" className="bg-white text-primary hover:bg-white/90 text-lg px-8">
+                Начать прямо сейчас
+              </Button>
+            </Link>
+            <Link to="/contests">
+              <Button size="lg" variant="outline" className="bg-transparent border-white text-white hover:bg-white/10 hover:text-white text-lg px-8">
+                Смотреть конкурсы
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
