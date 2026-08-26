@@ -42,9 +42,9 @@ interface Review {
 }
 
 const trustStats = [
-  { icon: 'Trophy', value: '20+', label: 'Проведённых конкурсов' },
-  { icon: 'Award', value: '270+', label: 'Дипломов вручено' },
-  { icon: 'Users', value: '190+', label: 'Талантливых участников' },
+  { icon: 'Trophy', value: '50+', label: 'Конкурсов в год' },
+  { icon: 'Users', value: '2500+', label: 'Участников в год' },
+  { icon: 'Award', value: '250+', label: 'Грантов вручено' },
   { icon: 'Star', value: '30+', label: 'Экспертов в жюри' },
 ];
 
@@ -235,7 +235,7 @@ const HomePage = () => {
 
       <section className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="flex flex-wrap justify-center gap-6 max-w-4xl mx-auto">
             {features.map((feature, index) => {
               let linkPath = '#';
               if (feature.title === 'Конкурсы') linkPath = '/contests';
@@ -246,7 +246,7 @@ const HomePage = () => {
               const CardContent = (
                 <Card
                   key={index}
-                  className="p-8 text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-2 animate-fade-in cursor-pointer"
+                  className="p-8 text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-2 animate-fade-in cursor-pointer w-full sm:w-64"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center mx-auto mb-4 rotate-6 hover:rotate-12 transition-transform">
@@ -258,7 +258,7 @@ const HomePage = () => {
               );
 
               return linkPath !== '#' ? (
-                <Link key={index} to={linkPath}>
+                <Link key={index} to={linkPath} className="w-full sm:w-64">
                   {CardContent}
                 </Link>
               ) : (
