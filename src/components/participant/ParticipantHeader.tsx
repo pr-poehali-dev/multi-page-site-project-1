@@ -10,6 +10,7 @@ export interface Participant {
   phone: string;
   vk_link: string;
   city: string;
+  profile_complete?: boolean;
 }
 
 interface ParticipantHeaderProps {

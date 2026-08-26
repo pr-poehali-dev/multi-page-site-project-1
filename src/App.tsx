@@ -22,6 +22,7 @@ import JuryLoginPage from "./pages/JuryLoginPage";
 import JuryPanelPage from "./pages/JuryPanelPage";
 import ParticipantLoginPage from "./pages/ParticipantLoginPage";
 import ParticipantCabinetPage from "./pages/ParticipantCabinetPage";
+import VkCallbackPage from "./pages/VkCallbackPage";
 import NotFound from "./pages/NotFound";
 import VkPosterPage from "./pages/VkPosterPage";
 import DiplomaCheckPage from "./pages/DiplomaCheckPage";
@@ -68,6 +69,7 @@ const App = () => (
           <Route path="/jury-panel" element={<JuryPanelPage />} />
           <Route path="/participant-login" element={<ParticipantLoginPage />} />
           <Route path="/participant-cabinet" element={<ParticipantCabinetPage />} />
+          <Route path="/vk-callback" element={<VkCallbackPage />} />
           <Route path="/vk-poster" element={<VkPosterPage />} />
           <Route path="/diploma-check" element={<DiplomaCheckPage />} />
           <Route path="/shop" element={<ShopPage />} />

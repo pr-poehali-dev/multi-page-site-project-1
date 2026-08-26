@@ -14,6 +14,7 @@ import CabinetChatTab, { ChatMessage } from '@/components/participant/CabinetCha
 import CabinetOrdersTab, { ShopOrder } from '@/components/participant/CabinetOrdersTab';
 import MaintenanceBanner from '@/components/participant/MaintenanceBanner';
 import CabinetSidebar from '@/components/participant/CabinetSidebar';
+import CompleteProfileModal from '@/components/participant/CompleteProfileModal';
 
 const DIPLOMA_URL = 'https://functions.poehali.dev/1806f979-38b3-442e-b8ef-fa6827104251';
 const AUTH_URL = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-985257092904';
@@ -59,6 +60,8 @@ const ParticipantCabinetPage = () => {
       return;
     }
   }, [navigate]);
+
+  const needsProfileCompletion = participant?.profile_complete === false;
 
   // Подгружаем актуальные статусы заявок с сервера — на случай, если организатор
   // открыл/закрыл редактирование, пока участник был залогинен, а также после
@@ -251,6 +254,11 @@ const ParticipantCabinetPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
+
+      <CompleteProfileModal
+        open={needsProfileCompletion}
+        onComplete={(updated) => setParticipant(updated)}
+      />
 
       <main className="flex-1 pt-32 pb-20 px-4 md:px-6">
         <div className="container mx-auto max-w-[1600px]">

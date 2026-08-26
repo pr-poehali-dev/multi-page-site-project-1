@@ -63,6 +63,52 @@ def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
 
+def vk_oauth_exchange_code(code: str, redirect_uri: str) -> Optional[Dict[str, Any]]:
+    '''Обменивает код авторизации VK ID на access_token и данные пользователя (Authorization Code Flow)'''
+    app_id = os.environ.get('VK_APP_ID')
+    app_secret = os.environ.get('VK_APP_SECRET')
+    if not app_id or not app_secret:
+        return None
+    try:
+        resp = requests.get(
+            'https://oauth.vk.com/access_token',
+            params={
+                'client_id': app_id,
+                'client_secret': app_secret,
+                'redirect_uri': redirect_uri,
+                'code': code,
+            },
+            timeout=8,
+        )
+        data = resp.json()
+    except Exception:
+        return None
+    if 'error' in data or 'access_token' not in data:
+        return None
+    return data
+
+
+def vk_get_user_info(access_token: str, vk_user_id: int) -> Optional[Dict[str, Any]]:
+    '''Получает имя и screen_name пользователя VK по access_token'''
+    try:
+        resp = requests.get(
+            f'{VK_API_URL}/users.get',
+            params={
+                'user_ids': vk_user_id,
+                'fields': 'screen_name,photo_200',
+                'access_token': access_token,
+                'v': VK_VERSION,
+            },
+            timeout=8,
+        )
+        items = resp.json().get('response')
+    except Exception:
+        return None
+    if not items:
+        return None
+    return items[0]
+
+
 def check_admin_key(event: Dict[str, Any]) -> bool:
     '''Проверка ключа доступа для админских операций (X-Api-Key)'''
     expected = os.environ.get('ADMIN_API_KEY')
@@ -118,6 +164,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     PUT ?action=delete&id=X - удалить участника (требует X-Api-Key)
     PUT ?action=update_vk_link&id=X - обновить ссылку ВК участника (body: {vk_link}) (требует X-Api-Key)
     GET ?email=xxx - получить заявки по email (legacy)
+    POST ?action=vk_login - вход/регистрация через VK OAuth (body: {code, redirect_uri})
+    POST ?action=complete_profile - дозаполнение профиля после VK-входа (требует Authorization: Bearer <session_token>, body: {phone, city, contactPosition})
     '''
     method: str = event.get('httpMethod', 'GET')
     
@@ -209,6 +257,106 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 with conn.cursor() as cur:
                     cur.execute(f'UPDATE {SCHEMA}.participants SET push_token = %s WHERE id = %s', (push_token, pid))
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True}), 'isBase64Encoded': False}
+
+            # Вход/регистрация через VK OAuth (Authorization Code Flow)
+            if action == 'vk_login':
+                code = (body_data.get('code') or '').strip()
+                redirect_uri = (body_data.get('redirect_uri') or '').strip()
+                if not code or not redirect_uri:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'code и redirect_uri обязательны'}), 'isBase64Encoded': False}
+
+                token_data = vk_oauth_exchange_code(code, redirect_uri)
+                if not token_data:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Не удалось авторизоваться через ВК. Попробуйте ещё раз.'}), 'isBase64Encoded': False}
+
+                vk_user_id = token_data.get('user_id')
+                vk_email = (token_data.get('email') or '').strip().lower()
+                access_token = token_data.get('access_token')
+
+                user_info = vk_get_user_info(access_token, vk_user_id) or {}
+                full_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip() or 'Участник ВК'
+                screen_name = user_info.get('screen_name')
+                vk_link = f"https://vk.com/{screen_name}" if screen_name else f"https://vk.com/id{vk_user_id}"
+
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    # 1. Ищем по vk_user_id (уже входили через ВК раньше)
+                    cur.execute(f'SELECT id FROM {SCHEMA}.participants WHERE vk_user_id = %s', (vk_user_id,))
+                    existing = cur.fetchone()
+
+                    if not existing and vk_email:
+                        # 2. Ищем по email, который VK мог вернуть (привязываем VK к существующему аккаунту)
+                        cur.execute(f'SELECT id FROM {SCHEMA}.participants WHERE email = %s', (vk_email,))
+                        existing = cur.fetchone()
+                        if existing:
+                            cur.execute(f'UPDATE {SCHEMA}.participants SET vk_user_id = %s WHERE id = %s', (vk_user_id, existing['id']))
+
+                    if existing:
+                        participant_id = existing['id']
+                    else:
+                        # 3. Новый участник — создаём с минимумом данных, profile_complete=false
+                        fallback_email = vk_email or f'vk{vk_user_id}@vk.placeholder'
+                        cur.execute(
+                            f'''
+                            INSERT INTO {SCHEMA}.participants (full_name, email, phone, city, vk_link, vk_user_id, profile_complete)
+                            VALUES (%s, %s, '', '', %s, %s, FALSE)
+                            RETURNING id
+                            ''',
+                            (full_name, fallback_email, vk_link, vk_user_id)
+                        )
+                        participant_id = cur.fetchone()['id']
+
+                    cur.execute(
+                        f'''
+                        SELECT id, full_name, contact_position, email, phone, vk_link, city, profile_complete
+                        FROM {SCHEMA}.participants WHERE id = %s
+                        ''',
+                        (participant_id,)
+                    )
+                    participant = dict(cur.fetchone())
+
+                    cur.execute(
+                        f'''
+                        SELECT a.id, a.contest_id, a.category, a.performance_title, a.participation_format,
+                               a.nomination, a.status, a.submitted_at,
+                               c.title as contest_title, c.start_date, c.end_date
+                        FROM {SCHEMA}.applications a
+                        JOIN {SCHEMA}.contests c ON a.contest_id = c.id
+                        WHERE a.participant_id = %s
+                        ORDER BY a.submitted_at DESC
+                        ''',
+                        (participant_id,)
+                    )
+                    applications = [dict(r) for r in cur.fetchall()]
+                    for app in applications:
+                        if app.get('submitted_at'): app['submitted_at'] = app['submitted_at'].isoformat()
+                        if app.get('start_date'): app['start_date'] = app['start_date'].isoformat()
+                        if app.get('end_date'): app['end_date'] = app['end_date'].isoformat()
+
+                token = create_session_token(conn, participant_id)
+                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True, 'participant': participant, 'applications': applications, 'token': token}), 'isBase64Encoded': False}
+
+            # Дозаполнение профиля после первого входа через VK
+            if action == 'complete_profile':
+                pid = get_participant_id_by_session(conn, event)
+                if not pid:
+                    return {'statusCode': 401, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Требуется авторизация'}), 'isBase64Encoded': False}
+                phone = (body_data.get('phone') or '').strip()
+                city = (body_data.get('city') or '').strip()
+                contact_position = (body_data.get('contactPosition') or '').strip()
+                if not phone or not city or not contact_position:
+                    return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Заполните все поля'}), 'isBase64Encoded': False}
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(
+                        f'''
+                        UPDATE {SCHEMA}.participants
+                        SET phone = %s, city = %s, contact_position = %s, profile_complete = TRUE
+                        WHERE id = %s
+                        RETURNING id, full_name, contact_position, email, phone, vk_link, city, profile_complete
+                        ''',
+                        (phone, city, contact_position, pid)
+                    )
+                    participant = dict(cur.fetchone())
+                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True, 'participant': participant}), 'isBase64Encoded': False}
 
             # Отправка сообщения в чат
             if action == 'send':
@@ -404,6 +552,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         elif method == 'GET':
             params = event.get('queryStringParameters') or {}
             action = params.get('action')
+
+            # Публичная выдача VK App ID для кнопки "Войти через ВК" на фронте
+            if action == 'vk_config':
+                app_id = os.environ.get('VK_APP_ID', '')
+                return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'vk_app_id': app_id}), 'isBase64Encoded': False}
 
             # Список участников для администратора
             if action == 'list':

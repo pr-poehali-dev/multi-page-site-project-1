@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -23,10 +23,31 @@ const ParticipantLoginPage = () => {
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [vkAppId, setVkAppId] = useState('');
+  const [vkLoading, setVkLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const contestId = searchParams.get('contest');
+
+  useEffect(() => {
+    fetch(`${PARTICIPANT_AUTH_URL}?action=vk_config`)
+      .then((r) => r.json())
+      .then((d) => setVkAppId(d.vk_app_id || ''))
+      .catch(() => {});
+  }, []);
+
+  const handleVkLogin = () => {
+    if (!vkAppId) {
+      toast({ title: 'Вход через ВК временно недоступен', variant: 'destructive' });
+      return;
+    }
+    setVkLoading(true);
+    if (contestId) localStorage.setItem('vkLoginContestId', contestId);
+    const redirectUri = `${window.location.origin}/vk-callback`;
+    const authUrl = `https://oauth.vk.com/authorize?client_id=${vkAppId}&display=page&redirect_uri=${encodeURIComponent(redirectUri)}&scope=email&response_type=code&v=5.199`;
+    window.location.href = authUrl;
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,6 +183,33 @@ const ParticipantLoginPage = () => {
                     </Button>
                   </div>
                 </form>
+
+                {vkAppId && (
+                  <>
+                    <div className="flex items-center gap-3 my-5">
+                      <div className="h-px bg-border flex-1" />
+                      <span className="text-xs text-muted-foreground">или</span>
+                      <div className="h-px bg-border flex-1" />
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleVkLogin}
+                      disabled={vkLoading}
+                      className="w-full gap-2 text-white"
+                      style={{ backgroundColor: '#0077FF' }}
+                    >
+                      {vkLoading ? (
+                        <Icon name="Loader2" size={18} className="animate-spin" />
+                      ) : (
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                          <path d="M15.07 2H8.93A6.93 6.93 0 002 8.93v6.14A6.93 6.93 0 008.93 22h6.14A6.93 6.93 0 0022 15.07V8.93A6.93 6.93 0 0015.07 2zm3.38 12.21c-.93 2.48-2.87 3.16-6.45 3.16s-5.52-.68-6.45-3.16c-.32-.85-.48-1.8-.48-3.21s.16-2.36.48-3.21C6.48 5.31 8.42 4.63 12 4.63s5.52.68 6.45 3.16c.32.85.48 1.8.48 3.21s-.16 2.36-.48 3.21z"/>
+                          <path d="M9.85 8.85v6.3l5.5-3.15-5.5-3.15z"/>
+                        </svg>
+                      )}
+                      Войти через ВКонтакте
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
           )}
