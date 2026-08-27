@@ -25,6 +25,13 @@ export interface Application {
   location?: string;
   event_date?: string;
   admin_comment?: string;
+  materials?: Array<{
+    id: number;
+    file_name: string;
+    file_type: string;
+    file_size: number;
+    file_url: string;
+  }>;
 }
 
 interface CabinetApplicationsTabProps {
@@ -223,6 +230,38 @@ const CabinetApplicationsTab = ({ applications, fieldLabelsByContest, onNewAppli
                     <p className="text-sm">
                       {new Date(app.start_date).toLocaleDateString('ru-RU')} — {new Date(app.end_date).toLocaleDateString('ru-RU')}
                     </p>
+                  </div>
+                )}
+                {app.materials && app.materials.length > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-sm font-medium mb-2 flex items-center gap-1.5">
+                      <Icon name="Clapperboard" size={16} className="text-secondary" />
+                      Материалы по выступлению ({app.materials.length})
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {app.materials.map((m) => {
+                        const isVideo = m.file_type?.startsWith('video/');
+                        return (
+                          <a
+                            key={m.id}
+                            href={m.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download
+                            className="group relative rounded-lg overflow-hidden border bg-muted/30 block"
+                          >
+                            {isVideo ? (
+                              <video src={m.file_url} className="w-full h-24 object-cover" />
+                            ) : (
+                              <img src={m.file_url} alt={m.file_name} className="w-full h-24 object-cover" />
+                            )}
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                              <Icon name="Download" size={20} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
                 {isLocked && !isArchived && (

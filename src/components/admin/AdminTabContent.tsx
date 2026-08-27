@@ -17,8 +17,9 @@ import NewsManagementTab from '@/components/admin/NewsManagementTab';
 import PushNotificationsTab from '@/components/admin/PushNotificationsTab';
 import VkCheckTab from '@/components/admin/VkCheckTab';
 import VkCommunityParserTab from '@/components/admin/VkCommunityParserTab';
+import MaterialsTab from '@/components/admin/MaterialsTab';
 
-type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications' | 'vk-check' | 'vk-parser';
+type TabType = 'applications' | 'contests' | 'concerts' | 'jury' | 'jury-accounts' | 'scoring' | 'gallery' | 'results' | 'partners' | 'program' | 'shop' | 'participants' | 'form-builder' | 'diplomas' | 'reviews' | 'news' | 'push-notifications' | 'vk-check' | 'vk-parser' | 'materials';
 
 interface AdminTabContentProps {
   activeTab: TabType;
@@ -279,6 +280,11 @@ const AdminTabContent = ({
     case 'vk-parser':
       return (
         <VkCommunityParserTab />
+      );
+
+    case 'materials':
+      return (
+        <MaterialsTab contests={contests} />
       );
 
     default:
