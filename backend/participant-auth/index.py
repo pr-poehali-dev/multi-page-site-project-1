@@ -556,7 +556,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 with conn.cursor() as cur:
                     cur.execute(
                         f'''UPDATE {SCHEMA}.participants
-                            SET email = %s, phone = '', password_hash = NULL, full_name = '[удалён]'
+                            SET email = %s, phone = '', password_hash = NULL, full_name = '[удалён]',
+                                vk_user_id = NULL, vk_link = NULL
                             WHERE id = %s''',
                         (f'deleted_{pid}@deleted.local', pid)
                     )
