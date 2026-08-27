@@ -723,6 +723,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                             a.submitted_at,
                             a.editing_locked,
                             a.admin_comment,
+                            a.materials_link,
                             c.title as contest_title,
                             c.start_date,
                             c.end_date,
@@ -736,26 +737,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         ORDER BY a.submitted_at DESC
                     ''', (pid,))
                     applications = cur.fetchall()
-                    app_ids = [a['id'] for a in applications]
-                    materials_by_app: Dict[int, list] = {aid: [] for aid in app_ids}
-                    if app_ids:
-                        cur.execute(
-                            f'''SELECT id, application_id, file_name, file_type, file_size, file_url, uploaded_at
-                                FROM {SCHEMA}.application_files
-                                WHERE application_id = ANY(%s) AND category = 'material'
-                                ORDER BY uploaded_at ASC''',
-                            (app_ids,)
-                        )
-                        for row in cur.fetchall():
-                            row = dict(row)
-                            if row.get('uploaded_at'): row['uploaded_at'] = row['uploaded_at'].isoformat()
-                            materials_by_app[row['application_id']].append(row)
                     for app in applications:
                         if app.get('submitted_at'): app['submitted_at'] = app['submitted_at'].isoformat()
                         if app.get('start_date'): app['start_date'] = app['start_date'].isoformat()
                         if app.get('end_date'): app['end_date'] = app['end_date'].isoformat()
                         app['is_editable'] = not app.get('editing_locked') and not app.get('applications_locked')
-                        app['materials'] = materials_by_app.get(app['id'], [])
                     return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'applications': [dict(a) for a in applications]}), 'isBase64Encoded': False}
 
             # Чат с участником
