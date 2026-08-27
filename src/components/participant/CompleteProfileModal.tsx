@@ -11,19 +11,22 @@ const AUTH_URL = 'https://functions.poehali.dev/52234468-777f-4edf-ba7a-98525709
 
 interface CompleteProfileModalProps {
   open: boolean;
+  currentEmail: string;
   onComplete: (participant: Participant) => void;
 }
 
-const CompleteProfileModal = ({ open, onComplete }: CompleteProfileModalProps) => {
+const CompleteProfileModal = ({ open, currentEmail, onComplete }: CompleteProfileModalProps) => {
+  const needsEmail = currentEmail.endsWith('@vk.placeholder');
   const [phone, setPhone] = useState('');
-  const [city, setCity] = useState('');
+  const [region, setRegion] = useState('');
   const [contactPosition, setContactPosition] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone.trim() || !city.trim() || !contactPosition.trim()) {
+    if (!phone.trim() || !region.trim() || !contactPosition.trim() || (needsEmail && !email.trim())) {
       toast({ title: 'Заполните все поля', variant: 'destructive' });
       return;
     }
@@ -36,7 +39,12 @@ const CompleteProfileModal = ({ open, onComplete }: CompleteProfileModalProps) =
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ phone: phone.trim(), city: city.trim(), contactPosition: contactPosition.trim() }),
+        body: JSON.stringify({
+          phone: phone.trim(),
+          city: region.trim(),
+          contactPosition: contactPosition.trim(),
+          ...(needsEmail ? { email: email.trim() } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -46,6 +54,9 @@ const CompleteProfileModal = ({ open, onComplete }: CompleteProfileModalProps) =
         const parsed = JSON.parse(stored);
         parsed.participant = data.participant;
         localStorage.setItem('participantData', JSON.stringify(parsed));
+      }
+      if (data.participant?.email) {
+        localStorage.setItem('participantEmail', data.participant.email);
       }
       toast({ title: 'Профиль дополнен', description: 'Спасибо! Теперь всё готово.' });
       onComplete(data.participant);
@@ -69,13 +80,19 @@ const CompleteProfileModal = ({ open, onComplete }: CompleteProfileModalProps) =
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          {needsEmail && (
+            <div className="space-y-2">
+              <Label htmlFor="cp-email">Email</Label>
+              <Input id="cp-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="cp-phone">Телефон</Label>
             <Input id="cp-phone" placeholder="+7 900 000-00-00" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={loading} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="cp-city">Город</Label>
-            <Input id="cp-city" placeholder="Ваш город" value={city} onChange={(e) => setCity(e.target.value)} disabled={loading} />
+            <Label htmlFor="cp-region">Регион проживания</Label>
+            <Input id="cp-region" placeholder="Например: Московская область" value={region} onChange={(e) => setRegion(e.target.value)} disabled={loading} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="cp-position">Должность контактного лица</Label>

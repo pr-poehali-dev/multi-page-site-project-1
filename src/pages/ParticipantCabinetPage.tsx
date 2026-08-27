@@ -257,6 +257,7 @@ const ParticipantCabinetPage = () => {
 
       <CompleteProfileModal
         open={needsProfileCompletion}
+        currentEmail={participant?.email || ''}
         onComplete={(updated) => setParticipant(updated)}
       />
 

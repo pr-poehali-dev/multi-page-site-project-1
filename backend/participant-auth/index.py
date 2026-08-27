@@ -396,18 +396,40 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 phone = (body_data.get('phone') or '').strip()
                 city = (body_data.get('city') or '').strip()
                 contact_position = (body_data.get('contactPosition') or '').strip()
+                email = (body_data.get('email') or '').strip().lower()
                 if not phone or not city or not contact_position:
                     return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Заполните все поля'}), 'isBase64Encoded': False}
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                    cur.execute(
-                        f'''
-                        UPDATE {SCHEMA}.participants
-                        SET phone = %s, city = %s, contact_position = %s, profile_complete = TRUE
-                        WHERE id = %s
-                        RETURNING id, full_name, contact_position, email, phone, vk_link, city, profile_complete
-                        ''',
-                        (phone, city, contact_position, pid)
-                    )
+                    # Если у участника placeholder-почта от VK (vk<id>@vk.placeholder) — email обязателен
+                    cur.execute(f'SELECT email FROM {SCHEMA}.participants WHERE id = %s', (pid,))
+                    row = cur.fetchone()
+                    current_email = row['email'] if row else ''
+                    needs_email = current_email.endswith('@vk.placeholder')
+                    if needs_email:
+                        if not email:
+                            return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Укажите email'}), 'isBase64Encoded': False}
+                        cur.execute(f'SELECT id FROM {SCHEMA}.participants WHERE email = %s AND id != %s', (email, pid))
+                        if cur.fetchone():
+                            return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Этот email уже используется другим участником'}), 'isBase64Encoded': False}
+                        cur.execute(
+                            f'''
+                            UPDATE {SCHEMA}.participants
+                            SET phone = %s, city = %s, contact_position = %s, email = %s, profile_complete = TRUE
+                            WHERE id = %s
+                            RETURNING id, full_name, contact_position, email, phone, vk_link, city, profile_complete
+                            ''',
+                            (phone, city, contact_position, email, pid)
+                        )
+                    else:
+                        cur.execute(
+                            f'''
+                            UPDATE {SCHEMA}.participants
+                            SET phone = %s, city = %s, contact_position = %s, profile_complete = TRUE
+                            WHERE id = %s
+                            RETURNING id, full_name, contact_position, email, phone, vk_link, city, profile_complete
+                            ''',
+                            (phone, city, contact_position, pid)
+                        )
                     participant = dict(cur.fetchone())
                 return {'statusCode': 200, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'success': True, 'participant': participant}), 'isBase64Encoded': False}
 
