@@ -134,11 +134,16 @@ const AboutPage = () => {
               </p>
             </Card>
             
-            <Card className="p-8 md:p-12 bg-gradient-to-br from-primary/5 to-secondary/5 shadow-xl space-y-4">
+            <Card className="p-8 md:p-12 bg-gradient-to-br from-primary/5 to-secondary/5 shadow-xl">
               <p className="text-lg md:text-xl leading-relaxed text-center">
                 Платформа объединяет музыкантов, вокалистов, танцоров и других творческих личностей. Мы ежегодно проводим <span className="md:whitespace-nowrap"><span className="font-bold text-primary">50+ фестивалей-конкурсов</span>, где принимают участие артисты из <span className="font-bold text-secondary">5 стран</span>.</span>
               </p>
-              <p className="text-lg md:text-xl leading-relaxed text-center">Наши проекты включаются в Перечень мероприятий, результаты которых заносятся в Государственный реестр лиц, проявивших выдающиеся способности (ГИР), а полученные дипломы засчитываются в портфолио при поступлении в «Артек», «Орлёнок», «Океан» и другие всероссийские детские центры.</p>
+            </Card>
+
+            <Card className="p-8 md:p-12 bg-gradient-to-br from-secondary/10 to-primary/10 border-2 border-secondary/20 shadow-xl">
+              <p className="text-lg md:text-xl leading-relaxed text-center">
+                Наши проекты включаются в Перечень мероприятий, результаты которых заносятся в <span className="font-bold text-secondary">Государственный реестр лиц, проявивших выдающиеся способности (ГИР)</span>, а полученные дипломы засчитываются в портфолио при поступлении в «Артек», «Орлёнок», «Океан» и другие всероссийские детские центры.
+              </p>
             </Card>
 
             <Card className="p-8 md:p-12 bg-gradient-to-br from-secondary/5 to-primary/5 shadow-xl">
