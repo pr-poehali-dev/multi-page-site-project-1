@@ -2,7 +2,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useSEO } from '@/hooks/useSEO';
 
 const GALLERY_URL = 'https://functions.poehali.dev/27d46d11-5402-4428-b786-4d2eb3aace8b?endpoint=gallery';
@@ -17,15 +17,12 @@ interface GalleryItem {
 const AboutPage = () => {
   useSEO({
     title: 'О нас — международный конкурсный проект для детей',
-    description: 'ИНДИГО — международный и всероссийский конкурсный проект для детей и творческих коллективов. Более 600 участников, 67+ конкурсов, признание в 17 странах, включая Беларусь и Южную Осетию.',
+    description: 'ИНДИГО — международный и всероссийский конкурсный проект для детей и творческих коллективов. Более 600 участников, 67+ конкурсов, признание в 5 странах, включая Беларусь и Южную Осетию.',
     keywords: 'о конкурсе ИНДИГО, международный творческий конкурс, всероссийский конкурс для детей, творческое объединение, детский конкурс отзывы, конкурс-фестиваль, фонд поддержки детского творчества, фестиваль детского и юношеского творчества, юные таланты, творческие коллективы, тур на конкурс, поездка на фестиваль',
     path: '/about',
   });
   const [galleryPhotos, setGalleryPhotos] = useState<GalleryItem[]>([]);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
-  const [countsStarted, setCountsStarted] = useState(false);
-  const [counts, setCounts] = useState([0, 0, 0, 0]);
-  const statsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const loadGallery = async () => {
@@ -50,46 +47,11 @@ const AboutPage = () => {
   }, [galleryPhotos]);
 
   const stats = [
-    { target: 3500, suffix: '+', label: 'Участников в год' },
-    { target: 67, suffix: '+', label: 'Конкурсов в год' },
-    { target: 17, suffix: '', label: 'Стран' },
-    { target: 350, suffix: '+', label: 'Грантов в год' },
+    { icon: 'Trophy', value: '50+', label: 'Конкурсов в год' },
+    { icon: 'Users', value: '2500+', label: 'Участников в год' },
+    { icon: 'Award', value: '250+', label: 'Грантов вручено' },
+    { icon: 'Star', value: '30+', label: 'Экспертов в жюри' },
   ];
-
-  useEffect(() => {
-    const el = statsRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setCountsStarted(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.3 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!countsStarted) return;
-    const duration = 1500;
-    const startTime = performance.now();
-    let frame: number;
-
-    const tick = (now: number) => {
-      const progress = Math.min((now - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCounts(stats.map(s => Math.round(s.target * eased)));
-      if (progress < 1) {
-        frame = requestAnimationFrame(tick);
-      }
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countsStarted]);
 
   const values = [
     {
@@ -174,29 +136,30 @@ const AboutPage = () => {
             
             <Card className="p-8 md:p-12 bg-gradient-to-br from-primary/5 to-secondary/5 shadow-xl">
               <p className="text-lg md:text-xl leading-relaxed text-center">
-                Наша платформа объединяет музыкантов, вокалистов, танцоров и других творческих личностей. С момента основания мы провели более <span className="font-bold text-primary">67 конкурсов</span>, в которых приняли участие артисты из <span className="font-bold text-secondary">17 стран мира</span>.
+                Наша платформа объединяет музыкантов, вокалистов, танцоров и других творческих личностей. С момента основания мы провели более <span className="font-bold text-primary">67 конкурсов</span>, в которых приняли участие артисты из <span className="font-bold text-secondary">5 стран мира</span>.
               </p>
             </Card>
 
             <Card className="p-8 md:p-12 bg-gradient-to-br from-secondary/5 to-primary/5 shadow-xl">
               <p className="text-lg md:text-xl leading-relaxed text-center">
-                Каждый конкурс оценивается профессиональным жюри, состоящим из известных деятелей искусства. Мы создаем возможности для роста и развития талантов на мировой сцене.
+                Каждый конкурс оценивается профессиональным жюри, состоящим из известных деятелей искусства. Мы создаем возможности для роста и развития талантов на большой сцене.
               </p>
             </Card>
           </div>
 
-          <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16 rounded-2xl bg-gradient-to-br from-primary to-secondary py-10 px-4">
             {stats.map((stat, index) => (
-              <Card 
-                key={index} 
-                className="p-6 text-center hover:shadow-lg transition-shadow animate-scale-in"
+              <div
+                key={index}
+                className="text-center animate-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className="text-4xl font-heading font-bold text-secondary mb-2">
-                  {counts[index]}{stat.suffix}
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-white/15 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <Icon name={stat.icon} size={26} className="text-white" />
                 </div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </Card>
+                <div className="text-3xl md:text-4xl font-heading font-bold mb-1 text-white">{stat.value}</div>
+                <div className="text-sm text-white/90">{stat.label}</div>
+              </div>
             ))}
           </div>
 
