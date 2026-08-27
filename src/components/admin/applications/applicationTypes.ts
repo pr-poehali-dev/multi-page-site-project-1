@@ -30,6 +30,10 @@ export interface Application {
   editing_locked?: boolean;
   applications_locked?: boolean;
   admin_comment?: string;
+  materials_link?: string | null;
+  start_date?: string;
+  end_date?: string;
+  event_date?: string;
   files?: Array<{
     file_name: string;
     file_type: string;

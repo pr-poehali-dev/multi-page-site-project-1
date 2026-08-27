@@ -927,6 +927,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         a.submitted_at,
                         a.editing_locked,
                         a.admin_comment,
+                        a.materials_link,
                         p.full_name,
                         p.contact_position,
                         p.email,
@@ -935,6 +936,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         p.city,
                         c.title as contest_title,
                         c.applications_locked,
+                        c.start_date,
+                        c.end_date,
+                        c.event_date,
                         n.name as nomination_name
                     FROM applications a
                     JOIN participants p ON a.participant_id = p.id
@@ -961,6 +965,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 for app in applications:
                     if app.get('submitted_at'):
                         app['submitted_at'] = app['submitted_at'].isoformat()
+                    if app.get('start_date'):
+                        app['start_date'] = app['start_date'].isoformat()
+                    if app.get('end_date'):
+                        app['end_date'] = app['end_date'].isoformat()
                 
                 # Получаем файлы для каждой заявки отдельным курсором
                 for app in applications:
@@ -984,6 +992,33 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'isBase64Encoded': False
                 }
         
+        elif endpoint != 'gallery' and method == 'PUT' and query_string_params.get('action') == 'set_materials_link':
+            # Задать/убрать ссылку на папку с фото/видео с выступления (Яндекс.Диск, Облако Mail.ru и т.п.)
+            body = json.loads(event.get('body', '{}'))
+            app_id = body.get('application_id')
+            materials_link = (body.get('materials_link') or '').strip()
+
+            if not app_id:
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'application_id обязателен'}),
+                    'isBase64Encoded': False
+                }
+
+            with conn.cursor() as cur:
+                cur.execute(
+                    f'UPDATE {SCHEMA}.applications SET materials_link = %s WHERE id = %s',
+                    (materials_link or None, app_id)
+                )
+
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'success': True, 'materials_link': materials_link}),
+                'isBase64Encoded': False
+            }
+
         elif endpoint != 'gallery' and method == 'PUT' and query_string_params.get('action') == 'update_fields':
             # Редактирование админом полей заявки и контактных данных участника
             body = json.loads(event.get('body', '{}'))
