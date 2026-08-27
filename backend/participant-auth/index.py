@@ -554,10 +554,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 if not pid:
                     return {'statusCode': 400, 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}, 'body': json.dumps({'error': 'Укажите id'}), 'isBase64Encoded': False}
                 with conn.cursor() as cur:
+                    # Полное удаление аккаунта: стираем все личные данные и доступ к нему без возможности
+                    # восстановления (email, пароль, телефон, город, ВК-профиль, вход через ВК), а также
+                    # удаляем личные данные, не относящиеся к истории конкурса (сессии входа, переписку в чате).
+                    # Заявки на конкурс и результаты жюри НЕ удаляются — они должны сохраняться в истории конкурса.
+                    cur.execute(f'DELETE FROM {SCHEMA}.participant_sessions WHERE participant_id = %s', (pid,))
+                    cur.execute(f'DELETE FROM {SCHEMA}.chat_messages WHERE participant_id = %s', (pid,))
                     cur.execute(
                         f'''UPDATE {SCHEMA}.participants
                             SET email = %s, phone = '', password_hash = NULL, full_name = '[удалён]',
-                                vk_user_id = NULL, vk_link = NULL
+                                vk_user_id = NULL, vk_link = NULL, city = '', contact_position = '',
+                                push_token = NULL, reset_code = NULL, reset_code_expires_at = NULL
                             WHERE id = %s''',
                         (f'deleted_{pid}@deleted.local', pid)
                     )
