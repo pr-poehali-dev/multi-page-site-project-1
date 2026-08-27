@@ -244,8 +244,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         if method == 'POST':
             params = event.get('queryStringParameters') or {}
-            action = params.get('action')
             body_data = json.loads(event.get('body', '{}'))
+            action = params.get('action') or body_data.get('action')
 
             # Регистрация нового аккаунта участника (без подачи заявки на конкурс)
             if action == 'register':
